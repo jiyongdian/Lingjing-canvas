@@ -1,0 +1,630 @@
+html:is(.theme-light, .theme-warm-light, .theme-mist-blue, .theme-chrome-blue, .theme-chrome-rose, .theme-chrome-sand, .theme-chrome-teal, .theme-sage-green) .react-flow__controls {
+  overflow: hidden !important;
+  background: color-mix(in srgb, var(--wj-surface, #ffffff) 92%, var(--wj-bg, #f8fafc) 8%) !important;
+  background-color: color-mix(in srgb, var(--wj-surface, #ffffff) 92%, var(--wj-bg, #f8fafc) 8%) !important;
+  border: 1px solid color-mix(in srgb, var(--wj-border, #cbd5e1) 82%, var(--wj-accent, #3b82f6) 18%) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 14px 30px color-mix(in srgb, var(--wanjuan-theme-shadow, rgba(79, 109, 255, 0.18)) 34%, transparent) !important;
+}
+
+html:is(.theme-light, .theme-warm-light, .theme-mist-blue, .theme-chrome-blue, .theme-chrome-rose, .theme-chrome-sand, .theme-chrome-teal, .theme-sage-green) .react-flow__controls-button {
+  background: color-mix(in srgb, var(--wj-surface, #ffffff) 94%, transparent) !important;
+  background-color: color-mix(in srgb, var(--wj-surface, #ffffff) 94%, transparent) !important;
+  border-bottom: 1px solid color-mix(in srgb, var(--wj-border, #cbd5e1) 66%, transparent) !important;
+  color: color-mix(in srgb, var(--wj-text, #1f2937) 88%, var(--wj-accent, #3b82f6) 12%) !important;
+  -webkit-text-fill-color: color-mix(in srgb, var(--wj-text, #1f2937) 88%, var(--wj-accent, #3b82f6) 12%) !important;
+  box-shadow: none !important;
+}
+
+html:is(.theme-light, .theme-warm-light, .theme-mist-blue, .theme-chrome-blue, .theme-chrome-rose, .theme-chrome-sand, .theme-chrome-teal, .theme-sage-green) .react-flow__controls-button:last-child {
+  border-bottom: 0 !important;
+}
+
+html:is(.theme-light, .theme-warm-light, .theme-mist-blue, .theme-chrome-blue, .theme-chrome-rose, .theme-chrome-sand, .theme-chrome-teal, .theme-sage-green) .react-flow__controls-button:hover {
+  background: color-mix(in srgb, var(--wj-accent, #3b82f6) 14%, var(--wj-surface, #ffffff) 86%) !important;
+  background-color: color-mix(in srgb, var(--wj-accent, #3b82f6) 14%, var(--wj-surface, #ffffff) 86%) !important;
+  color: color-mix(in srgb, var(--wj-accent, #3b82f6) 62%, var(--wj-text, #1f2937) 38%) !important;
+  -webkit-text-fill-color: color-mix(in srgb, var(--wj-accent, #3b82f6) 62%, var(--wj-text, #1f2937) 38%) !important;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--wj-accent, #3b82f6) 32%, var(--wj-border, #cbd5e1) 68%) !important;
+}
+
+html:is(.theme-light, .theme-warm-light, .theme-mist-blue, .theme-chrome-blue, .theme-chrome-rose, .theme-chrome-sand, .theme-chrome-teal, .theme-sage-green) .wanjuan-auto-download-knob {
+  background: color-mix(in srgb, var(--wj-surface, #ffffff) 76%, var(--wj-accent, #3b82f6) 24%) !important;
+  border: 1px solid color-mix(in srgb, var(--wj-accent, #3b82f6) 36%, var(--wj-border, #cbd5e1) 64%) !important;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--wj-accent, #3b82f6) 16%, transparent) !important;
+}
+
+html:is(.theme-light, .theme-warm-light, .theme-mist-blue, .theme-chrome-blue, .theme-chrome-rose, .theme-chrome-sand, .theme-chrome-teal, .theme-sage-green) .wanjuan-auto-download-switch:has(input:checked) .wanjuan-auto-download-knob {
+  background: color-mix(in srgb, var(--wj-accent, #3b82f6) 34%, #ffffff 66%) !important;
+  border-color: color-mix(in srgb, var(--wj-accent, #3b82f6) 44%, #ffffff 56%) !important;
+}
+
+html:is(.theme-light, .theme-warm-light, .theme-mist-blue, .theme-chrome-blue, .theme-chrome-rose, .theme-chrome-sand, .theme-chrome-teal, .theme-sage-green) .wanjuan-canvas-minimap,
+html:is(.theme-light, .theme-warm-light, .theme-mist-blue, .theme-chrome-blue, .theme-chrome-rose, .theme-chrome-sand, .theme-chrome-teal, .theme-sage-green) .react-flow__minimap {
+  background: color-mix(in srgb, var(--wj-surface, #ffffff) 90%, var(--wj-bg, #f8fafc) 10%) !important;
+  background-color: color-mix(in srgb, var(--wj-surface, #ffffff) 90%, var(--wj-bg, #f8fafc) 10%) !important;
+  border-color: color-mix(in srgb, var(--wj-border, #cbd5e1) 78%, var(--wj-accent, #3b82f6) 22%) !important;
+}
+
+html:is(.theme-light, .theme-warm-light, .theme-mist-blue, .theme-chrome-blue, .theme-chrome-rose, .theme-chrome-sand, .theme-chrome-teal, .theme-sage-green) .react-flow__minimap-mask {
+  fill: color-mix(in srgb, var(--wj-bg, #f8fafc) 78%, var(--wj-accent, #3b82f6) 22%) !important;
+  opacity: 0.5 !important;
+}
+
+html:is(.theme-light, .theme-warm-light, .theme-mist-blue, .theme-chrome-blue, .theme-chrome-rose, .theme-chrome-sand, .theme-chrome-teal, .theme-sage-green) .react-flow__minimap-node {
+  fill: color-mix(in srgb, var(--wj-accent, #3b82f6) 38%, var(--wj-surface-2, #f1f5f9) 62%) !important;
+  stroke: color-mix(in srgb, var(--wj-accent, #3b82f6) 46%, var(--wj-border, #cbd5e1) 54%) !important;
+}
+
+.wanjuan-canvas-lock-control {
+  position: relative !important;
+}
+
+.wanjuan-canvas-lock-control svg {
+  opacity: 0 !important;
+}
+
+.wanjuan-canvas-lock-control::before,
+.wanjuan-canvas-lock-control::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+
+.wanjuan-canvas-lock-control::before {
+  top: 8px;
+  width: 11px;
+  height: 9px;
+  border: 2px solid currentColor;
+  border-bottom: 0;
+  border-radius: 8px 8px 0 0;
+  opacity: 0.94;
+}
+
+.wanjuan-canvas-lock-control::after {
+  top: 14px;
+  width: 15px;
+  height: 11px;
+  border-radius: 4px;
+  background: currentColor;
+  box-shadow: inset 0 -4px 0 color-mix(in srgb, var(--wj-surface, #ffffff) 24%, transparent);
+}
+
+.wanjuan-canvas-lock-control.wanjuan-canvas-lock-open::before {
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-left-color: transparent;
+}
+
+.wanjuan-canvas-lock-control.wanjuan-canvas-lock-open {
+  color: color-mix(in srgb, var(--wj-accent, #38bdf8) 72%, var(--wj-text, #e5e7eb) 28%) !important;
+}
+
+.wanjuan-canvas-lock-control.wanjuan-canvas-lock-closed {
+  color: color-mix(in srgb, var(--wj-muted, #94a3b8) 78%, var(--wj-text, #e5e7eb) 22%) !important;
+}
+
+.wanjuan-canvas-lock-control.wanjuan-canvas-lock-open:hover {
+  color: var(--wj-accent, #38bdf8) !important;
+}
+
+.wanjuan-canvas-lock-control.wanjuan-canvas-lock-closed:hover {
+  color: color-mix(in srgb, var(--wj-accent, #38bdf8) 54%, var(--wj-muted, #94a3b8) 46%) !important;
+}
+
+html:is(.theme-light, .theme-warm-light, .theme-mist-blue, .theme-chrome-blue, .theme-chrome-rose, .theme-chrome-sand, .theme-chrome-teal, .theme-sage-green) .wanjuan-canvas-lock-control.wanjuan-canvas-lock-open {
+  background: color-mix(in srgb, var(--wj-accent, #3b82f6) 18%, var(--wj-surface, #ffffff) 82%) !important;
+  color: color-mix(in srgb, var(--wj-accent, #3b82f6) 74%, var(--wj-text, #1f2937) 26%) !important;
+}
+
+html:is(.theme-light, .theme-warm-light, .theme-mist-blue, .theme-chrome-blue, .theme-chrome-rose, .theme-chrome-sand, .theme-chrome-teal, .theme-sage-green) .wanjuan-canvas-lock-control.wanjuan-canvas-lock-closed {
+  background: color-mix(in srgb, var(--wj-muted, #64748b) 10%, var(--wj-surface, #ffffff) 90%) !important;
+  color: color-mix(in srgb, var(--wj-muted, #64748b) 76%, var(--wj-text, #1f2937) 24%) !important;
+}
+
+.wanjuan-settings-nav-item {
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.wanjuan-settings-nav-item-active {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--wj-accent, #60a5fa) 28%, var(--wj-surface-2, #252a32) 72%),
+    color-mix(in srgb, var(--wj-accent, #60a5fa) 14%, var(--wj-surface, #1f242b) 86%)
+  ) !important;
+  border-color: color-mix(in srgb, var(--wj-accent, #60a5fa) 72%, var(--wj-border, #4b5563) 28%) !important;
+  color: #ffffff !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    0 8px 18px color-mix(in srgb, var(--wj-accent, #60a5fa) 18%, transparent) !important;
+}
+
+.wanjuan-settings-nav-item-active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 8px;
+  bottom: 8px;
+  width: 3px;
+  border-radius: 0 999px 999px 0;
+  background: color-mix(in srgb, var(--wj-accent, #60a5fa) 84%, #ffffff 16%);
+  pointer-events: none;
+}
+
+.wanjuan-settings-nav-item-active svg,
+.wanjuan-settings-nav-item-active span {
+  color: #ffffff !important;
+}
+
+.wanjuan-project-group-dialog {
+  background: color-mix(in srgb, var(--wj-surface, #1f242b) 94%, var(--wj-bg, #111827) 6%) !important;
+  border-color: color-mix(in srgb, var(--wj-border, #4b5563) 78%, var(--wj-accent, #60a5fa) 22%) !important;
+  color: var(--wj-text, #e5e7eb) !important;
+  box-shadow: 0 24px 80px color-mix(in srgb, var(--wanjuan-theme-shadow, rgba(0, 0, 0, 0.58)) 82%, transparent) !important;
+}
+
+.wanjuan-project-group-dialog-header,
+.wanjuan-project-group-dialog-form {
+  background: color-mix(in srgb, var(--wj-surface, #1f242b) 88%, var(--wj-bg, #111827) 12%) !important;
+  border-color: color-mix(in srgb, var(--wj-border, #4b5563) 72%, transparent) !important;
+}
+
+.wanjuan-project-group-dialog h3,
+.wanjuan-project-group-dialog button {
+  color: var(--wj-text, #e5e7eb) !important;
+}
+
+.wanjuan-project-group-dialog span {
+  color: color-mix(in srgb, var(--wj-muted, #94a3b8) 78%, var(--wj-text, #e5e7eb) 22%) !important;
+}
+
+.wanjuan-project-group-input,
+.wanjuan-project-group-select {
+  background: color-mix(in srgb, var(--wj-surface-2, #252a32) 86%, var(--wj-bg, #111827) 14%) !important;
+  border-color: color-mix(in srgb, var(--wj-border, #4b5563) 82%, transparent) !important;
+  color: var(--wj-text, #e5e7eb) !important;
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--wj-text, #ffffff) 5%, transparent) !important;
+}
+
+.wanjuan-project-group-input::placeholder {
+  color: color-mix(in srgb, var(--wj-muted, #94a3b8) 72%, transparent) !important;
+}
+
+.wanjuan-project-group-input:focus,
+.wanjuan-project-group-select:focus {
+  border-color: color-mix(in srgb, var(--wj-accent, #60a5fa) 68%, var(--wj-border, #4b5563) 32%) !important;
+}
+
+.wanjuan-project-group-primary {
+  background: color-mix(in srgb, var(--wj-accent, #60a5fa) 72%, var(--wj-surface-2, #252a32) 28%) !important;
+  border: 1px solid color-mix(in srgb, var(--wj-accent, #60a5fa) 78%, #ffffff 22%) !important;
+  color: #ffffff !important;
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--wj-accent, #60a5fa) 22%, transparent) !important;
+}
+
+.wanjuan-project-group-primary:hover {
+  background: color-mix(in srgb, var(--wj-accent, #60a5fa) 86%, var(--wj-surface-2, #252a32) 14%) !important;
+}
+
+.wanjuan-project-group-dialog-body {
+  background: color-mix(in srgb, var(--wj-bg, #111827) 78%, var(--wj-surface, #1f242b) 22%) !important;
+}
+
+.wanjuan-project-group-section {
+  background: color-mix(in srgb, var(--wj-surface, #1f242b) 86%, var(--wj-bg, #111827) 14%) !important;
+  border-color: color-mix(in srgb, var(--wj-border, #4b5563) 82%, transparent) !important;
+}
+
+.wanjuan-project-group-section-header {
+  background: color-mix(in srgb, var(--wj-surface-2, #252a32) 88%, var(--wj-accent, #60a5fa) 12%) !important;
+  border-color: color-mix(in srgb, var(--wj-border, #4b5563) 72%, transparent) !important;
+}
+
+.wanjuan-project-group-row {
+  background: color-mix(in srgb, var(--wj-surface, #1f242b) 88%, var(--wj-bg, #111827) 12%) !important;
+  border-color: color-mix(in srgb, var(--wj-border, #4b5563) 64%, transparent) !important;
+}
+
+.wanjuan-project-group-row:hover {
+  background: color-mix(in srgb, var(--wj-accent, #60a5fa) 10%, var(--wj-surface, #1f242b) 90%) !important;
+}
+
+.react-flow__node .wanjuan-tts-node,
+.react-flow__node .wanjuan-tts-node-frame,
+.react-flow__node .wanjuan-tts-node-header,
+.react-flow__node .wanjuan-tts-node-body,
+.react-flow__node .wanjuan-tts-node :is(button, select, audio, label) {
+  cursor: pointer !important;
+}
+
+.react-flow__node .wanjuan-tts-node :is(input, textarea) {
+  cursor: text !important;
+}
+
+.react-flow__node .wanjuan-tts-node .wanjuan-tts-node-run-button:disabled {
+  cursor: wait !important;
+}
+
+.wanjuan-resource-filter-group {
+  background: color-mix(in srgb, var(--wj-surface, #1f242b) 88%, var(--wj-bg, #111827) 12%) !important;
+  border: 1px solid color-mix(in srgb, var(--wj-border, #4b5563) 78%, var(--wj-accent, #60a5fa) 22%) !important;
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--wj-text, #ffffff) 8%, transparent),
+    0 8px 18px color-mix(in srgb, var(--wanjuan-theme-shadow, rgba(0, 0, 0, 0.42)) 44%, transparent) !important;
+}
+
+.wanjuan-resource-filter-button {
+  color: color-mix(in srgb, var(--wj-text, #e5e7eb) 76%, var(--wj-muted, #94a3b8) 24%) !important;
+  background: color-mix(in srgb, var(--wj-surface-2, #252a32) 72%, var(--wj-bg, #111827) 28%) !important;
+  border: 1px solid transparent !important;
+  font-weight: 600 !important;
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--wj-text, #ffffff) 5%, transparent) !important;
+  cursor: pointer !important;
+}
+
+.wanjuan-resource-filter-button:hover {
+  color: var(--wj-text, #f8fafc) !important;
+  background: color-mix(in srgb, var(--wj-accent, #60a5fa) 16%, var(--wj-surface-2, #252a32) 84%) !important;
+  border-color: color-mix(in srgb, var(--wj-accent, #60a5fa) 28%, var(--wj-border, #4b5563) 72%) !important;
+}
+
+.wanjuan-resource-filter-button-active {
+  color: #ffffff !important;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--wj-accent, #60a5fa) 76%, var(--wj-surface-2, #252a32) 24%),
+    color-mix(in srgb, var(--wj-accent, #60a5fa) 52%, var(--wj-surface, #1f242b) 48%)
+  ) !important;
+  border-color: color-mix(in srgb, var(--wj-accent, #60a5fa) 72%, #ffffff 28%) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    0 7px 16px color-mix(in srgb, var(--wj-accent, #60a5fa) 26%, transparent) !important;
+}
+
+html:is(.theme-light, .theme-warm-light, .theme-mist-blue, .theme-chrome-blue, .theme-chrome-rose, .theme-chrome-sand, .theme-chrome-teal, .theme-sage-green) .wanjuan-resource-filter-button {
+  color: color-mix(in srgb, var(--wj-text, #1f2937) 78%, var(--wj-muted, #64748b) 22%) !important;
+  background: color-mix(in srgb, var(--wj-surface, #ffffff) 78%, var(--wj-surface-2, #f1f5f9) 22%) !important;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--wj-border, #cbd5e1) 42%, transparent) !important;
+}
+
+html:is(.theme-light, .theme-warm-light, .theme-mist-blue, .theme-chrome-blue, .theme-chrome-rose, .theme-chrome-sand, .theme-chrome-teal, .theme-sage-green) .wanjuan-resource-filter-button-active {
+  color: #ffffff !important;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--wj-accent, #3b82f6) 86%, var(--wj-text, #1f2937) 14%),
+    color-mix(in srgb, var(--wj-accent, #3b82f6) 68%, var(--wj-surface, #ffffff) 32%)
+  ) !important;
+  border-color: color-mix(in srgb, var(--wj-accent, #3b82f6) 72%, #ffffff 28%) !important;
+}
+
+.wanjuan-settings-card-header {
+  min-height: 58px !important;
+  gap: 16px !important;
+  padding: 14px 18px !important;
+}
+
+.wanjuan-settings-card {
+  padding-bottom: 0 !important;
+}
+
+.wanjuan-settings-card:has(.wanjuan-settings-card-body) {
+  padding-bottom: 16px !important;
+}
+
+.wanjuan-settings-section {
+  gap: 18px !important;
+}
+
+.wanjuan-settings-card-title {
+  min-width: 0 !important;
+  flex: 1 1 auto !important;
+  line-height: 1.35 !important;
+}
+
+.wanjuan-settings-card-header > div:last-child {
+  flex: 0 0 auto !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+}
+
+.wanjuan-settings-chip-button {
+  position: relative !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: 76px !important;
+  height: 34px !important;
+  padding: 0 34px 0 14px !important;
+  border-radius: 10px !important;
+  border-color: color-mix(in srgb, var(--wj-border, #4b5563) 64%, var(--wj-accent, #60a5fa) 36%) !important;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--wj-surface-2, #252a32) 86%, #ffffff 7%), color-mix(in srgb, var(--wj-surface, #1f242b) 92%, var(--wj-bg, #111827) 8%)) !important;
+  color: color-mix(in srgb, var(--wj-text, #f8fafc) 88%, var(--wj-muted, #94a3b8) 12%) !important;
+  font-size: 12px !important;
+  font-weight: 650 !important;
+  letter-spacing: 0 !important;
+  white-space: nowrap !important;
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, #ffffff 9%, transparent),
+    0 8px 18px color-mix(in srgb, var(--wanjuan-theme-shadow, rgba(0, 0, 0, 0.36)) 36%, transparent) !important;
+}
+
+.wanjuan-settings-chip-button::after {
+  content: "";
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  opacity: 0.78;
+  transform: translateY(-62%) rotate(45deg);
+  transition: transform 180ms ease, opacity 180ms ease;
+}
+
+.wanjuan-settings-chip-button-open::after,
+.wanjuan-settings-advanced-toggle.wanjuan-settings-chip-button-open::after {
+  transform: translateY(-35%) rotate(225deg);
+}
+
+.wanjuan-settings-chip-button:hover {
+  border-color: color-mix(in srgb, var(--wj-accent, #60a5fa) 58%, var(--wj-border, #4b5563) 42%) !important;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--wj-accent, #60a5fa) 16%, var(--wj-surface-2, #252a32) 84%), color-mix(in srgb, var(--wj-accent, #60a5fa) 10%, var(--wj-surface, #1f242b) 90%)) !important;
+  color: #ffffff !important;
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, #ffffff 13%, transparent),
+    0 10px 22px color-mix(in srgb, var(--wj-accent, #60a5fa) 18%, transparent) !important;
+}
+
+.wanjuan-settings-advanced-toggle {
+  position: relative !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: 142px !important;
+  height: 36px !important;
+  padding: 0 36px 0 16px !important;
+  border-radius: 12px !important;
+  border-color: color-mix(in srgb, var(--wj-border, #4b5563) 62%, var(--wj-accent, #60a5fa) 38%) !important;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--wj-surface-2, #252a32) 88%, #ffffff 7%), color-mix(in srgb, var(--wj-surface, #1f242b) 88%, var(--wj-bg, #111827) 12%)) !important;
+  color: color-mix(in srgb, var(--wj-text, #f8fafc) 88%, var(--wj-muted, #94a3b8) 12%) !important;
+  font-size: 12px !important;
+  font-weight: 650 !important;
+  letter-spacing: 0 !important;
+  white-space: nowrap !important;
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, #ffffff 10%, transparent),
+    0 10px 22px color-mix(in srgb, var(--wanjuan-theme-shadow, rgba(0, 0, 0, 0.34)) 34%, transparent) !important;
+}
+
+.wanjuan-settings-advanced-toggle::after {
+  content: "";
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  opacity: 0.78;
+  transform: translateY(-62%) rotate(45deg);
+  transition: transform 180ms ease, opacity 180ms ease;
+}
+
+.wanjuan-settings-advanced-toggle:hover {
+  border-color: color-mix(in srgb, var(--wj-accent, #60a5fa) 58%, var(--wj-border, #4b5563) 42%) !important;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--wj-accent, #60a5fa) 16%, var(--wj-surface-2, #252a32) 84%), color-mix(in srgb, var(--wj-accent, #60a5fa) 10%, var(--wj-surface, #1f242b) 90%)) !important;
+  color: #ffffff !important;
+}
+
+.wanj-seedance-portrait-library-header {
+  align-items: center !important;
+  min-height: 64px !important;
+}
+
+.wanj-seedance-portrait-library-title {
+  min-width: 0 !important;
+  flex: 1 1 auto !important;
+}
+
+.wanj-seedance-portrait-library-title > div {
+  overflow-wrap: anywhere !important;
+}
+
+.wanj-seedance-portrait-library-toggle {
+  position: relative !important;
+  flex: 0 0 auto !important;
+  min-width: 86px !important;
+  height: 34px !important;
+  padding: 0 32px 0 14px !important;
+  border-radius: 10px !important;
+  border-color: color-mix(in srgb, var(--wj-border, #4b5563) 68%, var(--wj-accent, #60a5fa) 32%) !important;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--wj-surface-2, #252a32) 88%, #ffffff 7%), color-mix(in srgb, var(--wj-surface, #1f242b) 92%, var(--wj-bg, #111827) 8%)) !important;
+  color: color-mix(in srgb, var(--wj-text, #f8fafc) 88%, var(--wj-muted, #94a3b8) 12%) !important;
+  font-size: 12px !important;
+  font-weight: 650 !important;
+  line-height: 1 !important;
+  letter-spacing: 0 !important;
+  white-space: nowrap !important;
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, #ffffff 9%, transparent),
+    0 8px 18px color-mix(in srgb, var(--wanjuan-theme-shadow, rgba(0, 0, 0, 0.36)) 30%, transparent) !important;
+}
+
+.wanj-seedance-portrait-library-toggle::after {
+  content: "";
+  position: absolute;
+  right: 13px;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  border-right: 1.6px solid currentColor;
+  border-bottom: 1.6px solid currentColor;
+  opacity: 0.82;
+  transform: translateY(-62%) rotate(45deg);
+  transition: transform 180ms ease, opacity 180ms ease;
+}
+
+.wanj-seedance-portrait-library-toggle-open::after {
+  transform: translateY(-35%) rotate(225deg);
+}
+
+.wanj-seedance-portrait-library-toggle:hover {
+  border-color: color-mix(in srgb, var(--wj-accent, #60a5fa) 60%, var(--wj-border, #4b5563) 40%) !important;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--wj-accent, #60a5fa) 18%, var(--wj-surface-2, #252a32) 82%), color-mix(in srgb, var(--wj-accent, #60a5fa) 11%, var(--wj-surface, #1f242b) 89%)) !important;
+  color: #ffffff !important;
+}
+
+.wanj-seedance-portrait-library-toggle:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--wj-accent, #60a5fa) 72%, #ffffff 28%) !important;
+  outline-offset: 2px !important;
+}
+
+.wanjuan-settings-chip-button:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--wj-accent, #60a5fa) 72%, #ffffff 28%) !important;
+  outline-offset: 2px !important;
+}
+
+html:is(.theme-light, .theme-warm-light, .theme-mist-blue, .theme-chrome-blue, .theme-chrome-rose, .theme-chrome-sand, .theme-chrome-teal, .theme-sage-green) .wanjuan-settings-chip-button {
+  border-color: color-mix(in srgb, var(--wj-border, #cbd5e1) 76%, var(--wj-accent, #3b82f6) 24%) !important;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--wj-surface, #ffffff) 94%, var(--wj-accent, #3b82f6) 6%), color-mix(in srgb, var(--wj-surface-2, #f1f5f9) 88%, var(--wj-surface, #ffffff) 12%)) !important;
+  color: color-mix(in srgb, var(--wj-text, #1f2937) 86%, var(--wj-accent, #3b82f6) 14%) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.78),
+    0 8px 18px color-mix(in srgb, var(--wanjuan-theme-shadow, rgba(79, 109, 255, 0.16)) 32%, transparent) !important;
+}
+
+html:is(.theme-light, .theme-warm-light, .theme-mist-blue, .theme-chrome-blue, .theme-chrome-rose, .theme-chrome-sand, .theme-chrome-teal, .theme-sage-green) .wanjuan-settings-chip-button:hover {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--wj-accent, #3b82f6) 13%, var(--wj-surface, #ffffff) 87%), color-mix(in srgb, var(--wj-accent, #3b82f6) 8%, var(--wj-surface-2, #f1f5f9) 92%)) !important;
+  color: color-mix(in srgb, var(--wj-accent, #3b82f6) 58%, var(--wj-text, #1f2937) 42%) !important;
+}
+
+html:is(.theme-light, .theme-warm-light, .theme-mist-blue, .theme-chrome-blue, .theme-chrome-rose, .theme-chrome-sand, .theme-chrome-teal, .theme-sage-green) .wanj-seedance-portrait-library-toggle {
+  border-color: color-mix(in srgb, var(--wj-border, #cbd5e1) 74%, var(--wj-accent, #3b82f6) 26%) !important;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--wj-surface, #ffffff) 94%, var(--wj-accent, #3b82f6) 6%), color-mix(in srgb, var(--wj-surface-2, #f1f5f9) 88%, var(--wj-surface, #ffffff) 12%)) !important;
+  color: color-mix(in srgb, var(--wj-text, #1f2937) 86%, var(--wj-accent, #3b82f6) 14%) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.78),
+    0 8px 18px color-mix(in srgb, var(--wanjuan-theme-shadow, rgba(79, 109, 255, 0.16)) 28%, transparent) !important;
+}
+
+html:is(.theme-light, .theme-warm-light, .theme-mist-blue, .theme-chrome-blue, .theme-chrome-rose, .theme-chrome-sand, .theme-chrome-teal, .theme-sage-green) .wanj-seedance-portrait-library-toggle:hover {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--wj-accent, #3b82f6) 13%, var(--wj-surface, #ffffff) 87%), color-mix(in srgb, var(--wj-accent, #3b82f6) 8%, var(--wj-surface-2, #f1f5f9) 92%)) !important;
+  color: color-mix(in srgb, var(--wj-accent, #3b82f6) 58%, var(--wj-text, #1f2937) 42%) !important;
+}
+
+html:is(.theme-light, .theme-warm-light, .theme-mist-blue, .theme-chrome-blue, .theme-chrome-rose, .theme-chrome-sand, .theme-chrome-teal, .theme-sage-green) .wanjuan-settings-advanced-toggle {
+  border-color: color-mix(in srgb, var(--wj-border, #cbd5e1) 76%, var(--wj-accent, #3b82f6) 24%) !important;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--wj-surface, #ffffff) 94%, var(--wj-accent, #3b82f6) 6%), color-mix(in srgb, var(--wj-surface-2, #f1f5f9) 88%, var(--wj-surface, #ffffff) 12%)) !important;
+  color: color-mix(in srgb, var(--wj-text, #1f2937) 86%, var(--wj-accent, #3b82f6) 14%) !important;
+}
+
+html:is(.theme-light, .theme-warm-light, .theme-mist-blue, .theme-chrome-blue, .theme-chrome-rose, .theme-chrome-sand, .theme-chrome-teal, .theme-sage-green) .wanjuan-settings-advanced-toggle:hover {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--wj-accent, #3b82f6) 13%, var(--wj-surface, #ffffff) 87%), color-mix(in srgb, var(--wj-accent, #3b82f6) 8%, var(--wj-surface-2, #f1f5f9) 92%)) !important;
+  color: color-mix(in srgb, var(--wj-accent, #3b82f6) 58%, var(--wj-text, #1f2937) 42%) !important;
+}
+
+@media (max-width: 760px) {
+  .wanjuan-settings-card-header {
+    padding: 12px 14px !important;
+    gap: 10px !important;
+  }
+
+  .wanjuan-settings-chip-button {
+    min-width: 68px !important;
+    height: 32px !important;
+    padding-right: 30px !important;
+  }
+
+  .wanj-seedance-portrait-library-header {
+    gap: 12px !important;
+    min-height: 60px !important;
+  }
+
+  .wanj-seedance-portrait-library-toggle {
+    min-width: 78px !important;
+    height: 32px !important;
+    padding-right: 30px !important;
+  }
+}
+
+[data-wanjuan-context-menu="true"] {
+  overflow: visible !important;
+}
+
+[data-wanjuan-context-menu="true"] .wanjuan-context-flyout-group > .wanjuan-context-menu-item {
+  position: relative !important;
+}
+
+[data-wanjuan-context-menu="true"] .wanjuan-context-flyout-group > .wanjuan-context-menu-item::after {
+  content: "";
+  position: absolute;
+  top: 7px;
+  right: 8px;
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--wj-accent, #60a5fa) 68%, transparent);
+  opacity: 0;
+  transition: opacity 140ms ease;
+}
+
+[data-wanjuan-context-menu="true"] .wanjuan-context-flyout-group:has(.wanjuan-context-flyout-panel) > .wanjuan-context-menu-item {
+  background: color-mix(in srgb, var(--wj-accent, #60a5fa) 15%, var(--wj-surface-3, #333333) 85%) !important;
+  color: var(--wj-text, #f8fafc) !important;
+}
+
+[data-wanjuan-context-menu="true"] .wanjuan-context-flyout-group:has(.wanjuan-context-flyout-panel) > .wanjuan-context-menu-item::after {
+  opacity: 1;
+}
+
+[data-wanjuan-context-menu="true"] .wanjuan-context-flyout-panel {
+  width: 176px !important;
+  min-width: 176px !important;
+  transform: translateY(-1px);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--wj-surface-2, #252a32) 92%, #ffffff 4%), color-mix(in srgb, var(--wj-surface, #1f242b) 92%, var(--wj-bg, #111827) 8%)) !important;
+  border-color: color-mix(in srgb, var(--wj-border, #4b5563) 78%, var(--wj-accent, #60a5fa) 22%) !important;
+  box-shadow:
+    0 18px 46px color-mix(in srgb, var(--wanjuan-theme-shadow, rgba(0, 0, 0, 0.5)) 72%, transparent),
+    inset 0 1px 0 color-mix(in srgb, #ffffff 8%, transparent) !important;
+}
+
+[data-wanjuan-context-menu="true"] .wanjuan-context-flyout-panel .wanjuan-context-menu-item {
+  width: 100% !important;
+  min-height: 34px !important;
+  white-space: nowrap !important;
+}
+
+[data-wanjuan-context-menu="true"] .wanjuan-context-flyout-panel .wanjuan-context-menu-item span {
+  white-space: nowrap !important;
+}
+
+[data-wanjuan-context-menu="true"] .wanjuan-context-flyout-panel .wanjuan-context-menu-item svg {
+  flex: 0 0 auto !important;
+}
+
+[data-wanjuan-context-menu="true"] .wanjuan-context-flyout-panel::before {
+  content: "";
+  position: absolute;
+  left: -12px;
+  top: 0;
+  width: 12px;
+  height: 100%;
+}

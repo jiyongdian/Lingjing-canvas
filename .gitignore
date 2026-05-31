@@ -1,0 +1,28 @@
+# 依赖与构建产物
+node_modules/
+dist/
+release/
+generated/
+.vite/
+
+# 日志与系统文件
+*.log
+.DS_Store
+**/.DS_Store
+
+# 本地开发配置
+.claude/
+
+# 原作者原始混淆产物（他人版权，不上传；本地保留作对照）
+reference/
+
+# 运行时 / 隐私数据（画布项目、媒体库、本地存储、凭证），防止误提交
+*.db
+*.sqlite
+*.sqlite3
+.env
+.env.*
+*.pem
+*.key
+*credentials*
+**/chrome_storage*

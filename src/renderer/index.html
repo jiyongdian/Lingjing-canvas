@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en" class="theme-graphite wanjuan-booting">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: http: https: file:; media-src 'self' data: blob: http: https: file:; connect-src http: https: ws: wss: blob: file:; font-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'none'" />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>万卷灵境</title>
+    <script src="./gsap.min.js"></script>
+    <style>
+      html,
+      body,
+      #root {
+        background: #1f2227;
+        color: #f1f3f4;
+        min-height: 100%;
+        margin: 0;
+      }
+      #wanjuan-boot-splash {
+        position: fixed;
+        inset: 0;
+        z-index: 2147483647;
+        display: grid;
+        place-items: center;
+        overflow: hidden;
+        color: #f7f9fc;
+        background:
+          radial-gradient(circle at 50% 36%, rgba(138,180,248,0.18), transparent 34%),
+          linear-gradient(180deg, #343a42 0%, #2a2f36 54%, #232830 100%);
+        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", sans-serif;
+        opacity: 1;
+        transform: translateZ(0);
+      }
+      #wanjuan-boot-splash .wanjuan-scroll-stage {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: calc(50% - 84px);
+        z-index: 1;
+        width: min(440px, calc(100vw - 56px));
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 28px;
+        padding: 8px 0;
+      }
+      #wanjuan-boot-splash .wanjuan-scroll-title {
+        font-size: 20px;
+        line-height: 1.25;
+        font-weight: 700;
+        text-align: center;
+        text-shadow: 0 1px 14px rgba(5,8,12,0.32);
+      }
+      #wanjuan-boot-splash .wanjuan-scroll-subtitle {
+        margin-top: 8px;
+        font-size: 13px;
+        line-height: 1.4;
+        opacity: 0.68;
+        text-align: center;
+      }
+    </style>
+    <script>
+      document.documentElement.classList.add("theme-graphite");
+      if (window.wanjuanChrome) {
+        const existingChrome = window.chrome && typeof window.chrome === "object" ? window.chrome : {};
+        Object.assign(existingChrome, window.wanjuanChrome);
+        window.chrome = existingChrome;
+      }
+      (() => {
+        if (window.__wanjuanMainWorldFetchProxyInstalled || typeof window.fetch !== "function") return;
+        if (typeof window.wanjuanDesktop?.proxyFetch !== "function") return;
+        window.__wanjuanMainWorldFetchProxyInstalled = true;
+        const nativeFetch = window.fetch.bind(window);
+        const textEncoder = new TextEncoder();
+        const abortError = () => {
+          try {
+            return new DOMException("The operation was aborted.", "AbortError");
+          } catch {
+            const error = new Error("The operation was aborted.");
+            error.name = "AbortError";
+            return error;
+          }
+        };
+        const requestUrl = (input) => {
+          if (typeof input === "string" || input instanceof URL) return String(input);
+          return input?.url || "";
+        };
+        const requestMethod = (input, init) => String(init?.method || input?.method || "GET").toUpperCase();
+        const shouldProxy = (rawUrl, method) => {
+          try {
+            const url = new URL(String(rawUrl || ""), location.origin);
+            if (url.protocol !== "http:" && url.protocol !== "https:") return false;
+            const target = `${url.host || ""}${url.pathname || ""}${url.search || ""}`.toLowerCase();
+            if ((method === "GET" || method === "HEAD") && /storage\.googleapis\.com|tos-[^/]+\.volces\.com|volces\.com|byteimg\.com|bytedance\.com|catbox\.moe|tmpfiles\.org|0x0\.st|transfer\.sh|filebin\.net|uguu\.se/i.test(target)) return false;
+            if (method !== "GET" && method !== "HEAD") return true;
+            return /\/v\d+(beta)?\/|\/api\/|\/contents\/generations\/tasks/i.test(`${url.pathname || ""}${url.search || ""}`);
+          } catch {
+            return false;
+          }
+        };
+        const base64FromArrayBuffer = (buffer) => {
+          const bytes = new Uint8Array(buffer);
+          let binary = "";
+          const chunkSize = 0x8000;
+          for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+            binary += String.fromCharCode(...bytes.subarray(offset, offset + chunkSize));
+          }
+          return btoa(binary);
+        };
+        const bodyBase64FromRequest = async (request) => {
+          if (request.method === "GET" || request.method === "HEAD") return "";
+          const buffer = await request.clone().arrayBuffer();
+          return base64FromArrayBuffer(buffer);
+        };
+        const responseFromProxyResult = (result) => {
+          const body = result?.bodyBase64
+            ? Uint8Array.from(atob(result.bodyBase64), (char) => char.charCodeAt(0))
+            : new Uint8Array();
+          return new Response(body, {
+            status: Number(result?.status || 200),
+            statusText: result?.statusText || "OK",
+            headers: Array.isArray(result?.headers) ? result.headers : []
+          });
+        };
+        window.fetch = async (input, init) => {
+          const method = requestMethod(input, init);
+          const rawUrl = requestUrl(input);
+          if (!shouldProxy(rawUrl, method)) return nativeFetch(input, init);
+          const request = input instanceof Request ? new Request(input, init) : new Request(input, init);
+          const requestId = `main-world-fetch-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+          const signal = init?.signal || input?.signal || null;
+          const abortProxy = () => window.wanjuanDesktop?.abortProxyFetch?.(requestId);
+          if (signal?.aborted) {
+            abortProxy();
+            throw abortError();
+          }
+          if (signal) signal.addEventListener("abort", abortProxy, { once: true });
+          try {
+            const headers = Object.fromEntries(request.headers.entries());
+            const result = await window.wanjuanDesktop.proxyFetch({
+              requestId,
+              url: request.url,
+              method: request.method,
+              headers,
+              bodyBase64: await bodyBase64FromRequest(request)
+            });
+            if (result?.aborted || signal?.aborted) throw abortError();
+            if (!result?.ok) throw new TypeError(result?.error || "Failed to fetch");
+            return responseFromProxyResult(result);
+          } finally {
+            if (signal) signal.removeEventListener("abort", abortProxy);
+          }
+        };
+      })();
+    </script>
+    <script type="module" crossorigin src="./entry.js"></script>
+  </head>
+  <body>
+    <div id="wanjuan-boot-splash" class="boot-theme-graphite" aria-live="polite">
+      <div class="wanjuan-scroll-stage">
+        <div class="wanjuan-scroll-copy">
+          <div class="wanjuan-scroll-title">万卷灵境</div>
+          <div class="wanjuan-scroll-subtitle">正在展开灵境项目</div>
+        </div>
+      </div>
+    </div>
+    <div id="root"></div>
+  </body>
+</html>

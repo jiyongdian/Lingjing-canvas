@@ -1,0 +1,52 @@
+{
+  "name": "wanjuan-lingjing",
+  "version": "1.2.5.10",
+  "private": true,
+  "description": "万卷灵境 - 可维护源码工程（由 dist 产物逆向重建）",
+  "author": "",
+  "main": "electron/main/index.cjs",
+  "type": "module",
+  "scripts": {
+    "build:web": "vite build --config vite.config.mjs",
+    "start": "electron .",
+    "debug": "cross-env WANJUAN_DEBUG=1 electron .",
+    "build": "vite build --config vite.config.mjs && electron-builder",
+    "typecheck": "tsc --noEmit",
+    "test:lib": "node scripts/test-lib.mjs"
+  },
+  "dependencies": {
+    "@xyflow/react": "^12.10.2",
+    "dagre": "^0.8.5",
+    "gsap": "^3.15.0",
+    "localforage": "^1.10.0",
+    "lucide-react": "^1.17.0",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
+    "zustand": "^5.0.14"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.7.0",
+    "cross-env": "^7.0.3",
+    "electron": "^37.10.3",
+    "electron-builder": "^25.1.8",
+    "typescript": "^5.7.0",
+    "vite": "^6.4.2"
+  },
+  "build": {
+    "appId": "com.wanjuan.lingjing",
+    "productName": "万卷灵境",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*"
+    ],
+    "mac": {
+      "category": "public.app-category.productivity",
+      "icon": "build/icon.icns"
+    }
+  }
+}
