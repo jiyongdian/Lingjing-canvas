@@ -1,5 +1,7 @@
 // 职责：桌面端 IPC 注册。渲染进程经 contextBridge 调用的所有主进程能力入口，
 // 含来源信任校验(rejectUntrustedIpc)与全部 wanjuan:* 通道。
+const path = require("node:path");
+const fs = require("node:fs");
 const { ipcMain, dialog, BrowserWindow } = require("./electron-refs.cjs");
 const { getDesktopBaseUrl } = require("./runtime-state.cjs");
 const { appendDesktopLog, formatErrorMessage } = require("./logging.cjs");
