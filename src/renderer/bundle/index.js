@@ -18049,10 +18049,11 @@ ${combinedPrompt}`,
 		                      ),
 		                      imageProtocolFieldMapping.responseFormat &&
 		                      !isLconaiDoubaoImage &&
+		                      !vectorengineOpenAiCompatRequest &&
 		                      putImageProtocolField(
 		                        imageProtocolFieldMapping.responseFormat,
 		                        requestBody2,
-		                        vectorengineOpenAiCompatRequest ? `url` : `b64_json`,
+		                        `b64_json`,
 		                      ),
 		                      imageProtocolExtraBody &&
 		                      Object.entries(imageProtocolExtraBody).forEach(([field, value]) =>
@@ -18074,7 +18075,7 @@ ${combinedPrompt}`,
 	                  {
                     model: imageModelName,
                     prompt: seedreamPrompt || ` `,
-                    response_format: `b64_json`,
+                    ...(vectorengineOpenAiCompatRequest ? {} : { response_format: `b64_json` }),
                     size: vectorengineOpenAiCompatRequest ?
                       vectorengineOpenAiCompatSize :
                       openAiImageSize,
@@ -18127,7 +18128,7 @@ ${combinedPrompt}`,
                 let requestBody = {
                   model: imageModelName,
                   prompt: seedreamPrompt || ` `,
-                  response_format: `b64_json`,
+                  ...(vectorengineOpenAiCompatRequest ? {} : { response_format: `b64_json` }),
                   size: vectorengineOpenAiCompatRequest ?
                     vectorengineOpenAiCompatSize :
                     openAiImageSize,
