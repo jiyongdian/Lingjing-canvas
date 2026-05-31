@@ -35344,10 +35344,17 @@ ${docText}`;
 		            },
 		            handleManualRecoverImageTask = async (e) => {
 		              if (!canManualRecoverImageTask(e)) return;
+		              // 优先自动拉回：任务已记录中转站 remoteTaskId(或已有结果)时，直接交给
+		              // refreshGlobalTask 用已记录的 ID 去中转站查结果，无需用户手动粘贴 ID/URL。
+		              // 仅当确实没有 remoteTaskId 也没有结果时，才退回手动输入框作为兜底。
+		              if (e.remoteTaskId || e.customResultData || e.resultUrl) {
+		                refreshGlobalTask(e, {});
+		                return;
+		              }
 		              let t = await window.wanjuanDesktop?.showInputDialog?.({
 		                title: `手动恢复图片任务`,
-		                message: `粘贴图片结果 URL，或填写中转站任务 ID：`,
-		                defaultValue: e.customResultData || e.resultUrl || e.remoteTaskId || ``,
+		                message: `这个任务没有记录中转站任务 ID（可能提交时已失败）。可粘贴图片结果 URL，或填写中转站任务 ID：`,
+		                defaultValue: ``,
 		              });
 		              if (t === null) return;
 		              let n = String(t || ``).trim();
