@@ -18074,7 +18074,7 @@ ${combinedPrompt}`,
 	                  {
                     model: imageModelName,
                     prompt: seedreamPrompt || ` `,
-                    response_format: `b64_json`,
+                    ...(/gemini/i.test(imageModelName) ? {} : { response_format: `b64_json` }),
                     size: vectorengineOpenAiCompatRequest ?
                       vectorengineOpenAiCompatSize :
                       openAiImageSize,
@@ -18127,7 +18127,7 @@ ${combinedPrompt}`,
                 let requestBody = {
                   model: imageModelName,
                   prompt: seedreamPrompt || ` `,
-                  response_format: `b64_json`,
+                  ...(/gemini/i.test(imageModelName) ? {} : { response_format: `b64_json` }),
                   size: vectorengineOpenAiCompatRequest ?
                     vectorengineOpenAiCompatSize :
                     openAiImageSize,
