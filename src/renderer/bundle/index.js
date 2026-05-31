@@ -36979,6 +36979,8 @@ ${String(l || ``).slice(0, 5e4)}`;
 	        `layeredRunMaxConcurrency`,
 	        `downloadDirectory`,
 	        `autoDownloadGeneratedResults`,
+	        `wanjuanPerformanceProfile`,
+	        `transitGridCols`,
 	      ],
       data: [`backupExportSelection`, `backupImportSelection`],
       other: [],
