@@ -18048,8 +18048,6 @@ ${combinedPrompt}`,
 		                        getProtocolImageAspectRatioValue(),
 		                      ),
 		                      imageProtocolFieldMapping.responseFormat &&
-		                      !isLconaiDoubaoImage &&
-		                      !vectorengineOpenAiCompatRequest &&
 		                      putImageProtocolField(
 		                        imageProtocolFieldMapping.responseFormat,
 		                        requestBody2,
