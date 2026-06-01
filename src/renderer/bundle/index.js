@@ -29902,10 +29902,61 @@ time=1h`,
                 return ``;
               },
               buildJinaUrl = (url2) =>
-              `https://r.jina.ai/http://${String(url2 || ``).replace(/^https?:\/\//, ``)}`;
+              `https://r.jina.ai/http://${String(url2 || ``).replace(/^https?:\/\//, ``)}`,
+              // 提取 apifox 文档站的接口子页链接（形如 .apifox.cn/数字e0，e0 结尾是接口页，m0 是说明页跳过）。
+              // apifox 是 SPA，首页只有目录导航，每个接口的真实请求/响应字段在各自 e0 子页里，
+              // 必须逐个抓取，否则配置管家只能靠模型名猜协议。
+              extractApifoxEndpointPaths = (indexText, baseUrl) => {
+                let host = (() => { try { return new URL(/^https?:/i.test(baseUrl) ? baseUrl : `http://${baseUrl}`).host; } catch { return ``; } })();
+                if (!host || !/apifox\./i.test(host)) return [];
+                let seen = new Set(), paths = [], re = new RegExp(`${host.replace(/[.]/g, `\\.`)}/(\\d+e0)`, `g`), match;
+                while ((match = re.exec(indexText)) !== null) {
+                  let id = match[1];
+                  if (!seen.has(id)) { seen.add(id); paths.push(`https://${host}/${id}`); }
+                }
+                return paths;
+              },
+              fetchApifoxSubPages = async (subUrls) => {
+                let limited = subUrls.slice(0, 60), results = [], batchSize = 6;
+                // 从子页全文里剥离左侧目录导航，只保留接口正文（请求参数/Body/示例/响应）。
+                // apifox 子页约 90% 是重复的目录链接，真实接口字段集中在末尾标题段，剥离后体积砍到约 1/30。
+                let extractEndpointBody = (full) => {
+                  let text = String(full || ``);
+                  // 接口正文起点：第一个标记命中处（"请求参数"/"Body 参数"/最后一个二级标题），取其前一点上下文到结尾。
+                  let markers = [`请求参数`, `Body 参数`, `Body`, `请求体`, `application/json`];
+                  let startIdx = -1;
+                  for (let mk of markers) { let i = text.indexOf(mk); if (i >= 0) { startIdx = i; break; } }
+                  // 标记往前回退 200 字保留接口标题/路径上下文。
+                  if (startIdx > 200) return text.slice(startIdx - 200);
+                  // 没命中字段标记：退而取最后一个二级标题之后（仍优于整页目录）。
+                  let lastH2 = text.lastIndexOf(`\n## `);
+                  return lastH2 > 0 ? text.slice(lastH2) : text.slice(0, 1500);
+                };
+                for (let i = 0; i < limited.length; i += batchSize) {
+                  let batch = limited.slice(i, i + batchSize);
+                  let texts = await Promise.all(batch.map(async (subUrl) => {
+                    try {
+                      let t = await fetchWithTimeout(buildJinaUrl(subUrl));
+                      if (!t) return ``;
+                      return extractEndpointBody(t).slice(0, 2500);
+                    } catch { return ``; }
+                  }));
+                  for (let t of texts) t && results.push(t);
+                }
+                return results;
+              };
         try {
           let jinaText = await fetchWithTimeout(buildJinaUrl(url));
-          if (jinaText && jinaText.length > 120) return cleanText(jinaText);
+          if (jinaText && jinaText.length > 120) {
+            let endpointUrls = extractApifoxEndpointPaths(jinaText, url);
+            if (endpointUrls.length) {
+              let subTexts = await fetchApifoxSubPages(endpointUrls);
+              if (subTexts.length) {
+                return cleanText(`${jinaText}\n\n===== 接口详情（共 ${subTexts.length} 个接口子页）=====\n\n${subTexts.join(`\n\n----- 接口分隔 -----\n\n`)}`);
+              }
+            }
+            return cleanText(jinaText);
+          }
         } catch {}
         let desktopText = await readViaDesktop(url);
         if (desktopText) return desktopText;
@@ -30419,6 +30470,56 @@ ${curlText}`,
             requestBody: o,
           }
         );
+      },
+      // 真实探活校验：复用 dryRun 构造的请求体，对同步类(text/image)模型真发一次最小请求，
+      // 识别"参数不被接受/路径404/鉴权失败"等只有真请求才暴露的问题(如某些站 gpt-image 不接受 response_format)。
+      // 不阻断配置，结果作为诊断反馈；异步类(video/music)跳过以免真创建任务消耗额度。
+      probeButlerProtocol = async (config, modelInfo = {}, apiUrl = ``, apiKey = ``) => {
+        let category = normalizeModelCategory(modelInfo.category || config?.category) || ``;
+        if (category !== `text` && category !== `image`) {
+          return { probed: false, skipped: true, reason: `异步或非同步类模型跳过真实探活` };
+        }
+        let base = normalizeButlerBaseUrl(apiUrl);
+        if (!base || !apiKey) return { probed: false, skipped: true, reason: `缺少请求地址或令牌` };
+        let dry = dryRunButlerProtocolConfig(config, modelInfo),
+          submitPath = String(dry.submitPath || (category === `image` ? `/v1/images/generations` : `/v1/chat/completions`)).trim(),
+          requestUrl = buildApiUrl(base, submitPath),
+          requestBody = dry.requestBody && typeof dry.requestBody == `object` ? dry.requestBody : {},
+          headers = { "Content-Type": `application/json`, Authorization: `Bearer ${apiKey}` };
+        // 图像探活强制不带 response_format(它正是常见的不兼容参数;探活只为验证端点+核心字段可用)。
+        if (category === `image`) { delete requestBody.response_format; delete requestBody.responseFormat; }
+        try {
+          let controller = new AbortController(),
+            timeoutId = window.setTimeout(() => controller.abort(), 45000),
+            response;
+          try {
+            response = await fetch(requestUrl, { method: `POST`, headers, body: JSON.stringify(requestBody), signal: controller.signal });
+          } finally { window.clearTimeout(timeoutId); }
+          let rawText = await response.text().catch(() => ``),
+            payload = (() => { try { return JSON.parse(rawText); } catch { return null; } })(),
+            errMsg = String(payload?.error?.message || payload?.message || ``).trim(),
+            // 识别错误类别，给出可操作的修复建议。
+            unknownParam = errMsg.match(/unknown parameter[:\s]*'?([a-zA-Z_]+)'?/i),
+            isPathErr = response.status === 404 || /not found|无效的?\s*(url|路径|endpoint)|invalid url/i.test(errMsg),
+            isAuthErr = response.status === 401 || response.status === 403 || /无效的?令牌|invalid (api )?key|unauthorized|令牌/i.test(errMsg),
+            ok = response.ok && !errMsg;
+          return {
+            probed: true,
+            ok,
+            status: response.status,
+            submitPath,
+            errorMessage: errMsg.slice(0, 200),
+            errorType: ok ? `none` : unknownParam ? `unknown_parameter` : isPathErr ? `path` : isAuthErr ? `auth` : errMsg ? `upstream` : `unknown`,
+            unknownParameter: unknownParam ? unknownParam[1] : ``,
+            suggestion: ok ? `` :
+              unknownParam ? `该模型不接受参数 ${unknownParam[1]}，应在协议 fieldMapping 里把它设为空字符串以跳过。` :
+              isPathErr ? `提交路径 ${submitPath} 可能不正确，请核对文档接口路径。` :
+              isAuthErr ? `令牌或鉴权方式可能不被该接口接受。` :
+              errMsg ? `上游返回错误：${errMsg.slice(0, 80)}` : `请求未成功(${response.status})`,
+          };
+        } catch (error) {
+          return { probed: true, ok: false, errorType: `network`, errorMessage: String(error?.message || error).slice(0, 150), suggestion: `网络异常或超时，未能完成探活(不代表协议错误)。` };
+        }
       },
       validateAndRepairConfigButlerResult = (baseModel, options = {}) => {
         let model = baseModel && typeof baseModel == `object` ? {
@@ -31889,6 +31990,45 @@ ${batchDocText}`);
 	                toolContext: toolContext,
 	              });
 	            if (!normalizedBatchItems.length) throw Error(`未识别到可导入的模型配置`);
+	            // 真实探活校验 + 自动修协议：对同步类(text/image)按 requestType+submitPath 去重，每组探一个代表，
+	            // 探到参数不被接受就把该组所有模型协议 fieldMapping 里的坏参数设空 → 数据驱动修复，无需代码硬编码。
+	            try {
+	              let probeApiUrl = String(targetApiConfig.url || ``).trim(),
+	                probeApiKey = String(targetApiConfig.key || ``).trim(),
+	                probeGroups = new Map();
+	              for (let item of normalizedBatchItems) {
+	                let cat = normalizeModelCategory(item.category);
+	                if (cat !== `text` && cat !== `image`) continue;
+	                let cfg = item.protocol?.config || {}, groupKey = `${cat}|${cfg.requestType || ``}|${cfg.submitPath || ``}`;
+	                if (!probeGroups.has(groupKey)) probeGroups.set(groupKey, []);
+	                probeGroups.get(groupKey).push(item);
+	              }
+	              if (probeGroups.size && probeApiUrl && probeApiKey) {
+	                showToast2(`配置管家正在真实探活校验 ${probeGroups.size} 组接口…`);
+	                let fixedCount = 0;
+	                for (let [, groupItems] of probeGroups) {
+	                  let rep = groupItems[0];
+	                  let probeResult = await probeButlerProtocol(rep.protocol?.config || {}, { modelName: rep.modelName, category: rep.category }, probeApiUrl, probeApiKey).catch(() => null);
+	                  if (probeResult?.probed && !probeResult.ok && probeResult.errorType === `unknown_parameter` && probeResult.unknownParameter) {
+	                    let badParam = probeResult.unknownParameter;
+	                    for (let item of groupItems) {
+	                      let cfg = item.protocol?.config; if (!cfg) continue;
+	                      let fm = cfg.fieldMapping && typeof cfg.fieldMapping == `object` ? { ...cfg.fieldMapping } : {}, touched = false;
+	                      for (let internalKey of Object.keys(fm)) { if (fm[internalKey] === badParam) { fm[internalKey] = ``; touched = true; } }
+	                      if (badParam === `response_format`) { fm.responseFormat = ``; touched = true; }
+	                      if (touched) {
+	                        item.protocol.config = { ...cfg, fieldMapping: fm };
+	                        item.notes = `${item.notes || ``}${item.notes ? `；` : ``}探活修复：该接口不接受 ${badParam}，已在协议中跳过该参数`;
+	                        fixedCount += 1;
+	                      }
+	                    }
+	                  } else if (probeResult?.probed && !probeResult.ok && probeResult.suggestion) {
+	                    rep.notes = `${rep.notes || ``}${rep.notes ? `；` : ``}探活提示：${probeResult.suggestion}`;
+	                  }
+	                }
+	                fixedCount && showToast2(`探活已自动修复 ${fixedCount} 个模型的协议参数`);
+	              }
+	            } catch (probeError) { console.warn(`Config butler probe skipped`, probeError); }
 	            (setConfigButlerBatchItems(normalizedBatchItems),
 	              setConfigButlerBatchActiveCategory(
 	                (configButlerCategoryOptions.find((categoryOption) =>
