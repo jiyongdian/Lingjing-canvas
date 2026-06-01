@@ -21858,7 +21858,24 @@ ${combinedPrompt}`,
                 };
               },
               normalizeGenericVideoResult = async (taskResult, taskId = taskId) => {
-                  let videoUrl = (taskResult.video_url || taskResult.videoUrl || taskResult.data?.video_url || taskResult.data?.videoUrl || taskResult.output?.video_url || taskResult.output?.videoUrl || taskResult.result?.video_url || taskResult.result?.videoUrl || taskResult.video?.url || taskResult.artifact?.video?.url || taskResult.artifact?.video_raw?.url || taskResult.video || taskResult.result_url || taskResult.url)?.replace(
+                  // 数据驱动优先：若协议 responseMapping 配了视频结果路径(videoUrl/video_url/url/resultUrl 任一)，
+                  // 先按协议路径取;取不到再回退下面的硬编码字段瀑布(保证未配协议的旧中转站仍可用)。
+                  let readRespPath = (source, path) => {
+                    let p = String(path || ``).trim(); if (!p) return void 0;
+                    return p.split(`.`).reduce((cur, seg) => {
+                      if (cur == null) return void 0;
+                      let am = seg.match(/^(.+)\[(\d+)\]$/);
+                      return am ? cur?.[am[1]]?.[Number(am[2])] : /^\d+$/.test(seg) ? cur?.[Number(seg)] : cur?.[seg];
+                    }, source);
+                  };
+                  let videoRespMapping = effectiveVideoRequestProfile?.responseMapping && typeof effectiveVideoRequestProfile.responseMapping == `object` ? effectiveVideoRequestProfile.responseMapping : {};
+                  let mappedVideoUrl = (() => {
+                    let paths = videoRespMapping.videoUrl || videoRespMapping.video_url || videoRespMapping.url || videoRespMapping.resultUrl;
+                    paths = Array.isArray(paths) ? paths : paths ? [paths] : [];
+                    for (let p of paths) { let v = readRespPath(taskResult, p); if (typeof v == `string` && v.trim()) return v.replace(/[`\s]/g, ``); }
+                    return ``;
+                  })();
+                  let videoUrl = mappedVideoUrl || (taskResult.video_url || taskResult.videoUrl || taskResult.data?.video_url || taskResult.data?.videoUrl || taskResult.output?.video_url || taskResult.output?.videoUrl || taskResult.result?.video_url || taskResult.result?.videoUrl || taskResult.video?.url || taskResult.artifact?.video?.url || taskResult.artifact?.video_raw?.url || taskResult.video || taskResult.result_url || taskResult.url)?.replace(
                       /[`\s]/g,
                       ``,
                     ) || ``,
@@ -21965,11 +21982,14 @@ ${combinedPrompt}`,
                 if (pollResponse.ok) {
                   let pollResult = await pollResponse.json(),
                     status = normalizeGenericStatus(
-                      pollResult.status ||
-                      pollResult.data?.status ||
-                      pollResult.output?.status ||
-                      pollResult.result?.status ||
-                      pollResult.task?.status,
+                      // 协议 responseMapping.status 配了状态路径就优先用,否则回退硬编码字段瀑布。
+                      (() => {
+                        let rm = effectiveVideoRequestProfile?.responseMapping;
+                        let sp = rm && typeof rm == `object` ? (rm.status || rm.statusPath) : null;
+                        sp = Array.isArray(sp) ? sp : sp ? [sp] : [];
+                        for (let p of sp) { let v = String(p||``).trim().split(`.`).reduce((c,s)=>c==null?void 0:c[s], pollResult); if (v != null && v !== ``) return v; }
+                        return pollResult.status || pollResult.data?.status || pollResult.output?.status || pollResult.result?.status || pollResult.task?.status;
+                      })(),
                     ),
                     genericDirectVideoUrl =
                     pollResult.video_url ||
@@ -21983,7 +22003,13 @@ ${combinedPrompt}`,
                     pollResult.video?.url ||
                     pollResult.artifact?.video?.url ||
                     pollResult.artifact?.video_raw?.url;
-                  if (((failureCount = 0), [`completed`, `complete`, `success`, `succeeded`, `done`].includes(status) || genericDirectVideoUrl)) {
+                  let completedValueSet = (() => {
+                    let rm = effectiveVideoRequestProfile?.responseMapping;
+                    let cv = rm && typeof rm == `object` ? (rm.completedValues || rm.completed) : null;
+                    cv = Array.isArray(cv) ? cv.map((x) => normalizeGenericStatus(x)).filter(Boolean) : [];
+                    return cv.length ? cv : [`completed`, `complete`, `success`, `succeeded`, `done`, `finished`, `ready`, `succeed`];
+                  })();
+                  if (((failureCount = 0), completedValueSet.includes(status) || genericDirectVideoUrl)) {
                     isCompleted = !0;
                     let {
                       videoUrl: videoUrl,
