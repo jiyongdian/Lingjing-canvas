@@ -69,9 +69,9 @@ export function wanjuanRenderResourceFilterTabs(
 }
 
 /**
- * 渲染按资源来源筛选的标签组（AI生成/外部素材）以及"只看收藏"开关。
+ * 渲染按资源来源筛选的标签组（全部来源/AI生成/外部素材）以及"只看收藏"开关。
  *
- * @param activeSource    当前选中的来源（"generated" | "external"）
+ * @param activeSource    当前选中的来源（"all" | "generated" | "external"）
  * @param onSelectSource  选中某来源时调用，传入来源值
  * @param favoriteOnly    是否只显示收藏的素材
  * @param setFavoriteOnly 切换"只看收藏"状态
@@ -93,6 +93,7 @@ export function wanjuanRenderResourceSourceTabs(
         className: "flex bg-[#111] rounded p-0.5",
         children: (
           [
+            ["all", "全部来源"],
             ["generated", "AI生成"],
             ["external", "外部素材"],
           ] as const

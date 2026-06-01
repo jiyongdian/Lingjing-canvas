@@ -312,10 +312,17 @@ var TongyiWanxiangLogo = ({
     } catch {
       return [];
     }
-  },
+	  },
 	  WanJuanWriteFavoriteModels = (items) => {
 	    try {
-	      localStorage.setItem(WanJuanFavoriteModelStoreKey, JSON.stringify(Array.from(new Set(items)).filter(Boolean)));
+	      let seen = new Set(),
+	        normalizedItems = [];
+	      items.forEach((model) => {
+	        let trimmedModel = String(model || ``).trim(),
+	          normalizedModel = WanJuanNormalizeModelId(trimmedModel).toLowerCase();
+	        trimmedModel && normalizedModel && !seen.has(normalizedModel) && (seen.add(normalizedModel), normalizedItems.push(trimmedModel));
+	      });
+	      localStorage.setItem(WanJuanFavoriteModelStoreKey, JSON.stringify(normalizedItems));
 	    } catch {}
 	  },
 	  WanJuanNormalizeModelId = (input) => {
@@ -325,25 +332,74 @@ var TongyiWanxiangLogo = ({
 	    } catch {}
 	    return modelName.replace(/[\u200B-\u200D\uFEFF]/g, ``).replace(/[\u2010-\u2015\u2212]/g, `-`).trim();
 	  },
+	  WanJuanSameModelId = (firstModel, secondModel) =>
+	    WanJuanNormalizeModelId(firstModel).toLowerCase() === WanJuanNormalizeModelId(secondModel).toLowerCase(),
+	  WanJuanParseModelList = (input) => {
+	    let seen = new Set(),
+	      models = [];
+	    String(input || ``)
+	      .split(/[\n,，、]+/)
+	      .map((model) => model.trim())
+	      .filter(Boolean)
+	      .forEach((model) => {
+	        let normalizedModel = WanJuanNormalizeModelId(model).toLowerCase();
+	        normalizedModel && !seen.has(normalizedModel) && (seen.add(normalizedModel), models.push(model));
+	      });
+	    return models;
+	  },
+	  WanJuanSortModelsByFavorites = (models, favorites = WanJuanReadFavoriteModels()) => {
+	    let favoriteRank = new Map();
+	    favorites.forEach((model, index) => {
+	      let normalizedModel = WanJuanNormalizeModelId(model).toLowerCase();
+	      normalizedModel && !favoriteRank.has(normalizedModel) && favoriteRank.set(normalizedModel, index);
+	    });
+	    return [...models].sort((firstItem, secondItem) => {
+	      let firstRank = favoriteRank.has(WanJuanNormalizeModelId(firstItem).toLowerCase()) ?
+	          favoriteRank.get(WanJuanNormalizeModelId(firstItem).toLowerCase()) :
+	          Number.POSITIVE_INFINITY,
+	        secondRank = favoriteRank.has(WanJuanNormalizeModelId(secondItem).toLowerCase()) ?
+	          favoriteRank.get(WanJuanNormalizeModelId(secondItem).toLowerCase()) :
+	          Number.POSITIVE_INFINITY;
+	      return firstRank !== secondRank ? firstRank - secondRank : 0;
+	    });
+	  },
+	  WanJuanGetPreferredModel = (modelText, currentModel = ``, favorites = WanJuanReadFavoriteModels(), options = {}) => {
+	    let models = Array.isArray(modelText) ? modelText.filter(Boolean) : WanJuanParseModelList(modelText),
+	      sortedModels = WanJuanSortModelsByFavorites(models, favorites),
+	      rawFirstModel = models[0] || ``,
+	      preferredModel = sortedModels[0] || rawFirstModel || ``,
+	      currentIsValid = currentModel && models.some((model) => WanJuanSameModelId(model, currentModel));
+	    if (currentIsValid) {
+	      if (options.manual === !0) return currentModel;
+	      if (options.auto === !0) return preferredModel || currentModel;
+	      if (rawFirstModel && !WanJuanSameModelId(currentModel, rawFirstModel)) return currentModel;
+	    }
+	    return preferredModel || currentModel || ``;
+	  },
+	  WanJuanShouldAutoPreferredModel = (modelText, currentModel = ``, options = {}) => {
+	    if (options.manual === !0) return !1;
+	    let models = Array.isArray(modelText) ? modelText.filter(Boolean) : WanJuanParseModelList(modelText),
+	      rawFirstModel = models[0] || ``;
+	    return options.auto === !0 || !currentModel || !models.some((model) => WanJuanSameModelId(model, currentModel)) || !!(rawFirstModel && WanJuanSameModelId(currentModel, rawFirstModel));
+	  },
 	  WanJuanUseFavoriteModels = () => {
     let [favorites, setFavorites] = useState(() => WanJuanReadFavoriteModels());
     return {
       favorites: favorites,
-      isFavorite: (model) => favorites.includes(model),
+      isFavorite: (model) => favorites.some((favoriteModel) => WanJuanSameModelId(favoriteModel, model)),
       toggleFavorite: (model) => {
-        setFavorites((prev) => {
-          let next = prev.includes(model) ? prev.filter((model2) => model2 !== model) : [model, ...prev];
-          return (WanJuanWriteFavoriteModels(next), next);
-        });
+        let normalizedModel = WanJuanNormalizeModelId(model).toLowerCase(),
+          next = favorites.some((model2) => WanJuanNormalizeModelId(model2).toLowerCase() === normalizedModel) ?
+          favorites.filter((model2) => WanJuanNormalizeModelId(model2).toLowerCase() !== normalizedModel) :
+          [model, ...favorites];
+        return (WanJuanWriteFavoriteModels(next), setFavorites(next), next);
       },
-      sortModels: (models) => {
-        let favoriteSet = new Set(favorites);
-        return [...models].sort((firstItem, secondItem) => {
-          let firstRank = favoriteSet.has(firstItem) ? 0 : 1,
-            secondRank = favoriteSet.has(secondItem) ? 0 : 1;
-          return firstRank !== secondRank ? firstRank - secondRank : 0;
-        });
-      },
+      sortModels: (models) => WanJuanSortModelsByFavorites(models, favorites),
+      parseModels: WanJuanParseModelList,
+      getPreferredModel: (modelText, currentModel = ``, options = {}) =>
+        WanJuanGetPreferredModel(modelText, currentModel, favorites, options),
+      shouldAutoPreferredModel: (modelText, currentModel = ``, options = {}) =>
+        WanJuanShouldAutoPreferredModel(modelText, currentModel, options),
     };
   },
   Y = reactMemo(
@@ -722,20 +778,16 @@ var TongyiWanxiangLogo = ({
       menuRef = useRef(null),
       [isExpanded, setExpanded] = useState(data.expanded === void 0 ? !1 : data.expanded),
       [selectedContextResources, setSelectedContextResources] = useState(data.selectedContextResources || []),
-      [selectedModel, te] = useState(
-        data.selectedModel ||
-        (data.drawingModel &&
-          data.drawingModel
-          .split(
-            `
-`,
-          )[0]
-          .trim()) ||
-        ``,
-      ),
-      presetPrompts = data.presetPrompts || [],
-      wanjuanSelectedReferenceSourceIds = Array.isArray(data.wanjuanSelectedReferenceSourceIds) ? data.wanjuanSelectedReferenceSourceIds : [],
+      [selectedModel, te] = useState(() =>
+        WanJuanGetPreferredModel(data.drawingModel, data.selectedModel || ``, void 0, {
+          manual: data.wanjuanModelManual === !0,
+          auto: data.wanjuanModelAuto === !0,
+        }),
+	      ),
+	      presetPrompts = data.presetPrompts || [],
+	      wanjuanSelectedReferenceSourceIds = Array.isArray(data.wanjuanSelectedReferenceSourceIds) ? data.wanjuanSelectedReferenceSourceIds : [],
 	      favoriteModels = WanJuanUseFavoriteModels(),
+	      wanjuanModelManualRef = useRef(data.wanjuanModelManual === !0),
 	      fileInputRef = useRef(null),
 	      wanjuanImageCompatResolutionOptions = (data.imageCompatResolutions ?
 	        parseSeedanceList(data.imageCompatResolutions) :
@@ -749,10 +801,30 @@ var TongyiWanxiangLogo = ({
 	          `3840x2160`,
 	          `2160x3840`,
 	        ]).map((url) => String(url || ``).trim()).filter((e) => /^\d{2,5}x\d{2,5}$/i.test(e)),
-	      wanjuanActiveImageResolution =
-	        imageResolution && wanjuanImageCompatResolutionOptions.includes(imageResolution) ?
-	        imageResolution :
-	        wanjuanImageCompatResolutionOptions[0] || `2560x1440`;
+      wanjuanActiveImageResolution =
+        imageResolution && wanjuanImageCompatResolutionOptions.includes(imageResolution) ?
+        imageResolution :
+        wanjuanImageCompatResolutionOptions[0] || `2560x1440`;
+    let applyPreferredImageModel = (favoritesOverride = favoriteModels.favorites) => {
+      if (!data.drawingModel) return;
+      let currentModel = selectedModel || data.selectedModel || ``;
+      if (!WanJuanShouldAutoPreferredModel(data.drawingModel, currentModel, {
+          manual: wanjuanModelManualRef.current || data.wanjuanModelManual === !0,
+          auto: data.wanjuanModelAuto === !0,
+        })) return;
+      let nextModel = WanJuanGetPreferredModel(data.drawingModel, currentModel, favoritesOverride, {
+        auto: !0
+      });
+      nextModel &&
+        !WanJuanSameModelId(nextModel, currentModel) &&
+        ((wanjuanModelManualRef.current = !1),
+          te(nextModel),
+          updateNodeData(nodeId, {
+            selectedModel: nextModel,
+            wanjuanModelAuto: !0,
+            wanjuanModelManual: !1
+          }));
+    };
     (useEffect(() => {
         (setPrompt(data.prompt || ``),
           setAspectRatio(data.aspectRatio || `Auto`),
@@ -772,21 +844,8 @@ var TongyiWanxiangLogo = ({
         data.selectedContextResources,
       ]),
       useEffect(() => {
-        if (data.drawingModel) {
-          let drawingModels = data.drawingModel
-            .split(
-              `
-`,
-            )
-            .map((model) => model.trim())
-            .filter(Boolean);
-          drawingModels.length > 0 &&
-            (!selectedModel || !drawingModels.includes(selectedModel)) &&
-            (te(drawingModels[0]), updateNodeData(nodeId, {
-              selectedModel: drawingModels[0]
-            }));
-        }
-      }, [data.drawingModel, selectedModel, nodeId, updateNodeData]),
+        applyPreferredImageModel();
+      }, [data.drawingModel, selectedModel, data.wanjuanModelAuto, data.wanjuanModelManual, favoriteModels.favorites, nodeId, updateNodeData]),
       useEffect(() => {
         let handleClickOutside = (event) => {
           (dropdownRef.current && !dropdownRef.current.contains(event.target) && m(!1),
@@ -1620,18 +1679,7 @@ var TongyiWanxiangLogo = ({
                                 className: `text-[10px] text-gray-500 mb-1 px-1`,
                                 children: `模型`,
                               }),
-                              data.drawingModel
-                              .split(
-                                `
-`,
-                              )
-                              .map((model) => model.trim())
-                              .filter((e) => e !== ``)
-                              .sort((firstModel, secondModel) => {
-                                let firstRank = favoriteModels.isFavorite(firstModel) ? 0 : 1,
-                                  secondRank = favoriteModels.isFavorite(secondModel) ? 0 : 1;
-                                return firstRank - secondRank;
-                              })
+                              favoriteModels.sortModels(WanJuanParseModelList(data.drawingModel))
                               .map((model, index) =>
                                 jsxs(
                                   `button`, {
@@ -1651,8 +1699,11 @@ var TongyiWanxiangLogo = ({
                                     onClick: () => {
                                       (te(model),
                                         updateNodeData(nodeId, {
-                                          selectedModel: model
+                                          selectedModel: model,
+                                          wanjuanModelAuto: !1,
+                                          wanjuanModelManual: !0
                                         }),
+                                        (wanjuanModelManualRef.current = !0),
                                         setDropdownOpen(!1));
                                     },
                                     title: model,
@@ -1667,7 +1718,8 @@ var TongyiWanxiangLogo = ({
                                         textShadow: `0 0 5px rgba(250, 204, 21, 0.48)`,
                                       } : void 0,
                                       onClick: (event) => {
-                                        (event.stopPropagation(), favoriteModels.toggleFavorite(model));
+                                        (event.stopPropagation(),
+                                          applyPreferredImageModel(favoriteModels.toggleFavorite(model)));
                                       },
                                       title: favoriteModels.isFavorite(model) ? `取消收藏` : `收藏并置顶`,
                                       children: favoriteModels.isFavorite(model) ? `★` : `☆`
@@ -1826,18 +1878,14 @@ var TongyiWanxiangLogo = ({
       presetPrompts = data.presetPrompts || [],
       wanjuanSelectedReferenceSourceIds = Array.isArray(data.wanjuanSelectedReferenceSourceIds) ? data.wanjuanSelectedReferenceSourceIds : [],
       [isEditing, setIsEditing] = useState(!1),
-      [selectedModel, setSelectedModel] = useState(
-        data.selectedModel ||
-        (data.textModel &&
-          data.textModel
-          .split(
-            `
-`,
-          )[0]
-          .trim()) ||
-        ``,
+      [selectedModel, setSelectedModel] = useState(() =>
+        WanJuanGetPreferredModel(data.textModel, data.selectedModel || ``, void 0, {
+          manual: data.wanjuanModelManual === !0,
+          auto: data.wanjuanModelAuto === !0,
+        }),
       ),
       favoriteModels = WanJuanUseFavoriteModels(),
+      wanjuanModelManualRef = useRef(data.wanjuanModelManual === !0),
       fileInputRef = useRef(null),
       [isModelMenuOpen, setIsModelMenuOpen] = useState(!1),
       modelMenuRef = useRef(null),
@@ -1846,9 +1894,29 @@ var TongyiWanxiangLogo = ({
 	      [resourceTypeFilter, te] = useState(`all`),
 	      [resourceSourceFilter, setResourceSourceFilter] = useState(`generated`),
 	      [resourceFavoriteOnly, setResourceFavoriteOnly] = useState(!1),
-	      [resources, setResources] = useState([]),
+      [resources, setResources] = useState([]),
       [ie, setIsPresetMenuOpen] = useState(!1),
       presetMenuRef = useRef(null);
+    let applyPreferredTextModel = (favoritesOverride = favoriteModels.favorites) => {
+      if (!data.textModel) return;
+      let currentModel = selectedModel || data.selectedModel || ``;
+      if (!WanJuanShouldAutoPreferredModel(data.textModel, currentModel, {
+          manual: wanjuanModelManualRef.current || data.wanjuanModelManual === !0,
+          auto: data.wanjuanModelAuto === !0,
+        })) return;
+      let nextModel = WanJuanGetPreferredModel(data.textModel, currentModel, favoritesOverride, {
+        auto: !0
+      });
+      nextModel &&
+        !WanJuanSameModelId(nextModel, currentModel) &&
+        ((wanjuanModelManualRef.current = !1),
+          setSelectedModel(nextModel),
+          updateNodeData(nodeId, {
+            selectedModel: nextModel,
+            wanjuanModelAuto: !0,
+            wanjuanModelManual: !1
+          }));
+    };
     (useEffect(() => {
         isMentionPickerOpen &&
           X.default
@@ -1892,18 +1960,8 @@ var TongyiWanxiangLogo = ({
         data.selectedContextResources,
       ]),
       useEffect(() => {
-        if (data.textModel && !selectedModel) {
-          let defaultModel = data.textModel
-            .split(
-              `
-`,
-            )[0]
-            .trim();
-          (setSelectedModel(defaultModel), updateNodeData(nodeId, {
-            selectedModel: defaultModel
-          }));
-        }
-      }, [data.textModel, selectedModel, nodeId, updateNodeData]));
+        applyPreferredTextModel();
+      }, [data.textModel, selectedModel, data.wanjuanModelAuto, data.wanjuanModelManual, favoriteModels.favorites, nodeId, updateNodeData]));
     let connections = z({
         handleType: `target`
       }),
@@ -2526,18 +2584,7 @@ var TongyiWanxiangLogo = ({
                                 className: `text-[10px] text-gray-500 mb-1 px-1`,
                                 children: `模型`,
                               }),
-                              data.textModel
-                              .split(
-                                `
-`,
-                              )
-                              .map((text2) => text2.trim())
-                              .filter((e) => e !== ``)
-                              .sort((firstModel, secondModel) => {
-                                let firstRank = favoriteModels.isFavorite(firstModel) ? 0 : 1,
-                                  secondRank = favoriteModels.isFavorite(secondModel) ? 0 : 1;
-                                return firstRank - secondRank;
-                              })
+                              favoriteModels.sortModels(WanJuanParseModelList(data.textModel))
                               .map((model, index) =>
                                 jsxs(
                                   `button`, {
@@ -2557,8 +2604,11 @@ var TongyiWanxiangLogo = ({
                                     onClick: () => {
                                       (setSelectedModel(model),
                                         updateNodeData(nodeId, {
-                                          selectedModel: model
+                                          selectedModel: model,
+                                          wanjuanModelAuto: !1,
+                                          wanjuanModelManual: !0
                                         }),
+                                        (wanjuanModelManualRef.current = !0),
                                         setIsModelMenuOpen(!1));
                                     },
                                     title: model,
@@ -2573,7 +2623,8 @@ var TongyiWanxiangLogo = ({
                                         textShadow: `0 0 5px rgba(250, 204, 21, 0.48)`,
                                       } : void 0,
                                       onClick: (event) => {
-                                        (event.stopPropagation(), favoriteModels.toggleFavorite(model));
+                                        (event.stopPropagation(),
+                                          applyPreferredTextModel(favoriteModels.toggleFavorite(model)));
                                       },
                                       title: favoriteModels.isFavorite(model) ? `取消收藏` : `收藏并置顶`,
                                       children: favoriteModels.isFavorite(model) ? `★` : `☆`
@@ -3709,16 +3760,11 @@ var Le = reactMemo(({
         data.selectedResolution :
         firstSeedanceResolution,
       ),
-      [selectedModel, _] = useState(
-        data.selectedModel ||
-        (data.videoModel &&
-          data.videoModel
-          .split(
-            `
-`,
-          )[0]
-          .trim()) ||
-        ``,
+      [selectedModel, _] = useState(() =>
+        WanJuanGetPreferredModel(data.videoModel, data.selectedModel || ``, void 0, {
+          manual: data.wanjuanModelManual === !0,
+          auto: data.wanjuanModelAuto === !0,
+        }),
       ),
       seedanceApiOptions = Array.isArray(data.apiConfigs) ?
       data.apiConfigs.filter((apiConfig) => apiConfig && apiConfig.id) :
@@ -3749,6 +3795,7 @@ var Le = reactMemo(({
       [w, T] = useState(!1),
       O = useRef(null),
       favoriteModels = WanJuanUseFavoriteModels(),
+      wanjuanModelManualRef = useRef(data.wanjuanModelManual === !0),
       [k, j] = useState(!1),
       M = useRef(null),
       [menuOpen, setMenuOpen] = useState(!1),
@@ -3764,6 +3811,26 @@ var Le = reactMemo(({
       seedancePortraitPickerRef = useRef(null),
       [tianjiNodePortraitAssets, setTianjiNodePortraitAssets] = useState([]),
       seedanceNodeVirtualPortraits = wanjuanNormalizeSeedanceVirtualPortraits(data.seedanceVirtualPortraits || []);
+    let applyPreferredVideoModel = (favoritesOverride = favoriteModels.favorites) => {
+      if (!data.videoModel) return;
+      let currentModel = selectedModel || data.selectedModel || ``;
+      if (!WanJuanShouldAutoPreferredModel(data.videoModel, currentModel, {
+          manual: wanjuanModelManualRef.current || data.wanjuanModelManual === !0,
+          auto: data.wanjuanModelAuto === !0,
+        })) return;
+      let nextModel = WanJuanGetPreferredModel(data.videoModel, currentModel, favoritesOverride, {
+        auto: !0
+      });
+      nextModel &&
+        !WanJuanSameModelId(nextModel, currentModel) &&
+        ((wanjuanModelManualRef.current = !1),
+          _(nextModel),
+          updateNodeData(nodeId, {
+            selectedModel: nextModel,
+            wanjuanModelAuto: !0,
+            wanjuanModelManual: !1
+          }));
+    };
     (useEffect(() => {
         if (data.selectedContextResources) {
           let nextContextResources = isSeedanceOrWanxiang ?
@@ -4118,18 +4185,8 @@ var Le = reactMemo(({
         }
       }, [data.videoResolutions, data.size, size, nodeId, updateNodeData]),
       useEffect(() => {
-        if (data.videoModel && !selectedModel) {
-          let firstModel = data.videoModel
-            .split(
-              `
-`,
-            )[0]
-            .trim();
-          (_(firstModel), updateNodeData(nodeId, {
-            selectedModel: firstModel
-          }));
-        }
-      }, [data.videoModel, selectedModel, nodeId, updateNodeData]),
+        applyPreferredVideoModel();
+      }, [data.videoModel, selectedModel, data.wanjuanModelAuto, data.wanjuanModelManual, favoriteModels.favorites, nodeId, updateNodeData]),
       useEffect(() => {
         data.selectedModel && data.selectedModel !== selectedModel && _(data.selectedModel);
       }, [data.selectedModel]),
@@ -5183,11 +5240,21 @@ var Le = reactMemo(({
                                           className: `px-3 py-1.5 text-[11px] rounded-md transition-colors wanjuan-node-popover-option ${tongyiWanxiangMode === modeOption.value ? `bg-blue-600 border border-blue-400 text-white wanjuan-node-popover-option-active` : `bg-[#1c1c1c] text-gray-400 hover:bg-[#2a2a2a] hover:text-gray-200`}`,
                                           onClick: () => {
                                             let modelText = getTongyiWanxiangModelText(modeOption.value),
-                                              firstModel = parseSeedanceList(modelText)[0] || ``;
+                                              modeModelAuto = WanJuanShouldAutoPreferredModel(modelText, selectedModel || data.selectedModel || ``, {
+                                                manual: wanjuanModelManualRef.current || data.wanjuanModelManual === !0,
+                                                auto: data.wanjuanModelAuto === !0,
+                                              }),
+                                              firstModel = WanJuanGetPreferredModel(modelText, selectedModel || data.selectedModel || ``, favoriteModels.favorites, {
+                                                manual: !modeModelAuto && (wanjuanModelManualRef.current || data.wanjuanModelManual === !0),
+                                                auto: modeModelAuto,
+                                              });
+                                            wanjuanModelManualRef.current = !modeModelAuto && (wanjuanModelManualRef.current || data.wanjuanModelManual === !0);
                                             (updateNodeData(nodeId, {
                                                 tongyiWanxiangMode: modeOption.value,
                                                 videoModel: modelText,
                                                 selectedModel: firstModel,
+                                                wanjuanModelAuto: modeModelAuto,
+                                                wanjuanModelManual: !modeModelAuto && wanjuanModelManualRef.current,
                                               }),
                                               firstModel && _(firstModel),
                                               setMenuOpen(!1));
@@ -5585,18 +5652,7 @@ var Le = reactMemo(({
                                 className: `wanjuan-theme-muted text-[10px] text-gray-500 mb-1 px-1`,
                                 children: `模型`,
                               }),
-                              data.videoModel
-                              .split(
-                                `
-`,
-                              )
-                              .map((text) => text.trim())
-                              .filter((e) => e !== ``)
-                              .sort((modelA, modelB) => {
-                                let rankA = favoriteModels.isFavorite(modelA) ? 0 : 1,
-                                  rankB = favoriteModels.isFavorite(modelB) ? 0 : 1;
-                                return rankA - rankB;
-                              })
+                              favoriteModels.sortModels(WanJuanParseModelList(data.videoModel))
                               .map((model, index) =>
                                 jsxs(
                                   `button`, {
@@ -5614,8 +5670,11 @@ var Le = reactMemo(({
                                     onClick: () => {
                                       (_(model),
                                         updateNodeData(nodeId, {
-                                          selectedModel: model
+                                          selectedModel: model,
+                                          wanjuanModelAuto: !1,
+                                          wanjuanModelManual: !0
                                         }),
+                                        (wanjuanModelManualRef.current = !0),
                                         T(!1));
                                     },
                                     title: model,
@@ -5630,7 +5689,8 @@ var Le = reactMemo(({
                                         textShadow: `0 0 5px rgba(250, 204, 21, 0.48)`,
                                       } : void 0,
                                       onClick: (event) => {
-                                        (event.stopPropagation(), favoriteModels.toggleFavorite(model));
+                                        (event.stopPropagation(),
+                                          applyPreferredVideoModel(favoriteModels.toggleFavorite(model)));
                                       },
                                       title: favoriteModels.isFavorite(model) ? `取消收藏` : `收藏并置顶`,
                                       children: favoriteModels.isFavorite(model) ? `★` : `☆`
@@ -6207,6 +6267,8 @@ var Le = reactMemo(({
         wanJuanIsMusicNode = wanJuanNodeKind === `music`,
         wanJuanNodeTitle = wanJuanIsMusicNode ? `音乐节点` : `音频节点`;
       let favoriteModels = WanJuanUseFavoriteModels();
+      let wanJuanTtsModelManualRef = useRef(nodeData.wanjuanTtsModelManual === !0),
+        wanJuanMusicModelManualRef = useRef(nodeData.wanjuanMusicModelManual === !0);
       useEffect(() => {
         updateNodeData(nodeId, {
           mode: mode,
@@ -6253,6 +6315,48 @@ suno_music`)
       wanJuanMusicModels.length || (wanJuanMusicModels = [`suno_music`, `suno_lyrics`, `suno_concat`, `suno_act_wav`]);
       let wanJuanTtsMusicModelsForDropdown = wanJuanIsMusicNode ? wanJuanMusicModels : wanJuanTtsMusicModels,
         wanJuanEffectiveSunoModel = wanJuanMusicAction === `lyrics` ? `suno_lyrics` : wanJuanMusicAction === `concat` ? `suno_concat` : `suno_music`,
+        wanJuanApplyPreferredTtsModel = (favoritesOverride = favoriteModels.favorites) => {
+          let ttsModelText = wanJuanTtsMusicModels.join(`
+`);
+          if (!ttsModelText) return;
+          if (!WanJuanShouldAutoPreferredModel(ttsModelText, ttsModel, {
+              manual: wanJuanTtsModelManualRef.current || nodeData.wanjuanTtsModelManual === !0,
+              auto: nodeData.wanjuanTtsModelAuto === !0,
+            })) return;
+          let nextModel = WanJuanGetPreferredModel(ttsModelText, ttsModel, favoritesOverride, {
+            auto: !0
+          });
+          nextModel &&
+            !WanJuanSameModelId(nextModel, ttsModel) &&
+            ((wanJuanTtsModelManualRef.current = !1),
+              setTtsModel(nextModel),
+              updateNodeData(nodeId, {
+                ttsModel: nextModel,
+                wanjuanTtsModelAuto: !0,
+                wanjuanTtsModelManual: !1
+              }));
+        },
+        wanJuanApplyPreferredMusicModel = (favoritesOverride = favoriteModels.favorites) => {
+          let musicModelText = wanJuanMusicModels.join(`
+`);
+          if (!musicModelText) return;
+          if (!WanJuanShouldAutoPreferredModel(musicModelText, sunoModel, {
+              manual: wanJuanMusicModelManualRef.current || nodeData.wanjuanMusicModelManual === !0,
+              auto: nodeData.wanjuanMusicModelAuto === !0,
+            })) return;
+          let nextModel = WanJuanGetPreferredModel(musicModelText, sunoModel, favoritesOverride, {
+            auto: !0
+          });
+          nextModel &&
+            !WanJuanSameModelId(nextModel, sunoModel) &&
+            ((wanJuanMusicModelManualRef.current = !1),
+              _(nextModel),
+              updateNodeData(nodeId, {
+                sunoModel: nextModel,
+                wanjuanMusicModelAuto: !0,
+                wanjuanMusicModelManual: !1
+              }));
+        },
         gatherInputText = () => {
           let edges = getEdges(),
             nodes = getNodes(),
@@ -6795,6 +6899,23 @@ suno_music`)
       }, [nodeId, updateNodeData, mode, wanJuanRemoteTaskId, wanJuanEffectiveSunoModel, wanJuanClipId, title, prompt, data.audioUrl, data.loading, data.audioApiUrl, data.audioApiKey, data.taskId]);
 
       useEffect(() => {
+        wanJuanApplyPreferredTtsModel();
+        wanJuanApplyPreferredMusicModel();
+      }, [
+        wanJuanTtsMusicModels.join(`\n`),
+        wanJuanMusicModels.join(`\n`),
+        ttsModel,
+        sunoModel,
+        nodeData.wanjuanTtsModelAuto,
+        nodeData.wanjuanTtsModelManual,
+        nodeData.wanjuanMusicModelAuto,
+        nodeData.wanjuanMusicModelManual,
+        favoriteModels.favorites,
+        nodeId,
+        updateNodeData,
+      ]);
+
+      useEffect(() => {
         updateNodeData(nodeId, {
           onGenerateTtsMusic: runWanJuanTtsMusic
         });
@@ -6893,7 +7014,14 @@ suno_music`)
 	                        boxShadow: ttsModel === model ? `inset 0 1px 0 rgba(255,255,255,0.12)` : void 0,
 	                      },
                       onClick: () => {
-                        (setTtsModel(model), setWanJuanTtsModelOpen(!1));
+                        (setTtsModel(model),
+                          updateNodeData(nodeId, {
+                            ttsModel: model,
+                            wanjuanTtsModelAuto: !1,
+                            wanjuanTtsModelManual: !0
+                          }),
+                          (wanJuanTtsModelManualRef.current = !0),
+                          setWanJuanTtsModelOpen(!1));
                       },
                       title: model,
                       children: [jsx(`span`, {
@@ -6907,7 +7035,8 @@ suno_music`)
                           textShadow: `0 0 5px rgba(250, 204, 21, 0.48)`,
                         } : void 0,
                         onClick: (event) => {
-                          (event.stopPropagation(), favoriteModels.toggleFavorite(model));
+                          (event.stopPropagation(),
+                            wanJuanApplyPreferredTtsModel(favoriteModels.toggleFavorite(model)));
                         },
                         title: favoriteModels.isFavorite(model) ? `取消收藏` : `收藏并置顶`,
                         children: favoriteModels.isFavorite(model) ? `★` : `☆`
@@ -7035,7 +7164,14 @@ suno_music`)
                         boxShadow: wanJuanEffectiveSunoModel === model ? `inset 0 1px 0 rgba(255,255,255,0.12)` : void 0,
                       },
                       onClick: () => {
-                        (_(model), setWanJuanMusicModelOpen(!1));
+                        (_(model),
+                          updateNodeData(nodeId, {
+                            sunoModel: model,
+                            wanjuanMusicModelAuto: !1,
+                            wanjuanMusicModelManual: !0
+                          }),
+                          (wanJuanMusicModelManualRef.current = !0),
+                          setWanJuanMusicModelOpen(!1));
                       },
                       title: model,
                       children: [jsx(`span`, {
@@ -7049,7 +7185,8 @@ suno_music`)
                           textShadow: `0 0 5px rgba(250, 204, 21, 0.48)`,
                         } : void 0,
                         onClick: (event) => {
-                          (event.stopPropagation(), favoriteModels.toggleFavorite(model));
+                          (event.stopPropagation(),
+                            wanJuanApplyPreferredMusicModel(favoriteModels.toggleFavorite(model)));
                         },
                         title: favoriteModels.isFavorite(model) ? `取消收藏` : `收藏并置顶`,
                         children: favoriteModels.isFavorite(model) ? `★` : `☆`
@@ -13680,6 +13817,7 @@ function wanjuanRenderResourceSourceTabs(selectedValue, onSelect, favoriteActive
       jsxs(`div`, {
         className: `flex bg-[#111] rounded p-0.5`,
         children: [
+          [`all`, `全部来源`],
           [`generated`, `AI生成`],
           [`external`, `外部素材`],
         ].map(([optionValue, optionLabel]) =>
@@ -13710,7 +13848,7 @@ function rt({
   onClose
 }) {
   let [typeFilter, setTypeFilter] = useState(`all`),
-  [resourceSourceFilter, setResourceSourceFilter] = useState(`generated`),
+  [resourceSourceFilter, setResourceSourceFilter] = useState(`all`),
   [resourceFavoriteOnly, setResourceFavoriteOnly] = useState(!1),
   [page, setPage] = useState(1),
 		  filteredResources = resources.filter((resource) => wanjuanResourceMatchesFilter(resource, typeFilter, resourceSourceFilter, resourceFavoriteOnly)),
@@ -15371,7 +15509,12 @@ async function wanjuanRunTianjiSeedanceVideo(options) {
             ...node.data,
             seedanceTaskId: taskId,
             tianjiExecuteId: taskId,
+            videoUrl: void 0,
+            thumbnailUrl: void 0,
+            resultData: void 0,
+            loading: !0,
             progress: 1,
+            errorMessage: void 0,
             loadingText: `任务已提交，等待查询...`
           },
         } :
@@ -15381,7 +15524,12 @@ async function wanjuanRunTianjiSeedanceVideo(options) {
     await options.persistVideoNodeState({}, {
       seedanceTaskId: taskId,
       tianjiExecuteId: taskId,
+      videoUrl: void 0,
+      thumbnailUrl: void 0,
+      resultData: void 0,
+      loading: !0,
       progress: 1,
+      errorMessage: void 0,
       loadingText: `任务已提交，等待查询...`
     }),
     localStorage.setItem(options.dailyKey, (options.dailyCount + 1).toString()),
@@ -15508,7 +15656,9 @@ async function wanjuanRunTianjiSeedanceVideo(options) {
                 ...node,
                 data: {
                   ...node.data,
+                  loading: !0,
                   progress: hasRealProgress ? progress : node.data?.progress ?? 1,
+                  errorMessage: void 0,
                   loadingText: hasRealProgress ? `${statusLabel}... ${progress}%` : `${statusLabel}...`
                 }
               } :
@@ -17313,16 +17463,10 @@ wan2.7-videoedit-1080P`,
           }
           let updateGlobalTaskList = updateTaskList,
             imageModels = drawingModel ?
-            drawingModel
-            .split(
-              `
-`,
-            )
-            .map((modelName2) => modelName2.trim())
-            .filter(Boolean) :
+            WanJuanParseModelList(drawingModel) :
             [`gemini-3.1-flash-image-preview`],
             imageModelName =
-            modelName && imageModels.includes(modelName) ? modelName : imageModels[0],
+            WanJuanGetPreferredModel(imageModels, modelName || ``),
             imageSourceNode = getNodes().find((node) => node.id === nodeId),
             selectedImageApiConfigId =
             apiBindingId ||
@@ -19139,7 +19283,7 @@ ${combinedPrompt}`,
             .split(/[\n,，、]+/)
             .map((e) => e.trim())
             .filter(Boolean)[0] || `grok-video-4.2`,
-            modelName = normalizeVideoModelName(modelName2 || videoModel),
+            modelName = normalizeVideoModelName(WanJuanGetPreferredModel(videoModel, modelName2 || ``) || modelName2 || videoModel),
             seedanceSourceNode = getNodes().find((node) => node.id === nodeId),
             isVideoApiBoundSourceNode =
             seedanceSourceNode?.type === `seedanceNode` ||
@@ -25251,9 +25395,21 @@ ${combinedPrompt}`,
                     nodeData.tongyiWanxiangMode === `video-edit` ?
                     tongyiWanxiangEditModels :
                     tongyiWanxiangTextModels,
-                  selectedModel = parseSeedanceList(videoModel2)[0] || ``;
+                  selectedModel = WanJuanGetPreferredModel(videoModel2, nodeData.selectedModel || ``, void 0, {
+                    manual: nodeData.wanjuanModelManual === !0,
+                    auto: nodeData.wanjuanModelAuto === !0,
+                  });
                 (nodeData.videoModel !== videoModel2 && ((nodeData.videoModel = videoModel2), (hasChanged = !0)),
-                  selectedModel && nodeData.selectedModel !== selectedModel && ((nodeData.selectedModel = selectedModel), (hasChanged = !0)));
+                  selectedModel &&
+                  !WanJuanSameModelId(nodeData.selectedModel, selectedModel) &&
+                  WanJuanShouldAutoPreferredModel(videoModel2, nodeData.selectedModel || ``, {
+                    manual: nodeData.wanjuanModelManual === !0,
+                    auto: nodeData.wanjuanModelAuto === !0,
+                  }) &&
+                  ((nodeData.selectedModel = selectedModel),
+                    (nodeData.wanjuanModelAuto = !0),
+                    (nodeData.wanjuanModelManual = !1),
+                    (hasChanged = !0)));
               })()) :
             (nodeData.videoModel !== videoModel && ((nodeData.videoModel = videoModel), (hasChanged = !0)),
               nodeData.videoDurations !== g && ((nodeData.videoDurations = g), (hasChanged = !0)),
@@ -27757,7 +27913,7 @@ function St() {
 	  [y, b] = useState(!1),
 	  [transitResources, setTransitResources] = useState([]),
 	  [resourceTypeFilter, setResourceTypeFilter] = useState(`all`),
-	  [resourceSourceFilter, setResourceSourceFilter] = useState(`generated`),
+	  [resourceSourceFilter, setResourceSourceFilter] = useState(`all`),
 	  [resourceFavoriteOnly, setResourceFavoriteOnly] = useState(!1),
 	  [wjResourceFullscreen, setWjResourceFullscreen] = useState(null),
 	  [transitGridCols, setTransitGridCols] = useState(4),
@@ -33399,7 +33555,7 @@ ${docText}`;
             return (
               X.default.setItem(`transitResources`, updatedResources),
               _ && chrome.storage.local.set({
-                transitResources: updatedResources.slice(0, 5)
+                transitResources: updatedResources
               }),
               updatedResources
             );
@@ -36543,16 +36699,16 @@ ${String(l || ``).slice(0, 5e4)}`;
                           return;
                         }
                         (updateGlobalTasks((tasks) =>
-                            tasks.map((task) =>
-                              task.id === task.id ?
+                            tasks.map((taskItem) =>
+                              taskItem.id === task.id ?
                               {
-                                ...task,
+                                ...taskItem,
                                 status: `completed`,
                                 progress: 100,
                                 resultUrl: videoUrl,
                                 thumbnailUrl: thumbUrl,
                               } :
-                              task,
+                              taskItem,
                             ),
                           ),
                           addResource(videoUrl, `video`, `generated`),
@@ -36562,28 +36718,28 @@ ${String(l || ``).slice(0, 5e4)}`;
                       if ([`failed`, `fail`, `error`, `expired`, `canceled`, `cancelled`, `rejected`].includes(status)) {
                         let message = wanjuanTianjiErrorMessage(result);
                         (updateGlobalTasks((tasks) =>
-                            tasks.map((task) =>
-                              task.id === task.id ?
+                            tasks.map((taskItem) =>
+                              taskItem.id === task.id ?
                               {
-                                ...task,
+                                ...taskItem,
                                 status: `failed`,
                                 errorMsg: message,
                               } :
-                              task,
+                              taskItem,
                             ),
                           ),
                           notify(message));
                         return;
                       }
                       (updateGlobalTasks((tasks) =>
-                          tasks.map((task) =>
-                            task.id === task.id ?
+                          tasks.map((taskItem) =>
+                            taskItem.id === task.id ?
                             {
-                              ...task,
+                              ...taskItem,
                               status: `running`,
-                              progress: isNaN(progress) ? task.progress || 0 : Math.min(99, Math.max(0, progress)),
+                              progress: isNaN(progress) ? taskItem.progress || 0 : Math.min(99, Math.max(0, progress)),
                             } :
-                            task,
+                            taskItem,
                           ),
                         ),
                         notify(`即梦天玑任务仍在生成中`));
@@ -39339,14 +39495,21 @@ ${String(l || ``).slice(0, 5e4)}`;
 	                          className: `flex bg-[#121212] rounded-lg p-1 border border-[#333] flex-1 wanjuan-resource-filter-group`,
 	                          children: [
 	                            jsx(`button`, {
-	                              className: `flex-1 px-4 py-1 text-xs rounded-md transition-colors wanjuan-resource-filter-button ${resourceSourceFilter === `generated` ? `bg-[#e5e5e5] text-black font-bold wanjuan-resource-filter-button-active` : `text-gray-400 hover:text-gray-200`}`,
+	                              className: `flex-1 px-3 py-1 text-xs rounded-md transition-colors wanjuan-resource-filter-button ${resourceSourceFilter === `all` ? `bg-[#e5e5e5] text-black font-bold wanjuan-resource-filter-button-active` : `text-gray-400 hover:text-gray-200`}`,
+	                              onClick: () => {
+	                                (setResourceSourceFilter(`all`), setCurrentPage(1));
+	                              },
+	                              children: `全部来源`,
+	                            }),
+	                            jsx(`button`, {
+	                              className: `flex-1 px-3 py-1 text-xs rounded-md transition-colors wanjuan-resource-filter-button ${resourceSourceFilter === `generated` ? `bg-[#e5e5e5] text-black font-bold wanjuan-resource-filter-button-active` : `text-gray-400 hover:text-gray-200`}`,
 	                              onClick: () => {
 	                                (setResourceSourceFilter(`generated`), setCurrentPage(1));
 	                              },
 	                              children: `AI生成`,
 	                            }),
 	                            jsx(`button`, {
-	                              className: `flex-1 px-4 py-1 text-xs rounded-md transition-colors wanjuan-resource-filter-button ${resourceSourceFilter === `external` ? `bg-[#e5e5e5] text-black font-bold wanjuan-resource-filter-button-active` : `text-gray-400 hover:text-gray-200`}`,
+	                              className: `flex-1 px-3 py-1 text-xs rounded-md transition-colors wanjuan-resource-filter-button ${resourceSourceFilter === `external` ? `bg-[#e5e5e5] text-black font-bold wanjuan-resource-filter-button-active` : `text-gray-400 hover:text-gray-200`}`,
 	                              onClick: () => {
 	                                (setResourceSourceFilter(`external`), setCurrentPage(1));
 	                              },
@@ -39435,6 +39598,24 @@ ${String(l || ``).slice(0, 5e4)}`;
                             jsx(`br`, {}),
                             `选择"发送到资源"`,
                           ],
+                        }),
+                      ],
+                    }),
+                    transitResources.length > 0 &&
+                    transitResources.filter((resource) => wanjuanResourceMatchesFilter(resource, resourceTypeFilter, resourceSourceFilter, resourceFavoriteOnly)).length === 0 &&
+                    jsxs(`div`, {
+                      className: `wanjuan-resource-empty-filter text-center text-gray-500 py-20 text-sm flex flex-col items-center`,
+                      children: [
+                        jsx(`div`, {
+                          className: `text-3xl mb-3 opacity-40`,
+                          children: `⌕`,
+                        }),
+                        jsx(`p`, {
+                          children: `当前筛选没有资源`
+                        }),
+                        jsx(`p`, {
+                          className: `text-xs mt-2 text-gray-600`,
+                          children: `可以切换类型、来源或取消收藏筛选`,
                         }),
                       ],
                     }),

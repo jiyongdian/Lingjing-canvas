@@ -515,7 +515,12 @@ export async function wanjuanRunTianjiSeedanceVideo(options: RunTianjiSeedanceVi
                 ...node.data,
                 seedanceTaskId: taskId,
                 tianjiExecuteId: taskId,
+                videoUrl: void 0,
+                thumbnailUrl: void 0,
+                resultData: void 0,
+                loading: true,
                 progress: 1,
+                errorMessage: void 0,
                 loadingText: `任务已提交，等待查询...`,
               },
             }
@@ -527,7 +532,12 @@ export async function wanjuanRunTianjiSeedanceVideo(options: RunTianjiSeedanceVi
       {
         seedanceTaskId: taskId,
         tianjiExecuteId: taskId,
+        videoUrl: void 0,
+        thumbnailUrl: void 0,
+        resultData: void 0,
+        loading: true,
         progress: 1,
+        errorMessage: void 0,
         loadingText: `任务已提交，等待查询...`,
       },
     ),
@@ -656,7 +666,9 @@ export async function wanjuanRunTianjiSeedanceVideo(options: RunTianjiSeedanceVi
                   ...node,
                   data: {
                     ...node.data,
+                    loading: true,
                     progress: hasRealProgress ? progress : node.data?.progress ?? 1,
+                    errorMessage: void 0,
                     loadingText: hasRealProgress ? `${statusLabel}... ${progress}%` : `${statusLabel}...`,
                   },
                 }
