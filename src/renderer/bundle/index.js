@@ -6229,6 +6229,18 @@ var Le = reactMemo(({
       };
       return (includeContentType && (headers[`Content-Type`] = `application/json`), headers);
     },
+    WanJuanSunoTaskStatus = (payload) =>
+      String(payload?.data?.status || payload?.status || payload?.data?.data?.status || payload?.result?.status || ``).trim().toUpperCase(),
+    WanJuanSunoTaskFailed = (payload) => {
+      let status = WanJuanSunoTaskStatus(payload),
+        serialized = JSON.stringify(payload || {}).toLowerCase();
+      return /fail|error|cancel/.test(status) || /"status"\s*:\s*"(?:fail|failed|failure|error|cancelled|canceled)"/i.test(serialized);
+    },
+    WanJuanSunoTaskSucceeded = (payload) => {
+      let status = WanJuanSunoTaskStatus(payload),
+        serialized = JSON.stringify(payload || {}).toLowerCase();
+      return /^(SUCCESS|SUCCEEDED|COMPLETE|COMPLETED|FINISHED|DONE)$/i.test(status) || /"status"\s*:\s*"(?:success|succeeded|complete|completed|finished|done)"/i.test(serialized);
+    },
     WanJuanTtsMusicNode = reactMemo(({
       id: nodeId,
       data: nodeData,
@@ -6491,12 +6503,27 @@ suno_music`)
             id: itemId,
             type: `audio`,
             projectId: data.projectId,
-            nodeId: items,
+            nodeId: nodeId,
             status: `running`,
             progress: 0,
             createdAt: Date.now(),
             prompt: inputText.slice(0, 120),
-            customOutputType: mode === `tts` ? `audio` : `audio`
+            customOutputType: `audio`,
+            provider: mode === `suno` ? `suno` : `tts`,
+            modelName: wanJuanAudioModelForBinding,
+            apiConfigId: wanJuanBoundAudioConfig?.id || wanJuanDefaultAudioConfig?.id || ``,
+            apiBaseUrl: wanJuanAudioApiUrl,
+            requestProfile: mode === `suno` ?
+              {
+                requestType: `suno-music`,
+                submitPath: `/suno/submit/music`,
+                pollPath: `/suno/fetch/{taskId}`,
+                action: wanJuanMusicAction
+              } :
+              {
+                requestType: `audio-speech`,
+                submitPath: wanJuanTtsMusicProtocolProfile?.submitPath || `/v1/audio/speech`
+              }
           }]);
           try {
             if (mode === `tts`) {
@@ -6618,11 +6645,12 @@ suno_music`)
                 } catch (error) {
                   throw Error(`Suno 额外 JSON 参数格式错误：${error.message}`);
                 }
-              let wanJuanSunoFinish = (result, taskLabel = `Suno 任务`) => {
+              let wanJuanSunoFinish = (result, taskLabel = `Suno 任务`, options = {}) => {
 	                  let audioUrl = WanJuanTtsMusicExtractAudio(result),
 	                    taskId = WanJuanTtsMusicExtractTaskId(result) || wanJuanRemoteTaskId,
 	                    clipId = WanJuanTtsMusicExtractClipId(result) || wanJuanClipId,
 	                    resultText = typeof result == `string` ? result : JSON.stringify(result, null, 2),
+	                    requireAudio = options.requireAudio === !0,
 	                    statePatch = {
 	                      loading: !1,
 	                      errorMessage: void 0,
@@ -6633,6 +6661,31 @@ suno_music`)
 	                      remoteTaskId: taskId || void 0,
 	                      clipId: clipId || void 0
 	                    };
+	                  if (requireAudio && !audioUrl) {
+	                    return (
+	                      taskId && setWanJuanRemoteTaskId(taskId),
+	                      clipId && setWanJuanClipId(clipId),
+	                      updateNodeData(nodeId, {
+	                        loading: !0,
+	                        errorMessage: `Suno 任务已完成，等待音频地址...`,
+	                        resultData: resultText,
+	                        remoteTaskId: taskId || void 0,
+	                        clipId: clipId || void 0
+	                      }),
+	                      data.updateGlobalTasks?.((items) => items.map((item) => item.id === itemId ? {
+	                        ...item,
+	                        type: `audio`,
+	                        status: `running`,
+	                        progress: Math.max(item.progress || 0, 98),
+	                        customOutputType: `audio`,
+	                        customResultData: resultText,
+	                        remoteTaskId: taskId || item.remoteTaskId,
+	                        clipId: clipId || item.clipId,
+	                        errorMsg: `Suno 已完成，音频地址还未返回，稍后刷新会继续拉取`
+	                      } : item)),
+	                      !1
+	                    );
+	                  }
 	                  (taskId && setWanJuanRemoteTaskId(taskId),
 	                    clipId && setWanJuanClipId(clipId),
 	                    updateNodeData(nodeId, statePatch),
@@ -6649,6 +6702,7 @@ suno_music`)
 	                    } : item)),
                     audioUrl && data.addTransitResource?.(audioUrl, `audio`, `${title || taskLabel || `suno`}.mp3`),
                     data.onShowToast?.(audioUrl ? `Suno 音频已就绪` : `${taskLabel} 查询完成`));
+                  return !0;
                 },
                 wanJuanSunoReadJson = async (response) => {
                   let responseText = await response.text().catch(() => ``);
@@ -6679,7 +6733,8 @@ suno_music`)
                   });
                   return (await wanJuanSunoThrowIfBad(response, `Suno 请求失败`), wanJuanSunoReadJson(response));
                 },
-	                wanJuanPollSunoTask = async (taskId, taskLabel) => {
+	                wanJuanPollSunoTask = async (taskId, taskLabel, options = {}) => {
+	                  let expectAudio = options.expectAudio !== !1;
 	                  if (!taskId) throw Error(`Suno 未返回任务ID`);
 	                  (setWanJuanRemoteTaskId(taskId),
 	                    updateNodeData(nodeId, {
@@ -6695,19 +6750,29 @@ suno_music`)
                       continue;
                     }
 	                    let audioUrl = WanJuanTtsMusicExtractAudio(taskResult),
-	                      statusText = String(taskResult?.data?.status || taskResult?.status || taskResult?.data?.data?.status || taskResult?.result?.status || ``).trim().toUpperCase(),
-	                      serializedResult = JSON.stringify(taskResult || {}).toLowerCase(),
-	                      isFailed = /fail|error|cancel/.test(statusText) || /\"status\"\\s*:\\s*\"(?:fail|failed|error|cancelled|canceled)\"/i.test(serializedResult),
-	                      isSuccess = /^(SUCCESS|SUCCEEDED|COMPLETE|COMPLETED|FINISHED|DONE)$/i.test(statusText) || /\"status\"\\s*:\\s*\"(?:success|succeeded|complete|completed|finished|done)\"/i.test(serializedResult);
+	                      isFailed = WanJuanSunoTaskFailed(taskResult),
+	                      isSuccess = WanJuanSunoTaskSucceeded(taskResult);
 	                    if (isFailed) throw Error(taskResult?.data?.fail_reason || taskResult?.fail_reason || taskResult?.message || `Suno 任务失败`);
-	                    if (audioUrl || isSuccess) {
-	                      wanJuanSunoFinish(taskResult, taskLabel);
+	                    if (audioUrl || (isSuccess && !expectAudio)) {
+	                      wanJuanSunoFinish(taskResult, taskLabel, {
+	                        requireAudio: expectAudio
+	                      });
 	                      return;
 	                    }
                     data.updateGlobalTasks?.((items) => items.map((item) => item.id === itemId ? {
                       ...item,
-                      progress: Math.min(95, 5 + attempt * 2)
+                      status: `running`,
+                      progress: isSuccess ? Math.max(item.progress || 0, 98) : Math.min(95, 5 + attempt * 2),
+                      errorMsg: isSuccess ? `Suno 已完成，等待音频地址返回...` : item.errorMsg
                     } : item));
+                    isSuccess &&
+                      updateNodeData(nodeId, {
+                        loading: !0,
+                        errorMessage: `Suno 任务已完成，等待音频地址...`,
+                        resultData: typeof taskResult == `string` ? taskResult : JSON.stringify(taskResult, null, 2),
+                        remoteTaskId: WanJuanTtsMusicExtractTaskId(taskResult) || taskId,
+                        clipId: WanJuanTtsMusicExtractClipId(taskResult) || void 0
+                      });
                   }
                   throw Error(`Suno 查询超时，请稍后用任务ID手动查询：${taskId}`);
                 };
@@ -6721,7 +6786,9 @@ suno_music`)
                     ...wanJuanSunoExtraParams
                   }),
                   taskId = WanJuanTtsMusicExtractTaskId(response);
-                await wanJuanPollSunoTask(taskId, `Suno 歌曲`);
+                await wanJuanPollSunoTask(taskId, `Suno 歌曲`, {
+                  expectAudio: !0
+                });
               } else if (wanJuanMusicAction === `lyrics_to_song`) {
                 let response = await wanJuanSunoPost(`/suno/submit/music`, {
                     prompt: inputText,
@@ -6732,14 +6799,20 @@ suno_music`)
                     ...wanJuanSunoExtraParams
                   }),
                   taskId = WanJuanTtsMusicExtractTaskId(response);
-                await wanJuanPollSunoTask(taskId, `Suno 歌词成歌`);
+                await wanJuanPollSunoTask(taskId, `Suno 歌词成歌`, {
+                  expectAudio: !0
+                });
               } else if (wanJuanMusicAction === `lyrics`) {
                 let response = await wanJuanSunoPost(`/suno/submit/lyrics`, {
                     prompt: inputText,
                     ...wanJuanSunoExtraParams
                   }),
                   taskId = WanJuanTtsMusicExtractTaskId(response);
-                taskId ? await wanJuanPollSunoTask(taskId, `Suno 歌词`) : wanJuanSunoFinish(response, `Suno 歌词`);
+                taskId ? await wanJuanPollSunoTask(taskId, `Suno 歌词`, {
+                  expectAudio: !1
+                }) : wanJuanSunoFinish(response, `Suno 歌词`, {
+                  requireAudio: !1
+                });
               } else if (wanJuanMusicAction === `concat`) {
                 let response = await wanJuanSunoPost(`/suno/submit/concat`, {
                     clip_id: wanJuanClipId.trim() || wanJuanUpstreamSunoRef.clipId,
@@ -6747,20 +6820,28 @@ suno_music`)
                     ...wanJuanSunoExtraParams
                   }),
                   taskId = WanJuanTtsMusicExtractTaskId(response);
-                await wanJuanPollSunoTask(taskId, `Suno 拼接`);
+                await wanJuanPollSunoTask(taskId, `Suno 拼接`, {
+                  expectAudio: !0
+                });
               } else if (wanJuanMusicAction === `single`) {
                 let response = await wanJuanSunoGet(`/suno/fetch/${encodeURIComponent(wanJuanRemoteTaskId.trim())}`);
-                wanJuanSunoFinish(response, `Suno 单任务`);
+                wanJuanSunoFinish(response, `Suno 单任务`, {
+                  requireAudio: wanJuanEffectiveSunoModel !== `suno_lyrics`
+                });
               } else if (wanJuanMusicAction === `batch`) {
                 let taskIds = WanJuanTtsMusicExtractTaskIds(wanJuanBatchIds),
                   response = await wanJuanSunoPost(`/suno/fetch`, {
                     ids: taskIds,
                     ...wanJuanSunoExtraParams
                   });
-                wanJuanSunoFinish(response, `Suno 批量任务`);
+                wanJuanSunoFinish(response, `Suno 批量任务`, {
+                  requireAudio: wanJuanEffectiveSunoModel !== `suno_lyrics`
+                });
               } else if (wanJuanMusicAction === `wav`) {
                 let response = await wanJuanSunoGet(`/suno/act/wav/${encodeURIComponent(wanJuanClipId.trim())}`);
-                wanJuanSunoFinish(response, `Suno WAV`);
+                wanJuanSunoFinish(response, `Suno WAV`, {
+                  requireAudio: !0
+                });
               }
             }
           } catch (error) {
@@ -6810,6 +6891,14 @@ suno_music`)
               createdAt: Date.now(),
               prompt: (prompt || title || `Suno 音乐任务`).slice(0, 120),
               customOutputType: `audio`,
+              provider: `suno`,
+              modelName: wanJuanEffectiveSunoModel,
+              apiConfigId: wanJuanBoundAudioConfig?.id || wanJuanDefaultAudioConfig?.id || ``,
+              apiBaseUrl: wanJuanAudioApiUrl,
+              requestProfile: {
+                requestType: `suno-music`,
+                pollPath: `/suno/fetch/{taskId}`
+              },
               remoteTaskId: wanJuanRemoteTaskId
             }];
           });
@@ -6832,20 +6921,30 @@ suno_music`)
               let audio = WanJuanTtsMusicExtractAudio(payload),
                 taskIdFromPayload = WanJuanTtsMusicExtractTaskId(payload) || wanJuanRemoteTaskId,
                 clipIdFromPayload = WanJuanTtsMusicExtractClipId(payload) || wanJuanClipId,
-                status = String(payload?.data?.status || payload?.status || payload?.data?.data?.status || payload?.result?.status || ``).trim().toUpperCase(),
-                serialized = JSON.stringify(payload || {}).toLowerCase(),
-                failed = /fail|error|cancel/.test(status) || /"status"\s*:\s*"(?:fail|failed|error|cancelled|canceled)"/i.test(serialized),
-                completed = /^(SUCCESS|SUCCEEDED|COMPLETE|COMPLETED|FINISHED|DONE)$/i.test(status) || /"status"\s*:\s*"(?:success|succeeded|complete|completed|finished|done)"/i.test(serialized);
+                failed = WanJuanSunoTaskFailed(payload),
+                completed = WanJuanSunoTaskSucceeded(payload);
               if (failed) throw Error(payload?.data?.fail_reason || payload?.fail_reason || payload?.message || `Suno 任务失败`);
               data.updateGlobalTasks?.((tasks) => (Array.isArray(tasks) ? tasks : []).map((item) => item.id === taskId ? {
                 ...item,
                 type: `audio`,
                 status: `running`,
-                progress: Math.min(95, 10 + index * 2),
+                progress: completed && !audio ? Math.max(item.progress || 0, 98) : Math.min(95, 10 + index * 2),
                 customOutputType: `audio`,
-                remoteTaskId: taskIdFromPayload
+                remoteTaskId: taskIdFromPayload,
+                clipId: clipIdFromPayload || item.clipId,
+                errorMsg: completed && !audio ? `Suno 已完成，等待音频地址返回...` : item.errorMsg
               } : item));
-              if (audio || completed) {
+              if (completed && !audio) {
+                updateNodeData(nodeId, {
+                  loading: !0,
+                  errorMessage: `Suno 任务已完成，等待音频地址...`,
+                  resultData: typeof payload == `string` ? payload : JSON.stringify(payload, null, 2),
+                  remoteTaskId: taskIdFromPayload || void 0,
+                  clipId: clipIdFromPayload || void 0
+                });
+                continue;
+              }
+              if (audio) {
                 let resultData = typeof payload == `string` ? payload : JSON.stringify(payload, null, 2),
                   audioName = audio ? `${title || `Suno 音乐`}.mp3` : data.audioName;
                 if (cancelled) return;
@@ -36399,6 +36498,149 @@ ${String(l || ``).slice(0, 5e4)}`;
                           addResource(audioUrl, `audio`, task.provider === `suno` ? `suno` : `generated`),
                           notify(`音频结果已同步到节点`));
                         return;
+                      }
+                      if (task.remoteTaskId && !task.stoppedByUser) {
+                        let taskModelName = String(task.modelName || task.model || ``).trim(),
+                          taskProvider = String(task.provider || ``).toLowerCase(),
+                          looksLikeSunoTask =
+                          taskProvider === `suno` ||
+                          /suno|music|song|lyrics|concat/i.test(`${taskModelName} ${task.requestProfile?.requestType || ``} ${task.requestProfile?.pollPath || ``}`) ||
+                          !!task.remoteTaskId,
+                          matchedAudioConfig =
+                          (task.apiConfigId && apiConfigs.find((config) => config.id === task.apiConfigId)) ||
+                          (task.apiBaseUrl && apiConfigs.find((config) => String(config.url || ``).replace(/\/$/, ``) === String(task.apiBaseUrl || ``).replace(/\/$/, ``))) ||
+                          apiConfigs.find((config) => /zhichuang|智创|聚合|suno|lconai/i.test(`${config?.id || ``} ${config?.name || ``} ${config?.url || ``}`)) ||
+                          apiConfigs.find((config) => config?.id === `default`) ||
+                          null,
+                          sunoApiUrl = task.apiBaseUrl || matchedAudioConfig?.url || audioApiUrl,
+                          sunoApiKey = matchedAudioConfig?.key || audioApiKey;
+                        if (looksLikeSunoTask && sunoApiUrl && sunoApiKey) {
+                          let response = await fetch(WanJuanTtsMusicApiUrl(sunoApiUrl, `/suno/fetch/${encodeURIComponent(task.remoteTaskId)}`), {
+                            method: `GET`,
+                            headers: WanJuanSunoHeaders(sunoApiKey, !1)
+                          });
+                          if (!response.ok) {
+                            let errorText = await response.text().catch(() => response.statusText);
+                            throw Error(errorText || `Suno 查询失败: ${response.status}`);
+                          }
+                          let responseText = await response.text().catch(() => ``),
+                            payload;
+                          try {
+                            payload = responseText ? JSON.parse(responseText) : {};
+                          } catch {
+                            payload = responseText;
+                          }
+                          let refreshedAudioUrl = WanJuanTtsMusicExtractAudio(payload),
+                            refreshedTaskId = WanJuanTtsMusicExtractTaskId(payload) || task.remoteTaskId,
+                            refreshedClipId = WanJuanTtsMusicExtractClipId(payload) || task.clipId,
+                            refreshedResultData = typeof payload == `string` ? payload : JSON.stringify(payload, null, 2),
+                            failed = WanJuanSunoTaskFailed(payload),
+                            completed = WanJuanSunoTaskSucceeded(payload),
+                            matchesTaskNode = (node) =>
+                            node.id === task.nodeId ||
+                            node.data?.taskId === task.id ||
+                            (task.remoteTaskId && node.data?.remoteTaskId === task.remoteTaskId) ||
+                            (refreshedTaskId && node.data?.remoteTaskId === refreshedTaskId);
+                          if (failed) throw Error(payload?.data?.fail_reason || payload?.fail_reason || payload?.message || `Suno 任务失败`);
+                          if (refreshedAudioUrl) {
+                            (updateGlobalTasks((tasks) =>
+                                tasks.map((task2) =>
+                                  task2.id === task.id ?
+                                  {
+                                    ...task2,
+                                    status: `completed`,
+                                    progress: 100,
+                                    customOutputType: `audio`,
+                                    customResultData: refreshedResultData,
+                                    resultUrl: refreshedAudioUrl,
+                                    remoteTaskId: refreshedTaskId,
+                                    clipId: refreshedClipId,
+                                    errorMsg: void 0,
+                                  } :
+                                  task2,
+                                ),
+                              ),
+                              N((nodes) =>
+                                nodes.map((node) =>
+                                  matchesTaskNode(node) ?
+                                  {
+                                    ...node,
+                                    data: {
+                                      ...node.data,
+                                      audioUrl: refreshedAudioUrl,
+                                      audioName: node.data?.audioName || task.audioName || task.title || `Suno 音乐.mp3`,
+                                      resultData: refreshedResultData,
+                                      text: refreshedAudioUrl,
+                                      remoteTaskId: refreshedTaskId,
+                                      clipId: refreshedClipId,
+                                      loading: !1,
+                                      progress: 100,
+                                      errorMessage: void 0,
+                                    },
+                                  } :
+                                  node,
+                                ),
+                              ),
+                              addResource(refreshedAudioUrl, `audio`, task.provider === `suno` ? `suno` : `generated`),
+                              notify(`Suno 音频结果已同步到节点`));
+                            return;
+                          }
+                          if (completed) {
+                            updateGlobalTasks((tasks) =>
+                              tasks.map((task2) =>
+                                task2.id === task.id ?
+                                {
+                                  ...task2,
+                                  status: `running`,
+                                  progress: Math.max(task2.progress || 0, 98),
+                                  customOutputType: `audio`,
+                                  customResultData: refreshedResultData,
+                                  remoteTaskId: refreshedTaskId,
+                                  clipId: refreshedClipId,
+                                  errorMsg: `Suno 已完成，音频地址还未返回，稍后再刷新`,
+                                } :
+                                task2,
+                              ),
+                            );
+                            N((nodes) =>
+                              nodes.map((node) =>
+                                matchesTaskNode(node) ?
+                                {
+                                  ...node,
+                                  data: {
+                                    ...node.data,
+                                    loading: !0,
+                                    resultData: refreshedResultData,
+                                    remoteTaskId: refreshedTaskId,
+                                    clipId: refreshedClipId,
+                                    errorMessage: `Suno 任务已完成，等待音频地址...`,
+                                  },
+                                } :
+                                node,
+                              ),
+                            );
+                            notify(`Suno 已完成，但音频地址还未返回，请稍后刷新`);
+                            return;
+                          }
+                          updateGlobalTasks((tasks) =>
+                            tasks.map((task2) =>
+                              task2.id === task.id ?
+                              {
+                                ...task2,
+                                status: `running`,
+                                progress: Math.max(task2.progress || 0, 10),
+                                customOutputType: `audio`,
+                                customResultData: refreshedResultData,
+                                remoteTaskId: refreshedTaskId,
+                                clipId: refreshedClipId,
+                                errorMsg: void 0,
+                              } :
+                              task2,
+                            ),
+                          );
+                          notify(`Suno 任务仍在生成中`);
+                          return;
+                        }
                       }
                       notify(task.status === `completed` ? `音频任务已完成，但任务记录里没有可播放的音频地址` : `音频任务还没有可播放结果`);
                       return;
