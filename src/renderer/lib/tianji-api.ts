@@ -304,6 +304,32 @@ export const wanjuanTianjiFindProgress = (data: any): number => {
   return Math.min(99, Math.max(0, Math.round(progress)));
 };
 
+const wanjuanTianjiAssetUrl = (assetId: any): string => {
+  let cleanId = String(assetId || ``)
+    .trim()
+    .replace(/^asset:\/\//i, ``)
+    .replace(/\s+/g, ``);
+  return cleanId ? `asset://${cleanId}` : ``;
+};
+
+const wanjuanTianjiPortraitAssetUrl = (media: any): string => {
+  if (!media || typeof media != `object`) return ``;
+  let isTianjiPortrait =
+      media.isTianjiPortrait === true ||
+      media.source === `tianji-portrait` ||
+      media.sourceOrigin === `tianji-portrait` ||
+      media.mediaSourceOrigin === `tianji-portrait` ||
+      media.type === `image/tianji-portrait`,
+    assetId =
+      media.tianjiPortraitAssetId ||
+      media.portraitAssetId ||
+      media.portrait_asset_id ||
+      media.assetId ||
+      media.asset_id ||
+      media.id;
+  return isTianjiPortrait ? wanjuanTianjiAssetUrl(assetId) : ``;
+};
+
 /** 把原始状态码映射为中文进度文案（排队中 / 生成中）。 */
 export const wanjuanTianjiStatusLabel = (status: any): string => {
   let normalized = String(status || ``).toLowerCase();
@@ -360,11 +386,14 @@ export const wanjuanTianjiErrorMessage = (data: any): string => {
 export const wanjuanTianjiMediaUrl = async (media: any, kind = `image`): Promise<string> => {
   if (media && typeof media == `object` && media.localUploaded === true)
     throw Error(`这张天玑人像还没有从素材库返回，请先刷新天玑素材列表后再生成`);
+  let portraitAssetUrl = wanjuanTianjiPortraitAssetUrl(media);
+  if (portraitAssetUrl) return portraitAssetUrl;
   let raw =
     media && typeof media == `object`
       ? String(media.url || media.localPath || media.path || media.imageUrl || media.thumbnailUrl || ``).trim()
       : String(media || ``).trim();
   if (!raw) return ``;
+  if (/^asset:\/\//i.test(raw)) return wanjuanTianjiAssetUrl(raw);
   if (/^https?:\/\//i.test(raw)) return raw;
   if (!window.wanjuanDesktop?.uploadPublicMedia)
     throw Error(`天玑模式参考${kind === `video` ? `视频` : kind === `audio` ? `音频` : `图片`}必须是公网 URL`);
@@ -565,7 +594,10 @@ export async function wanjuanRunTianjiSeedanceVideo(options: RunTianjiSeedanceVi
           ),
           options.updateNodes((nodes) =>
             nodes.map((node) =>
-              node.id === options.nodeId
+              node.id === options.nodeId &&
+              (node.data?.seedanceTaskId === taskId ||
+                node.data?.taskId === taskId ||
+                node.data?.tianjiExecuteId === taskId)
                 ? {
                     ...node,
                     style: {
@@ -611,17 +643,21 @@ export async function wanjuanRunTianjiSeedanceVideo(options: RunTianjiSeedanceVi
       } else if ([`failed`, `fail`, `error`, `expired`, `canceled`, `cancelled`, `rejected`].includes(status))
         throw Error(wanjuanTianjiErrorMessage(statusResponse));
       else {
-        let progress = wanjuanTianjiFindProgress(statusResponse);
-        progress = Math.min(99, Math.max(1, isNaN(progress) ? pollCount * 2 : progress));
+        let progress = wanjuanTianjiFindProgress(statusResponse),
+          hasRealProgress = !isNaN(progress);
+        progress = hasRealProgress ? Math.min(99, Math.max(1, progress)) : NaN;
         (options.updateNodes((nodes) =>
           nodes.map((node) =>
-            node.id === options.nodeId
+            node.id === options.nodeId &&
+            (node.data?.seedanceTaskId === taskId ||
+              node.data?.taskId === taskId ||
+              node.data?.tianjiExecuteId === taskId)
               ? {
                   ...node,
                   data: {
                     ...node.data,
-                    progress,
-                    loadingText: `${statusLabel}... ${progress}%`,
+                    progress: hasRealProgress ? progress : node.data?.progress ?? 1,
+                    loadingText: hasRealProgress ? `${statusLabel}... ${progress}%` : `${statusLabel}...`,
                   },
                 }
               : node,
@@ -631,10 +667,12 @@ export async function wanjuanRunTianjiSeedanceVideo(options: RunTianjiSeedanceVi
             options.updateGlobalTasks((tasks) =>
               tasks.map((task) =>
                 task.id === taskId
-                  ? {
+                  ? task.status === `completed` || task.resultUrl
+                    ? task
+                    : {
                       ...task,
                       status: `running`,
-                      progress,
+                      ...(hasRealProgress ? { progress } : {}),
                     }
                   : task,
               ),

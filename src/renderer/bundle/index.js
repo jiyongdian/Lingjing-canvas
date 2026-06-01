@@ -15188,6 +15188,32 @@ const wanjuanTianjiFindProgress = (data) => {
   return Math.min(99, Math.max(0, Math.round(progress)));
 };
 
+const wanjuanTianjiAssetUrl = (assetId) => {
+  let cleanId = String(assetId || ``)
+    .trim()
+    .replace(/^asset:\/\//i, ``)
+    .replace(/\s+/g, ``);
+  return cleanId ? `asset://${cleanId}` : ``;
+};
+
+const wanjuanTianjiPortraitAssetUrl = (mediaRef) => {
+  if (!mediaRef || typeof mediaRef != `object`) return ``;
+  let isTianjiPortrait =
+      mediaRef.isTianjiPortrait === !0 ||
+      mediaRef.source === `tianji-portrait` ||
+      mediaRef.sourceOrigin === `tianji-portrait` ||
+      mediaRef.mediaSourceOrigin === `tianji-portrait` ||
+      mediaRef.type === `image/tianji-portrait`,
+    assetId =
+      mediaRef.tianjiPortraitAssetId ||
+      mediaRef.portraitAssetId ||
+      mediaRef.portrait_asset_id ||
+      mediaRef.assetId ||
+      mediaRef.asset_id ||
+      mediaRef.id;
+  return isTianjiPortrait ? wanjuanTianjiAssetUrl(assetId) : ``;
+};
+
 const wanjuanTianjiStatusLabel = (modelName) => {
   let normalizedStatus = String(modelName || ``).toLowerCase();
   if ([`queued`, `queue`, `pending`, `waiting`, `created`, `submitted`].includes(normalizedStatus)) return `排队中`;
@@ -15232,11 +15258,14 @@ const wanjuanTianjiErrorMessage = (data) => {
 const wanjuanTianjiMediaUrl = async (mediaRef, mediaKind = `image`) => {
   if (mediaRef && typeof mediaRef == `object` && mediaRef.localUploaded === !0)
     throw Error(`这张天玑人像还没有从素材库返回，请先刷新天玑素材列表后再生成`);
+  let portraitAssetUrl = wanjuanTianjiPortraitAssetUrl(mediaRef);
+  if (portraitAssetUrl) return portraitAssetUrl;
   let mediaUrl =
     mediaRef && typeof mediaRef == `object` ?
     String(mediaRef.url || mediaRef.localPath || mediaRef.path || mediaRef.imageUrl || mediaRef.thumbnailUrl || ``).trim() :
     String(mediaRef || ``).trim();
   if (!mediaUrl) return ``;
+  if (/^asset:\/\//i.test(mediaUrl)) return wanjuanTianjiAssetUrl(mediaUrl);
   if (/^https?:\/\//i.test(mediaUrl)) return mediaUrl;
   if (!window.wanjuanDesktop?.uploadPublicMedia)
     throw Error(`天玑模式参考${mediaKind === `video` ? `视频` : mediaKind === `audio` ? `音频` : `图片`}必须是公网 URL`);
@@ -15417,7 +15446,10 @@ async function wanjuanRunTianjiSeedanceVideo(options) {
           ),
           options.updateNodes((nodes) =>
             nodes.map((node) =>
-              node.id === options.nodeId ?
+              node.id === options.nodeId &&
+              (node.data?.seedanceTaskId === taskId ||
+                node.data?.taskId === taskId ||
+                node.data?.tianjiExecuteId === taskId) ?
               {
                 ...node,
                 style: {
@@ -15463,17 +15495,21 @@ async function wanjuanRunTianjiSeedanceVideo(options) {
       } else if ([`failed`, `fail`, `error`, `expired`, `canceled`, `cancelled`, `rejected`].includes(status))
         throw Error(wanjuanTianjiErrorMessage(response2));
       else {
-        let progress = wanjuanTianjiFindProgress(response2);
-        progress = Math.min(99, Math.max(1, isNaN(progress) ? S * 2 : progress));
+        let progress = wanjuanTianjiFindProgress(response2),
+          hasRealProgress = !isNaN(progress);
+        progress = hasRealProgress ? Math.min(99, Math.max(1, progress)) : NaN;
         (options.updateNodes((nodes) =>
             nodes.map((node) =>
-              node.id === options.nodeId ?
+              node.id === options.nodeId &&
+              (node.data?.seedanceTaskId === taskId ||
+                node.data?.taskId === taskId ||
+                node.data?.tianjiExecuteId === taskId) ?
               {
                 ...node,
                 data: {
                   ...node.data,
-                  progress: progress,
-                  loadingText: `${statusLabel}... ${progress}%`
+                  progress: hasRealProgress ? progress : node.data?.progress ?? 1,
+                  loadingText: hasRealProgress ? `${statusLabel}... ${progress}%` : `${statusLabel}...`
                 }
               } :
               node,
@@ -15483,10 +15519,12 @@ async function wanjuanRunTianjiSeedanceVideo(options) {
           options.updateGlobalTasks((nodes) =>
             nodes.map((node) =>
               node.id === taskId ?
+              node.status === `completed` || node.resultUrl ?
+              node :
               {
                 ...node,
                 status: `running`,
-                progress: progress
+                ...(hasRealProgress ? { progress: progress } : {})
               } :
               node,
             ),
@@ -16690,6 +16728,8 @@ wan2.7-videoedit-1080P`,
             let changed = !1,
           updatedNodes = nodes2.map((node) => {
             let taskId = node.data?.seedanceTaskId || node.data?.taskId;
+            if (!taskId && node.data?.loading && (node.type === `seedanceNode` || node.type === `tongyiWanxiangNode` || node.type === `videoNode`))
+              return node;
                         let matchedTask = taskId ?
               GlobalTasks.find((task) => task.id === taskId) :
               GlobalTasks
@@ -19287,6 +19327,10 @@ ${combinedPrompt}`,
                     taskId: void 0,
                     seedanceTaskId: void 0,
                     errorMessage: void 0,
+                    videoUrl: void 0,
+                    thumbnailUrl: void 0,
+                    videoAspectRatio: void 0,
+                    resultData: void 0,
                   },
                 } :
                 node,
@@ -20684,7 +20728,12 @@ ${combinedPrompt}`,
                       if (!seedanceVideoUrl)
                         throw Error(`Seedance 任务已完成，但未返回视频地址`);
                       let videoUrl = seedanceVideoUrl,
-                        thumbUrl = seedanceThumbUrl;
+                        thumbUrl = seedanceThumbUrl,
+                        shouldApplySeedanceResult = (nodesRef.current || []).some(
+                          (node) =>
+                            node.id === nodeId &&
+                            (node.data?.seedanceTaskId === taskId || node.data?.taskId === taskId),
+                        );
                       updateTaskList &&
                         updateTaskList((nodes3) =>
                           nodes3.map((node) =>
@@ -20721,9 +20770,11 @@ ${combinedPrompt}`,
                           }
                         }
                       }
-                      (setNodes((nodes3) =>
+                      shouldApplySeedanceResult &&
+                        (setNodes((nodes3) =>
                           nodes3.map((node) =>
-                            node.id === nodeId ?
+                            node.id === nodeId &&
+                            (node.data?.seedanceTaskId === taskId || node.data?.taskId === taskId) ?
                             {
                               ...node,
                               style: {
@@ -20800,7 +20851,8 @@ ${combinedPrompt}`,
                       progress = Math.min(99, Math.max(0, isNaN(progress) ? pollCount * 2 : progress));
                       (setNodes((nodes3) =>
                           nodes3.map((node) =>
-                            node.id === nodeId ?
+                            node.id === nodeId &&
+                            (node.data?.seedanceTaskId === taskId || node.data?.taskId === taskId) ?
                             {
                               ...node,
                               data: {
@@ -20815,6 +20867,8 @@ ${combinedPrompt}`,
                         updateTaskList((nodes3) =>
                           nodes3.map((node) =>
                             node.id === taskId ?
+                            node.status === `completed` || node.resultUrl ?
+                            node :
                             {
                               ...node,
                               status: `running`,
@@ -21599,11 +21653,12 @@ ${combinedPrompt}`,
                       }
                     }
                     (setNodes((nodes3) =>
-                        nodes3.map((node) =>
-                          node.id === nodeId ?
-                          {
-                            ...node,
-                            style: {
+                          nodes3.map((node) =>
+                            node.id === nodeId &&
+                            (node.data?.seedanceTaskId === taskId || node.data?.taskId === taskId) ?
+                            {
+                              ...node,
+                              style: {
                               ...node.style,
                               width: width,
                               height: height + 24
@@ -21654,11 +21709,12 @@ ${combinedPrompt}`,
                         ),
                       ),
                       setNodes((nodes3) =>
-                        nodes3.map((node) =>
-                          node.id === nodeId ?
-                          {
-                            ...node,
-                            data: {
+                          nodes3.map((node) =>
+                            node.id === nodeId &&
+                            (node.data?.seedanceTaskId === taskId || node.data?.taskId === taskId) ?
+                            {
+                              ...node,
+                              data: {
                               ...node.data,
                               progress: progress
                             }
@@ -22120,11 +22176,13 @@ ${combinedPrompt}`,
                     progress = Math.min(99, Math.max(0, isNaN(progress) ? pollCount * 2 : progress));
                     (updateTaskList &&
                       updateTaskList((nodes3) =>
-                        nodes3.map((node) =>
-                          node.id === taskId ?
-                          {
-                            ...node,
-                            status: `running`,
+                          nodes3.map((node) =>
+                            node.id === taskId ?
+                            node.status === `completed` || node.resultUrl ?
+                            node :
+                            {
+                              ...node,
+                              status: `running`,
                             progress: progress
                           } :
                           node,
@@ -22157,6 +22215,13 @@ ${combinedPrompt}`,
               }
             }
           } catch (error) {
+            let shouldApplyVideoError =
+              !createdVideoTaskId ||
+              (nodesRef.current || []).some(
+                (node) =>
+                  node.id === nodeId &&
+                  (node.data?.seedanceTaskId === createdVideoTaskId || node.data?.taskId === createdVideoTaskId),
+              );
             (console.error(error),
               error.name !== `AbortError` &&
               (showToast(error.message || `生成失败，请检查网络或配置`),
@@ -22199,13 +22264,17 @@ ${combinedPrompt}`,
                     },
                   ],
                 ),
-                await persistVideoNodeState({}, {
+                shouldApplyVideoError &&
+                (await persistVideoNodeState({}, {
                   loading: !1,
                   errorMessage: error.message,
                 }, ),
                 setNodes((nodes2) =>
                   nodes2.map((node) =>
-                    node.id === nodeId ?
+                    node.id === nodeId &&
+                    (!createdVideoTaskId ||
+                      node.data?.seedanceTaskId === createdVideoTaskId ||
+                      node.data?.taskId === createdVideoTaskId) ?
                     {
                       ...node,
                       data: {
@@ -22216,9 +22285,17 @@ ${combinedPrompt}`,
                     } :
                     node,
                   ),
-                )));
+                ))));
           } finally {
-            (abortControllersRef.current.delete(nodeId),
+            let shouldFinalizeVideoGeneration =
+              !createdVideoTaskId ||
+              (nodesRef.current || []).some(
+                (node) =>
+                  node.id === nodeId &&
+                  (node.data?.seedanceTaskId === createdVideoTaskId || node.data?.taskId === createdVideoTaskId),
+              );
+            (shouldFinalizeVideoGeneration && abortControllersRef.current.delete(nodeId),
+              shouldFinalizeVideoGeneration &&
               setEdges((edges2) =>
                 edges2.map((edge) => (edge.target === nodeId ? {
                   ...edge,
@@ -46717,7 +46794,11 @@ doubao-seedance-2-0-fast-260128`,
                 jsx(`div`, {
                   className: `wanjuan-settings-save-bar absolute bottom-0 left-48 right-0 p-4 bg-gradient-to-t from-[#121212] via-[#121212] to-transparent z-20 flex justify-center pointer-events-none`,
                   children: jsx(`button`, {
-                    onClick: () => {
+                    onClick: (saveButtonClickEvent) => {
+                      // 点击后立即移除焦点：避免保存触发重渲染后 Chromium 把鼠标点击误判为
+                      // :focus-visible，从而在按钮上残留 2px 强调色描边环（“选择状态异常”）。
+                      // 键盘 Tab 导航的焦点环不受影响（那种场景不会走到这里的鼠标点击路径）。
+                      try { saveButtonClickEvent?.currentTarget?.blur?.(); } catch {}
                       try {
                         videoModelRequestProfilesText.trim() &&
                           JSON.parse(videoModelRequestProfilesText);
