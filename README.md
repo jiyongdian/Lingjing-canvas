@@ -1,78 +1,78 @@
-# 万卷灵境 — 可维护源码工程
+# 万卷灵境
 
-本工程由原 macOS 应用 `万卷灵境.app`（Electron 打包产物）逆向重建而来，目标是得到一份
-**功能正常、可后期维护升级、结构清晰** 的源码。
+万卷灵境是一款 macOS 桌面端的 **AI 创作画布应用**。它把文本、图像、视频、音频、音乐等多种 AI 生成能力，集成到一块自由的可视化画布上——你可以像搭积木一样，把不同的 AI 节点连在一起，让一个节点的产出成为下一个节点的输入，完成从灵感到成品的完整创作流程。
 
-## 目录结构
+> 适用于 Apple Silicon（M 系列芯片）的 Mac。
 
-```
-wanjuan-source/
-├── electron/                 # Electron 桌面外壳（完整模块化源码，逐字保真）
-│   ├── main/                 #   主进程：21 个模块
-│   │   ├── index.cjs         #     引导入口
-│   │   ├── config / logging / runtime-state / electron-refs / self-test
-│   │   ├── ipc.cjs           #     26 个 IPC 通道注册
-│   │   ├── window.cjs        #     主窗口创建
-│   │   ├── utils/            #     mime / crypto / paths
-│   │   ├── net/              #     security / proxy-fetch / static-server
-│   │   ├── media/payload.cjs #     媒体载荷处理
-│   │   ├── assets/           #     项目素材管理
-│   │   ├── tools/            #     外部工具链（ffmpeg/python/real-esrgan/...）
-│   │   └── uploaders/        #     匿名图床 / TOS / 七牛 / 自定义
-│   └── preload/              #   预加载：13 个模块
-│       ├── index.cjs         #     入口（严格保持原执行顺序）
-│       ├── storage / project-safety / boot-theme / legacy-data
-│       ├── media-utils / chrome-shim / fetch-proxy
-│       ├── safety-center / desktop-patches / bridge-api
-│       └── runtime / constants
-├── src/renderer/             # 前端（React + React Flow）
-│   └── lib/                  #   反混淆出的可读业务工具库（见下）
-├── dist/                     # 前端构建产物（见「关于前端」）
-├── reference/                # 原始产物原样保留，作对照基准（不参与构建）
-├── scripts/dev.mjs           # 开发启动脚本（先起 Vite 再起 Electron）
-├── vite.config.ts            # 前端构建配置
-└── package.json              # 真实 npm 依赖
-```
+---
 
-## 技术栈
+## 它能做什么
 
-- Electron 37.10.3
-- React 19 + React Flow（@xyflow/react）+ zustand + lucide-react + GSAP
-- Vite 6 + TypeScript 5
+- **一块画布，多种 AI**：在同一张画布上自由摆放图像、视频、音频、音乐、文本节点，节点之间可以连线、互相引用，把多个 AI 模型串成你自己的创作流水线。
+- **接入你自己的模型**：通过「配置管家」，填入中转站的接口地址、令牌和 API 文档，应用会自动识别该站点下的所有模型并配好调用方式，让它们直接在画布上可用。支持文本、图像、视频、音频、音乐等各类模型。
+- **自动保存与备份**：创作过程自动存档，内置「备份中心」可随时查看、恢复历史快照；也能把项目和素材导出，在另一台设备导入，跨设备迁移无忧。
+- **多项目管理**：可以同时维护多个画布项目并分组归类，互不干扰，随时切换。
 
-## 关于各部分的来源与可读性
+---
 
-| 部分 | 状态 |
-|------|------|
-| `electron/main`、`electron/preload` | **完整可读源码**。原 `main.cjs`(5143行)、`preload.cjs`(5771行) 本就是未混淆代码，已按功能拆分为模块（主进程 21 个、预加载 13 个），函数体逐字保真，并通过真实启动回归验证（应用正常渲染、IPC/桥接全部就绪）。 |
-| `src/renderer/lib` | **反混淆的可读业务源码**。从前端 bundle 提取出 56 个 `wanjuan*` 工具函数，对局部变量做了语义化重命名、补充类型与中文注释，行为与原实现一致（已做等价性测试）。 |
-| `src/renderer/bundle/index.js` | **反混淆后的前端主体**（React Flow 画布应用）。已完成：去除 rolldown 打包外壳（`(0,q.useState)`→`useState` 等 3390 处）、React/jsx/ReactDOM API 还原为可读名、中型组件内部变量语义化重命名、三个巨型组件（Le/dt/St 共约 4 万行）做语义化变量重命名（4693 处）。单字母局部变量从 1807 降至 344。每一步都经过 AST+字面量等价校验、严格解析与真实启动回归，保证行为不变。仍保留为大文件（未按原始多文件结构拆分，因无 sourcemap），但已是可读、可编译、可维护的源码。 |
-| `src/renderer/bundle/vendor.js`、`rolldown-runtime.js` | **第三方库打包副本**（React/ReactDOM/@xyflow/react/zustand/lucide-react/localforage/dagre）。这些是开源库的构建产物；对应的真实 npm 依赖已列入 `package.json`，后续可逐步切换为直接 import。 |
+## 四大界面
 
-## 反混淆工具（scripts/）
+### 🎨 灵境画布
+核心创作区。在这里新建各类生成节点，填写提示词、选择模型、发起生成。节点之间可拖拽连线——例如把一张生成的图片接到视频节点作为首帧，或把一段文本接到图像节点作为提示词来源。画布支持自由缩放、平移，并提供性能档位调节，节点再多也能流畅操作。
 
-为本工程构建的可复用作用域安全重命名工具链：
-- `analyze-bindings.mjs` — 提取代码块的短名局部变量及其作用域/用途上下文
-- `apply-rename-map.mjs` — 按重命名映射做作用域安全的标识符替换（处理同名遮蔽、跨作用域冲突，保留原始格式）
-- `verify-equiv.mjs` — 校验重命名前后 AST 结构与字面量完全一致（证明行为不变）
-- `batch-bindings.mjs` — 按成员分组绑定，便于分批命名
-- `test-lib.mjs` — `src/renderer/lib` 工具函数的行为回归测试
+顶部工具栏可实时查看画布压力（节点数、帧率），还能一键打开**任务清单**查看所有生成任务的进度；失败的任务可以直接拉回结果。
 
-## 开发与构建
+### 🗂️ 资源
+统一管理你在创作中用到和生成的素材——图片、视频、音频、文本一目了然，可按类型筛选、收藏、清理，方便随时取用。
+
+### 💡 智能体
+可以创建多个「智能体」，给每个智能体设定角色、绑定模型、撰写提示词、挂载知识库摘要。在对话式界面里与智能体交流，让它帮你梳理需求、优化提示词或直接产出内容，产物也能回流到画布继续加工。
+
+### ⚙️ 设置
+- **个性设置**：界面主题（曜石黑 / 石墨灰 / 晴空蓝 / 暖砂等）与外观偏好。
+- **模型配置 / 配置管家**：管理 API 配置，通过配置管家批量或单个地接入模型。
+- **云盘设置**：配置素材的云端上传方式。
+- **生成设置**：默认并发数、性能与渲染档位、自动下载等。
+- **数据管理**：导入导出、备份中心、定时备份。
+
+---
+
+## 配置管家：接入你的模型
+
+「配置管家」是接入模型的核心工具，有两种模式：
+
+- **全局批量模式**：给它一个中转站的接口地址、令牌和 API 文档链接，它会读取文档、识别该站点下的所有模型，并为每个模型自动生成正确的请求协议（请求发送、任务轮询、结果获取）。每个中转站对应一份独立的全局配置，切换配置时，文本 / 图像 / 视频 / 音频 / 音乐所有模型会整体跟着切换，不同站点之间互不影响。
+- **单模型模式**：针对某个站点里的单个模型单独生成配置。
+
+配好的模型即可直接在画布对应类型的节点上使用。
+
+---
+
+## 安装
+
+1. 在 [Releases](../../releases) 下载最新的 `万卷灵境-x.x.x-arm64.dmg`。
+2. 双击打开，把「万卷灵境」拖入「应用程序」文件夹。
+3. 首次打开时，若系统提示无法验证开发者，右键点击应用图标 →「打开」即可。
+
+---
+
+## 从源码运行 / 构建
+
+需要 Node.js 与 npm。
 
 ```bash
 npm install          # 安装依赖
-npm run build:web    # 用 Vite 把 src/renderer 构建为 dist/
-npm start            # 启动 Electron（加载 dist/）
-npm run debug        # 带 DevTools 启动
-npm run build        # 构建前端 + electron-builder 打包
-npm run typecheck    # TypeScript 类型检查
-npm run test:lib     # 工具库行为回归测试
+npm start            # 启动应用
+npm run build:web    # 构建前端
+npm run build        # 打包成 .app / .dmg（Apple Silicon arm64）
 ```
 
-## 说明
+技术栈：Electron + React + Vite。
 
-- `reference/` 是原始产物的完整拷贝，仅作对照，不参与构建，可随时比对行为。
-- 关于软件著作权：本工程中 `electron/`、`src/renderer/lib/` 与反混淆后的 `src/renderer/bundle/index.js` 为可读源码；
-  第三方库（`vendor.js` 等）应作为「第三方/已构建资源」如实区分。著作权登记的
-  权属认定请咨询专业机构，本工程不构成法律意见。
+---
+
+## 关于
+
+万卷灵境由我个人开发与维护，专注于把分散的 AI 能力收拢到一块顺手的创作画布上，让「想法 → 生成 → 再加工 → 成品」的过程尽可能简单流畅。
+
+欢迎在 Issues 中提出使用问题或功能建议。

@@ -13,8 +13,15 @@ generated/
 # 本地开发配置
 .claude/
 
-# 原作者原始混淆产物（他人版权，不上传；本地保留作对照）
+# 对照参考目录（本地保留，不纳入仓库）
 reference/
+
+# 开发过程内部笔记（本地保留，不公开）
+CODE-QUALITY-REPORT.md
+MODULARIZATION-PLAN.md
+PRELOAD-PLAN.md
+src/renderer/bundle/README.md
+ui-audit/
 
 # 运行时 / 隐私数据（画布项目、媒体库、本地存储、凭证），防止误提交
 *.db
