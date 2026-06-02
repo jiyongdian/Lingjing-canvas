@@ -6579,6 +6579,7 @@ suno_music`)
                 language: wanJuanTtsExtraParams.voiceEnrollmentLanguage || wanJuanTtsExtraParams.language || ``,
                 languageHints: wanJuanTtsExtraParams.voiceEnrollmentLanguageHints || wanJuanTtsExtraParams.language_hints || wanJuanTtsExtraParams.languageHints,
                 prefix: wanJuanTtsExtraParams.voiceEnrollmentPrefix || wanJuanTtsExtraParams.prefix || ``,
+                enrollmentPath: wanJuanTtsExtraParams.voiceEnrollmentPath || wanJuanTtsExtraParams.enrollmentPath || ``,
               };
               [
                 `voiceEnrollmentText`,
@@ -6590,6 +6591,8 @@ suno_music`)
                 `language_hints`,
                 `voiceEnrollmentPrefix`,
                 `prefix`,
+                `voiceEnrollmentPath`,
+                `enrollmentPath`,
               ].forEach((key) => delete wanJuanTtsExtraParams[key]);
 	              let wanJuanRefAudio = wanJuanFindReferenceAudio(),
 	                wanJuanTtsFieldMapping = {
@@ -6670,7 +6673,7 @@ suno_music`)
 		                  wanJuanEnrollmentPath =
 		                    wanJuanTtsMusicProtocolProfile?.voiceEnrollmentPath ||
 		                    wanJuanTtsMusicProtocolProfile?.enrollmentPath ||
-		                    `/api/v1/services/audio/tts/customization`,
+		                    wanJuanVoiceCloneOptions.enrollmentPath,
 		                  wanJuanVoiceNamePrefix = String(wanJuanVoiceCloneOptions.prefix || `wanjuan`).replace(/[^a-z0-9_]/gi, ``).slice(0, wanJuanIsCosyVoiceClone ? 10 : 16) || `wanjuan`,
 		                  wanJuanEnrollmentBody = wanJuanIsCosyVoiceClone ?
 		                  {
@@ -6704,6 +6707,9 @@ suno_music`)
 		                      } : {})
 		                    }
 		                  };
+		                if (!String(wanJuanEnrollmentPath || ``).trim()) {
+		                  throw Error(`当前音频 API 文档未提供 ${wanJuanRawTtsModel} 的音色克隆注册接口，不能直接用参考音频 URL 克隆。请改用普通 TTS 音色，或在模型协议/额外 JSON 中配置 voiceEnrollmentPath 后再试。`);
+		                }
 		                let enrollmentResponse = await fetch(WanJuanTtsMusicApiUrl(wanJuanAudioApiUrl, wanJuanEnrollmentPath), {
 		                  method: `POST`,
 		                  headers: wanJuanTtsHeaders,
