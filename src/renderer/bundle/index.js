@@ -6222,6 +6222,46 @@ var Le = reactMemo(({
       .split(/[\n,，、\s]+/)
       .map((model) => model.trim())
       .filter((model, index, array) => model && array.indexOf(model) === index),
+    WanJuanTtsMusicIsVoiceCloneModel = (model) =>
+      /^(?:cosyvoice-v3|qwen3-tts-vc|qwen-tts-vc|qwen.*voice.*clone|.*voice.*clone)/i.test(String(model || ``).trim()),
+    WanJuanTtsMusicExtractVoiceId = (payload) => {
+      let found = ``,
+        collect = (value) => {
+          if (!value || found) return;
+          if (typeof value == `string`) {
+            let text = value.trim();
+            try {
+              collect(JSON.parse(text));
+            } catch {
+              text && !/^https?:\/\//i.test(text) && (found = text);
+            }
+            return;
+          }
+          if (Array.isArray(value)) {
+            value.forEach(collect);
+            return;
+          }
+          if (typeof value == `object`) {
+            [
+              `voice_id`,
+              `voiceId`,
+              `voice`,
+              `speaker_id`,
+              `speakerId`,
+              `id`,
+            ].some((key) => {
+              let item = value[key];
+              if (typeof item == `string` && item.trim()) {
+                found = item.trim();
+                return !0;
+              }
+              return !1;
+            });
+            found || (collect(value.data), collect(value.result), collect(value.output));
+          }
+        };
+      return (collect(payload), found);
+    },
     WanJuanSunoHeaders = (apiKey, includeContentType = !0) => {
       let headers = {
         Accept: `application/json`,
@@ -6534,6 +6574,23 @@ suno_music`)
                 } catch (error) {
                   throw Error(`额外 JSON 参数格式错误：${error.message}`);
                 }
+              let wanJuanVoiceCloneOptions = {
+                text: wanJuanTtsExtraParams.voiceEnrollmentText || wanJuanTtsExtraParams.refText || wanJuanTtsExtraParams.referenceText || ``,
+                language: wanJuanTtsExtraParams.voiceEnrollmentLanguage || wanJuanTtsExtraParams.language || ``,
+                languageHints: wanJuanTtsExtraParams.voiceEnrollmentLanguageHints || wanJuanTtsExtraParams.language_hints || wanJuanTtsExtraParams.languageHints,
+                prefix: wanJuanTtsExtraParams.voiceEnrollmentPrefix || wanJuanTtsExtraParams.prefix || ``,
+              };
+              [
+                `voiceEnrollmentText`,
+                `refText`,
+                `referenceText`,
+                `voiceEnrollmentLanguage`,
+                `voiceEnrollmentLanguageHints`,
+                `languageHints`,
+                `language_hints`,
+                `voiceEnrollmentPrefix`,
+                `prefix`,
+              ].forEach((key) => delete wanJuanTtsExtraParams[key]);
 	              let wanJuanRefAudio = wanJuanFindReferenceAudio(),
 	                wanJuanTtsFieldMapping = {
 	                  model: `model`,
@@ -6551,6 +6608,10 @@ suno_music`)
 	                wanJuanTtsMusicProtocolProfile.fieldValueTypes :
 	                {},
 	                wanJuanTtsBody = {},
+	                wanJuanRawTtsModel = ttsModel || data.audioModel || `tts-1`,
+	                wanJuanEffectiveTtsModel = /^qwen-voice-enrollment$/i.test(String(wanJuanRawTtsModel || ``).trim()) ?
+	                `qwen3-tts-vc-realtime-2026-01-15` :
+	                wanJuanRawTtsModel,
 	                wanJuanCoerceTtsValue = (key, value) => {
 	                  let fieldKey = String(key || ``).trim(),
 	                    valueType = wanJuanTtsFieldValueTypes[fieldKey] ?
@@ -6568,7 +6629,7 @@ suno_music`)
 	                  let fieldKey = String(key || ``).trim();
 	                  fieldKey && value !== void 0 && value !== null && value !== `` && (wanJuanTtsBody[fieldKey] = wanJuanCoerceTtsValue(fieldKey, value));
 	                };
-	              (wanJuanPutTtsField(wanJuanTtsFieldMapping.model, ttsModel || data.audioModel || `tts-1`),
+	              (wanJuanPutTtsField(wanJuanTtsFieldMapping.model, wanJuanEffectiveTtsModel),
 	                wanJuanPutTtsField(wanJuanTtsFieldMapping.input, inputText),
 	                wanJuanPutTtsField(wanJuanTtsFieldMapping.voice, voice || `alloy`),
 	                wanJuanTtsFormat && wanJuanPutTtsField(wanJuanTtsFieldMapping.format, wanJuanTtsFormat),
@@ -6603,6 +6664,78 @@ suno_music`)
 		                wanJuanTtsAuthType === `api-key` ?
 		                (wanJuanTtsHeaders[`api-key`] = String(wanJuanAudioApiKey || ``).trim()) :
 		                (wanJuanTtsHeaders.Authorization || (wanJuanTtsHeaders.Authorization = `Bearer ${String(wanJuanAudioApiKey || ``).trim()}`)));
+		              if (wanJuanRefAudio && WanJuanTtsMusicIsVoiceCloneModel(wanJuanRawTtsModel)) {
+		                let wanJuanIsCosyVoiceClone = /^cosyvoice/i.test(String(wanJuanEffectiveTtsModel || ``).trim()),
+		                  wanJuanEnrollmentModel = wanJuanIsCosyVoiceClone ? `voice-enrollment` : `qwen-voice-enrollment`,
+		                  wanJuanEnrollmentPath =
+		                    wanJuanTtsMusicProtocolProfile?.voiceEnrollmentPath ||
+		                    wanJuanTtsMusicProtocolProfile?.enrollmentPath ||
+		                    `/api/v1/services/audio/tts/customization`,
+		                  wanJuanVoiceNamePrefix = String(wanJuanVoiceCloneOptions.prefix || `wanjuan`).replace(/[^a-z0-9_]/gi, ``).slice(0, wanJuanIsCosyVoiceClone ? 10 : 16) || `wanjuan`,
+		                  wanJuanEnrollmentBody = wanJuanIsCosyVoiceClone ?
+		                  {
+		                    model: wanJuanEnrollmentModel,
+		                    input: {
+		                      action: `create_voice`,
+		                      target_model: wanJuanEffectiveTtsModel,
+		                      prefix: wanJuanVoiceNamePrefix.replace(/_/g, ``).slice(0, 10) || `wanjuan`,
+		                      url: wanJuanRefAudio,
+		                      language_hints: Array.isArray(wanJuanVoiceCloneOptions.languageHints) ?
+		                        wanJuanVoiceCloneOptions.languageHints :
+		                        [String(wanJuanVoiceCloneOptions.language || `zh`).trim() || `zh`],
+		                      max_prompt_audio_length: 10,
+		                      enable_preprocess: !0
+		                    }
+		                  } :
+		                  {
+		                    model: wanJuanEnrollmentModel,
+		                    input: {
+		                      action: `create`,
+		                      target_model: wanJuanEffectiveTtsModel,
+		                      preferred_name: wanJuanVoiceNamePrefix,
+		                      audio: {
+		                        data: wanJuanRefAudio
+		                      },
+		                      ...(String(wanJuanVoiceCloneOptions.text || ``).trim() ? {
+		                        text: String(wanJuanVoiceCloneOptions.text).trim()
+		                      } : {}),
+		                      ...(String(wanJuanVoiceCloneOptions.language || ``).trim() ? {
+		                        language: String(wanJuanVoiceCloneOptions.language).trim()
+		                      } : {})
+		                    }
+		                  };
+		                let enrollmentResponse = await fetch(WanJuanTtsMusicApiUrl(wanJuanAudioApiUrl, wanJuanEnrollmentPath), {
+		                  method: `POST`,
+		                  headers: wanJuanTtsHeaders,
+		                  body: JSON.stringify(wanJuanEnrollmentBody)
+		                });
+		                if (!enrollmentResponse.ok) {
+		                  let errorText = await enrollmentResponse.text().catch(() => enrollmentResponse.statusText);
+		                  try {
+		                    let errorData = JSON.parse(errorText);
+		                    errorText = errorData?.error?.message || errorData?.message || JSON.stringify(errorData);
+		                  } catch {}
+		                  throw Error(errorText || `音色克隆注册失败`);
+		                }
+		                let enrollmentText = await enrollmentResponse.text().catch(() => ``),
+		                  enrollmentPayload;
+		                try {
+		                  enrollmentPayload = enrollmentText ? JSON.parse(enrollmentText) : {};
+		                } catch {
+		                  enrollmentPayload = enrollmentText;
+		                }
+		                let clonedVoice = WanJuanTtsMusicExtractVoiceId(enrollmentPayload);
+		                if (!clonedVoice) throw Error(`音色克隆注册成功但未返回 voice_id`);
+		                wanJuanPutTtsField(wanJuanTtsFieldMapping.voice, clonedVoice);
+		                let referenceField = String(wanJuanTtsFieldMapping.referenceAudio || ``).trim();
+		                referenceField && delete wanJuanTtsBody[referenceField];
+		                updateNodeData(nodeId, {
+		                  voice: clonedVoice,
+		                  clonedVoiceId: clonedVoice,
+		                  clonedVoiceEnrollment: typeof enrollmentPayload == `string` ? enrollmentPayload : JSON.stringify(enrollmentPayload, null, 2),
+		                  loadingText: `音色已克隆，正在合成...`
+		                });
+		              }
 		              let
 	                response = await fetch(requestUrl, {
 	                  method: `POST`,
