@@ -383,7 +383,7 @@ export const wanjuanTianjiErrorMessage = (data: any): string => {
  * 已是 http(s) 直接返回；否则通过桌面端 uploadPublicMedia 上传后取回公网地址。
  * 本地未回传的天玑人像会直接抛错提示刷新。
  */
-export const wanjuanTianjiMediaUrl = async (media: any, kind = `image`): Promise<string> => {
+export const wanjuanTianjiMediaUrl = async (media: any, kind = `image`, uploadOptions: any = {}): Promise<string> => {
   if (media && typeof media == `object` && media.localUploaded === true)
     throw Error(`这张天玑人像还没有从素材库返回，请先刷新天玑素材列表后再生成`);
   let portraitAssetUrl = wanjuanTianjiPortraitAssetUrl(media);
@@ -395,13 +395,37 @@ export const wanjuanTianjiMediaUrl = async (media: any, kind = `image`): Promise
   if (!raw) return ``;
   if (/^asset:\/\//i.test(raw)) return wanjuanTianjiAssetUrl(raw);
   if (/^https?:\/\//i.test(raw)) return raw;
-  if (!window.wanjuanDesktop?.uploadPublicMedia)
+  if (!window.wanjuanDesktop?.uploadPublicMedia && !window.wanjuanDesktop?.uploadTosMedia && !window.wanjuanDesktop?.uploadCustomPublicMedia && !window.wanjuanDesktop?.uploadQiniuMedia)
     throw Error(`天玑模式参考${kind === `video` ? `视频` : kind === `audio` ? `音频` : `图片`}必须是公网 URL`);
-  let uploadResult = await window.wanjuanDesktop.uploadPublicMedia({
-    url: raw,
-    kind,
-    filename: `tianji-seedance-${kind}-${Date.now()}`,
-  });
+  let uploadMode = String(uploadOptions.uploadMode || uploadOptions.seedanceUploadMode || `public`).trim(),
+    filename = `tianji-seedance-${kind}-${Date.now()}`;
+  let uploadResult =
+    uploadMode === `tos` && typeof window.wanjuanDesktop?.uploadTosMedia == `function`
+      ? await window.wanjuanDesktop.uploadTosMedia({
+          url: raw,
+          kind,
+          filename,
+          tos: uploadOptions.tosConfig || {},
+        })
+      : uploadMode === `custom` && typeof window.wanjuanDesktop?.uploadCustomPublicMedia == `function`
+        ? await window.wanjuanDesktop.uploadCustomPublicMedia({
+            url: raw,
+            kind,
+            filename,
+            customUpload: uploadOptions.customPublicUploadConfig || {},
+          })
+        : uploadMode === `qiniu` && typeof window.wanjuanDesktop?.uploadQiniuMedia == `function`
+          ? await window.wanjuanDesktop.uploadQiniuMedia({
+              url: raw,
+              kind,
+              filename,
+              qiniu: uploadOptions.qiniuConfig || {},
+            })
+          : await window.wanjuanDesktop.uploadPublicMedia({
+              url: raw,
+              kind,
+              filename,
+            });
   if (!uploadResult?.ok || !uploadResult.url)
     throw Error(uploadResult?.error || `天玑模式参考${kind === `video` ? `视频` : kind === `audio` ? `音频` : `图片`}上传失败`);
   return uploadResult.url;
@@ -459,7 +483,12 @@ export async function wanjuanRunTianjiSeedanceVideo(options: RunTianjiSeedanceVi
   let resolveMediaUrls = async (refs: any[], kind: string, limit: number) => {
       let urls: string[] = [];
       for (let ref of refs.slice(0, limit)) {
-        let mediaUrl = await wanjuanTianjiMediaUrl(ref, kind);
+        let mediaUrl = await wanjuanTianjiMediaUrl(ref, kind, {
+          uploadMode: nodeData.seedanceUploadMode,
+          tosConfig: nodeData.tosConfig,
+          customPublicUploadConfig: nodeData.customPublicUploadConfig,
+          qiniuConfig: nodeData.qiniuConfig,
+        });
         mediaUrl && urls.push(mediaUrl);
       }
       return urls;

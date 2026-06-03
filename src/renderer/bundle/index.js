@@ -15709,7 +15709,7 @@ const wanjuanTianjiErrorMessage = (data) => {
     `即梦天玑任务返回失败状态，但接口没有提供具体错误信息`;
 };
 
-const wanjuanTianjiMediaUrl = async (mediaRef, mediaKind = `image`) => {
+const wanjuanTianjiMediaUrl = async (mediaRef, mediaKind = `image`, uploadOptions = {}) => {
   if (mediaRef && typeof mediaRef == `object` && mediaRef.localUploaded === !0)
     throw Error(`这张天玑人像还没有从素材库返回，请先刷新天玑素材列表后再生成`);
   let portraitAssetUrl = wanjuanTianjiPortraitAssetUrl(mediaRef);
@@ -15721,13 +15721,37 @@ const wanjuanTianjiMediaUrl = async (mediaRef, mediaKind = `image`) => {
   if (!mediaUrl) return ``;
   if (/^asset:\/\//i.test(mediaUrl)) return wanjuanTianjiAssetUrl(mediaUrl);
   if (/^https?:\/\//i.test(mediaUrl)) return mediaUrl;
-  if (!window.wanjuanDesktop?.uploadPublicMedia)
+  if (!window.wanjuanDesktop?.uploadPublicMedia && !window.wanjuanDesktop?.uploadTosMedia && !window.wanjuanDesktop?.uploadCustomPublicMedia && !window.wanjuanDesktop?.uploadQiniuMedia)
     throw Error(`天玑模式参考${mediaKind === `video` ? `视频` : mediaKind === `audio` ? `音频` : `图片`}必须是公网 URL`);
-  let uploadResult = await window.wanjuanDesktop.uploadPublicMedia({
-    url: mediaUrl,
-    kind: mediaKind,
-    filename: `tianji-seedance-${mediaKind}-${Date.now()}`,
-  });
+  let uploadMode = String(uploadOptions.uploadMode || uploadOptions.seedanceUploadMode || `public`).trim(),
+    filename = `tianji-seedance-${mediaKind}-${Date.now()}`;
+  let uploadResult =
+    uploadMode === `tos` && typeof window.wanjuanDesktop?.uploadTosMedia == `function` ?
+    await window.wanjuanDesktop.uploadTosMedia({
+      url: mediaUrl,
+      kind: mediaKind,
+      filename: filename,
+      tos: uploadOptions.tosConfig || {},
+    }) :
+    uploadMode === `custom` && typeof window.wanjuanDesktop?.uploadCustomPublicMedia == `function` ?
+    await window.wanjuanDesktop.uploadCustomPublicMedia({
+      url: mediaUrl,
+      kind: mediaKind,
+      filename: filename,
+      customUpload: uploadOptions.customPublicUploadConfig || {},
+    }) :
+    uploadMode === `qiniu` && typeof window.wanjuanDesktop?.uploadQiniuMedia == `function` ?
+    await window.wanjuanDesktop.uploadQiniuMedia({
+      url: mediaUrl,
+      kind: mediaKind,
+      filename: filename,
+      qiniu: uploadOptions.qiniuConfig || {},
+    }) :
+    await window.wanjuanDesktop.uploadPublicMedia({
+      url: mediaUrl,
+      kind: mediaKind,
+      filename: filename,
+    });
   if (!uploadResult?.ok || !uploadResult.url)
     throw Error(uploadResult?.error || `天玑模式参考${mediaKind === `video` ? `视频` : mediaKind === `audio` ? `音频` : `图片`}上传失败`);
   return uploadResult.url;
@@ -15771,7 +15795,12 @@ async function wanjuanRunTianjiSeedanceVideo(options) {
   let uploadMediaRefs = async (refs, kind, limit) => {
       let urls = [];
       for (let ref of refs.slice(0, limit)) {
-        let mediaUrl = await wanjuanTianjiMediaUrl(ref, kind);
+        let mediaUrl = await wanjuanTianjiMediaUrl(ref, kind, {
+          uploadMode: sourceData.seedanceUploadMode,
+          tosConfig: sourceData.tosConfig,
+          customPublicUploadConfig: sourceData.customPublicUploadConfig,
+          qiniuConfig: sourceData.qiniuConfig,
+        });
         mediaUrl && urls.push(mediaUrl);
       }
       return urls;
@@ -25634,8 +25663,8 @@ ${combinedPrompt}`,
               ((nodeData.enableWebSearch = seedanceEnableWebSearch), (hasChanged = !0)),
               nodeData.seedanceVirtualPortraits !== seedanceVirtualPortraits &&
               ((nodeData.seedanceVirtualPortraits = seedanceVirtualPortraits), (hasChanged = !0)),
-              nodeData.seedanceUploadMode !== seedanceUploadMode &&
-              ((nodeData.seedanceUploadMode = seedanceUploadMode), (hasChanged = !0)),
+              ![`public`, `tos`, `custom`, `qiniu`].includes(nodeData.seedanceUploadMode) &&
+              ((nodeData.seedanceUploadMode = seedanceUploadMode || `public`), (hasChanged = !0)),
               nodeData.tosConfig !== tosConfig &&
               ((nodeData.tosConfig = tosConfig), (hasChanged = !0)),
               nodeData.customPublicUploadConfig !== customPublicUploadConfig &&
@@ -25692,8 +25721,8 @@ ${combinedPrompt}`,
                   parseSeedanceList(tongyiWanxiangResolutions)[0] ||
                   `720P`),
                 (hasChanged = !0)),
-              nodeData.seedanceUploadMode !== seedanceUploadMode &&
-              ((nodeData.seedanceUploadMode = seedanceUploadMode), (hasChanged = !0)),
+              ![`public`, `tos`, `custom`, `qiniu`].includes(nodeData.seedanceUploadMode) &&
+              ((nodeData.seedanceUploadMode = seedanceUploadMode || `public`), (hasChanged = !0)),
               nodeData.tosConfig !== tosConfig &&
               ((nodeData.tosConfig = tosConfig), (hasChanged = !0)),
               nodeData.customPublicUploadConfig !== customPublicUploadConfig &&
