@@ -29394,6 +29394,121 @@ time=1h`,
     seedancePortraitFileInputRef = useRef(null),
     configButlerErrorAssistantSeenRef = useRef(new Set()),
     configButlerErrorAssistantInFlightRef = useRef(new Set()),
+    wanjuanI18n = {
+      "zh-TW": {
+        "灵境画布": "靈境畫布",
+        "资源": "資源",
+        "智能体": "智慧體",
+        "设置": "設定",
+        "设置菜单": "設定選單",
+        "个性设置": "個性化設定",
+        "模型配置": "模型配置",
+        "云盘设置": "雲端硬碟設定",
+        "生成设置": "生成設定",
+        "拓展功能": "擴充功能",
+        "数据管理": "資料管理",
+        "界面主题": "介面主題",
+        "语言设置": "語言設定",
+        "关于": "關於",
+        "版本更新日志": "版本更新日誌",
+        "当前版本": "目前版本",
+        "当前已启用全局统一API配置": "目前已啟用全域統一 API 配置",
+        "切换石墨灰、曜石黑、晴空蓝、暖砂白、樱雾粉、薄荷绿或跟随系统外观，不改变现有布局结构": "切換石墨灰、曜石黑、晴空藍、暖砂白、櫻霧粉、薄荷綠或跟隨系統外觀，不改變現有布局結構",
+        "选择界面语言偏好，后续多语言文案将按此设置展示": "選擇介面語言偏好，介面文案會依此設定顯示",
+        "1.2.7：修复素材远端链接过期后节点与资源库破图/黑屏的问题；优化即梦天玑人像预览兜底；新增生成资源本地持久化；同步 Qwen-TTS 状态检测兼容补丁。": "1.2.7：修復素材遠端連結過期後節點與資源庫破圖/黑屏的問題；優化即夢天璣人像預覽兜底；新增生成資源本地持久化；同步 Qwen-TTS 狀態檢測相容補丁。",
+        "曜石黑": "曜石黑",
+        "晴空蓝": "晴空藍",
+        "暖砂白": "暖砂白",
+        "樱雾粉": "櫻霧粉",
+        "薄荷绿": "薄荷綠",
+        "石墨灰": "石墨灰",
+        "跟随系统": "跟隨系統",
+        "全部": "全部",
+        "图片": "圖片",
+        "视频": "影片",
+        "音频": "音訊",
+        "文本": "文字",
+        "全部来源": "全部來源",
+        "AI生成": "AI 生成",
+        "外部素材": "外部素材",
+        "显示大小": "顯示大小",
+        "下载目录": "下載目錄",
+        "打开下载目录": "開啟下載目錄",
+        "清理失效素材": "清理失效素材",
+        "检查中...": "檢查中...",
+        "清空全部": "清空全部",
+        "暂无资源": "暫無資源",
+        "当前筛选没有资源": "目前篩選沒有資源",
+        "只看收藏": "只看收藏",
+        "显示全部收藏筛选": "顯示全部收藏篩選",
+        "右键自由生成你的想象": "右鍵自由生成你的想像",
+        "文字生成": "文字生成",
+        "图片生成": "圖片生成",
+        "视频生成": "影片生成",
+        "音乐生成": "音樂生成",
+        "错误查询": "錯誤查詢",
+        "任务清单": "任務清單",
+        "保存设置": "儲存設定",
+        "设置已保存": "設定已儲存"
+      },
+      "en-US": {
+        "灵境画布": "Canvas",
+        "资源": "Assets",
+        "智能体": "Agents",
+        "设置": "Settings",
+        "设置菜单": "Settings Menu",
+        "个性设置": "Personalization",
+        "模型配置": "Model Config",
+        "云盘设置": "Cloud Storage",
+        "生成设置": "Generation",
+        "拓展功能": "Extensions",
+        "数据管理": "Data",
+        "界面主题": "Theme",
+        "语言设置": "Language",
+        "关于": "About",
+        "版本更新日志": "Release Notes",
+        "当前版本": "Current Version",
+        "当前已启用全局统一API配置": "Global unified API config is enabled",
+        "切换石墨灰、曜石黑、晴空蓝、暖砂白、樱雾粉、薄荷绿或跟随系统外观，不改变现有布局结构": "Switch the visual theme without changing the current layout.",
+        "选择界面语言偏好，后续多语言文案将按此设置展示": "Choose the interface language. Supported interface text follows this setting.",
+        "1.2.7：修复素材远端链接过期后节点与资源库破图/黑屏的问题；优化即梦天玑人像预览兜底；新增生成资源本地持久化；同步 Qwen-TTS 状态检测兼容补丁。": "1.2.7: Fixed broken/black media after remote asset links expire; improved Jimeng Tianji portrait preview fallback; added local persistence for generated assets; added a Qwen-TTS status compatibility patch.",
+        "曜石黑": "Obsidian",
+        "晴空蓝": "Sky Blue",
+        "暖砂白": "Warm Sand",
+        "樱雾粉": "Rose Mist",
+        "薄荷绿": "Mint",
+        "石墨灰": "Graphite",
+        "跟随系统": "Follow System",
+        "全部": "All",
+        "图片": "Images",
+        "视频": "Videos",
+        "音频": "Audio",
+        "文本": "Text",
+        "全部来源": "All Sources",
+        "AI生成": "AI Generated",
+        "外部素材": "External",
+        "显示大小": "Size",
+        "下载目录": "Downloads",
+        "打开下载目录": "Open Downloads",
+        "清理失效素材": "Clean Invalid Assets",
+        "检查中...": "Checking...",
+        "清空全部": "Clear All",
+        "暂无资源": "No assets yet",
+        "当前筛选没有资源": "No assets match this filter",
+        "只看收藏": "Favorites Only",
+        "显示全部收藏筛选": "Show All Favorites Filter",
+        "右键自由生成你的想象": "Right-click to create freely",
+        "文字生成": "Text",
+        "图片生成": "Image",
+        "视频生成": "Video",
+        "音乐生成": "Music",
+        "错误查询": "Errors",
+        "任务清单": "Tasks",
+        "保存设置": "Save Settings",
+        "设置已保存": "Settings saved"
+      }
+    },
+    wanjuanT = (text) => (wanjuanI18n[appLanguage] && wanjuanI18n[appLanguage][text]) || text,
     showToast2 = (message) => {
       (setToastMessage(message),
         setShowToast(!0),
@@ -39961,7 +40076,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                   className: `wanjuan-skeuo-icon wanjuan-skeuo-icon-canvas`,
                   children: `🎨`,
                 }), jsx(`span`, {
-                  children: `灵境画布`,
+                  children: wanjuanT(`灵境画布`),
                 })],
               }),
             }),
@@ -39974,7 +40089,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                   className: `wanjuan-skeuo-icon wanjuan-skeuo-icon-resources`,
                   children: `🗂️`,
                 }), jsx(`span`, {
-                  children: `资源`,
+                  children: wanjuanT(`资源`),
                 })],
               }),
             }),
@@ -39987,7 +40102,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                   className: `wanjuan-skeuo-icon wanjuan-skeuo-icon-agents`,
                   children: `💡`,
                 }), jsx(`span`, {
-                  children: `智能体`,
+                  children: wanjuanT(`智能体`),
                 })],
               }),
             }),
@@ -40001,7 +40116,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                     className: `wanjuan-skeuo-icon wanjuan-skeuo-icon-settings`,
                     children: `⚙️`,
                   }), jsx(`span`, {
-                    children: `设置`,
+                    children: wanjuanT(`设置`),
                   })],
                 }),
                 jsx(`span`, {
@@ -40037,35 +40152,35 @@ ${String(l || ``).slice(0, 5e4)}`;
                           onClick: () => {
                             (setResourceTypeFilter(`all`), setCurrentPage(1));
                           },
-                          children: `全部`,
+                          children: wanjuanT(`全部`),
                         }),
                         jsx(`button`, {
                           className: `px-4 py-1 text-xs rounded-md transition-colors wanjuan-resource-filter-button ${resourceTypeFilter === `image` ? `bg-[#e5e5e5] text-black font-bold wanjuan-resource-filter-button-active` : `text-gray-400 hover:text-gray-200`}`,
                           onClick: () => {
                             (setResourceTypeFilter(`image`), setCurrentPage(1));
                           },
-                          children: `图片`,
+                          children: wanjuanT(`图片`),
                         }),
                         jsx(`button`, {
                           className: `px-4 py-1 text-xs rounded-md transition-colors wanjuan-resource-filter-button ${resourceTypeFilter === `video` ? `bg-[#e5e5e5] text-black font-bold wanjuan-resource-filter-button-active` : `text-gray-400 hover:text-gray-200`}`,
                           onClick: () => {
                             (setResourceTypeFilter(`video`), setCurrentPage(1));
                           },
-                          children: `视频`,
+                          children: wanjuanT(`视频`),
                         }),
                         jsx(`button`, {
                           className: `px-4 py-1 text-xs rounded-md transition-colors wanjuan-resource-filter-button ${resourceTypeFilter === `audio` ? `bg-[#e5e5e5] text-black font-bold wanjuan-resource-filter-button-active` : `text-gray-400 hover:text-gray-200`}`,
                           onClick: () => {
                             (setResourceTypeFilter(`audio`), setCurrentPage(1));
                           },
-                          children: `音频`,
+                          children: wanjuanT(`音频`),
                         }),
                         jsx(`button`, {
                           className: `px-4 py-1 text-xs rounded-md transition-colors wanjuan-resource-filter-button ${resourceTypeFilter === `text` ? `bg-[#e5e5e5] text-black font-bold wanjuan-resource-filter-button-active` : `text-gray-400 hover:text-gray-200`}`,
                           onClick: () => {
                             (setResourceTypeFilter(`text`), setCurrentPage(1));
                           },
-                          children: `文本`,
+                          children: wanjuanT(`文本`),
                         }),
                       ],
                     }),
@@ -40080,27 +40195,27 @@ ${String(l || ``).slice(0, 5e4)}`;
 	                              onClick: () => {
 	                                (setResourceSourceFilter(`all`), setCurrentPage(1));
 	                              },
-	                              children: `全部来源`,
+	                              children: wanjuanT(`全部来源`),
 	                            }),
 	                            jsx(`button`, {
 	                              className: `flex-1 px-3 py-1 text-xs rounded-md transition-colors wanjuan-resource-filter-button ${resourceSourceFilter === `generated` ? `bg-[#e5e5e5] text-black font-bold wanjuan-resource-filter-button-active` : `text-gray-400 hover:text-gray-200`}`,
 	                              onClick: () => {
 	                                (setResourceSourceFilter(`generated`), setCurrentPage(1));
 	                              },
-	                              children: `AI生成`,
+	                              children: wanjuanT(`AI生成`),
 	                            }),
 	                            jsx(`button`, {
 	                              className: `flex-1 px-3 py-1 text-xs rounded-md transition-colors wanjuan-resource-filter-button ${resourceSourceFilter === `external` ? `bg-[#e5e5e5] text-black font-bold wanjuan-resource-filter-button-active` : `text-gray-400 hover:text-gray-200`}`,
 	                              onClick: () => {
 	                                (setResourceSourceFilter(`external`), setCurrentPage(1));
 	                              },
-	                              children: `外部素材`,
+	                              children: wanjuanT(`外部素材`),
 	                            }),
 	                          ],
 	                        }),
 	                        jsx(`button`, {
 	                          className: `wanjuan-resource-favorite-filter w-8 h-8 rounded-lg transition-colors inline-flex items-center justify-center text-sm ${resourceFavoriteOnly ? `wanjuan-resource-favorite-filter-active text-yellow-300` : `text-gray-500 hover:text-yellow-300`}`,
-	                          title: resourceFavoriteOnly ? `显示全部收藏筛选` : `只看收藏`,
+	                          title: resourceFavoriteOnly ? wanjuanT(`显示全部收藏筛选`) : wanjuanT(`只看收藏`),
 	                          onClick: () => {
 	                            (setResourceFavoriteOnly((prev) => !prev), setCurrentPage(1));
 	                          },
@@ -40116,7 +40231,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                           children: [
                             jsx(`span`, {
                               className: `text-xs text-gray-500`,
-                              children: `显示大小`,
+                              children: wanjuanT(`显示大小`),
                             }),
                             jsx(`input`, {
                               type: `range`,
@@ -40143,14 +40258,14 @@ ${String(l || ``).slice(0, 5e4)}`;
                               showToast2(`当前环境不支持打开下载目录`);
                           },
                           className: `flex items-center gap-1.5 bg-[#2a2a2a] hover:bg-[#333] border border-[#333] rounded px-3 py-1.5 text-gray-300 hover:text-white transition-colors`,
-                          title: `打开下载目录`,
+                          title: wanjuanT(`打开下载目录`),
                           children: [
                             jsx(w, {
                               size: 14
                             }),
                             jsx(`span`, {
                               className: `text-xs`,
-                              children: `下载目录`,
+                              children: wanjuanT(`下载目录`),
                             }),
                           ],
                         }),
@@ -40170,7 +40285,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                           children: `📦`,
                         }),
                         jsx(`p`, {
-                          children: `暂无资源`
+                          children: wanjuanT(`暂无资源`)
                         }),
                         jsxs(`p`, {
                           className: `text-xs mt-2 text-gray-600`,
@@ -40192,7 +40307,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                           children: `⌕`,
                         }),
                         jsx(`p`, {
-                          children: `当前筛选没有资源`
+                          children: wanjuanT(`当前筛选没有资源`)
                         }),
                         jsx(`p`, {
                           className: `text-xs mt-2 text-gray-600`,
@@ -40375,7 +40490,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                       children: [
                         jsxs(`div`, {
                           className: `text-sm font-bold text-gray-200`,
-	                          children: [`资源 (`, transitResources.filter((resource) => wanjuanResourceMatchesFilter(resource, resourceTypeFilter, resourceSourceFilter, resourceFavoriteOnly)).length, `)`],
+	                          children: [wanjuanT(`资源`), ` (`, transitResources.filter((resource) => wanjuanResourceMatchesFilter(resource, resourceTypeFilter, resourceSourceFilter, resourceFavoriteOnly)).length, `)`],
                         }),
                         (() => {
 	                          let filteredResources = transitResources.filter((resource) => wanjuanResourceMatchesFilter(resource, resourceTypeFilter, resourceSourceFilter, resourceFavoriteOnly)).length,
@@ -40419,7 +40534,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                                 jsx(fe, {
                                   size: 12
                                 }),
-                                resourceCleanupBusy ? `检查中...` : `清理失效素材`,
+                                resourceCleanupBusy ? wanjuanT(`检查中...`) : wanjuanT(`清理失效素材`),
                               ],
                             }),
                             jsxs(`button`, {
@@ -40429,7 +40544,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                                 jsx(fe, {
                                   size: 12
                                 }),
-                                `清空全部`,
+                                wanjuanT(`清空全部`),
                               ],
                             }),
                           ],
@@ -40531,7 +40646,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                           children: [
                             jsx(`span`, {
                               className: `font-bold`,
-                              children: `错误查询`,
+                              children: wanjuanT(`错误查询`),
                             }),
                             jsxs(`svg`, {
                               xmlns: `http://www.w3.org/2000/svg`,
@@ -40588,7 +40703,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                           children: [
                             jsx(`span`, {
                               className: `font-bold`,
-                              children: `任务清单`,
+                              children: wanjuanT(`任务清单`),
                             }),
                             globalTasks.filter(
                               (task) =>
@@ -43474,7 +43589,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                   children: [
                     jsx(`div`, {
                       className: `text-[10px] text-gray-500 font-bold px-3 py-2 mb-1 uppercase tracking-wider wanjuan-settings-sidebar-title`,
-                      children: `设置菜单`,
+	                      children: wanjuanT(`设置菜单`),
                     }),
                     jsxs(`button`, {
                       onClick: () => setActiveSettingsTab(`basic`),
@@ -43482,7 +43597,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                       children: [jsx(`span`, {
                         className: `wanjuan-skeuo-icon wanjuan-skeuo-icon-basic`,
                         children: `🪄`,
-                      }), ` 个性设置`],
+	                      }), ` ${wanjuanT(`个性设置`)}`],
                     }),
                     jsxs(`button`, {
                       onClick: () => setActiveSettingsTab(`models`),
@@ -43492,7 +43607,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                           className: `wanjuan-skeuo-icon wanjuan-skeuo-icon-models`,
                           children: `🧠`,
                         }),
-                        ` 模型配置`,
+	                        ` ${wanjuanT(`模型配置`)}`,
                       ],
                     }),
                     jsxs(`button`, {
@@ -43501,7 +43616,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                       children: [jsx(`span`, {
                         className: `wanjuan-skeuo-icon wanjuan-skeuo-icon-cloud`,
                         children: `☁️`
-                      }), ` 云盘设置`],
+	                      }), ` ${wanjuanT(`云盘设置`)}`],
                     }),
 	                    jsxs(`button`, {
 	                      onClick: () => setActiveSettingsTab(`generation`),
@@ -43509,7 +43624,7 @@ ${String(l || ``).slice(0, 5e4)}`;
 	                      children: [jsx(`span`, {
 	                        className: `wanjuan-skeuo-icon wanjuan-skeuo-icon-generation`,
 	                        children: `✨`
-	                      }), ` 生成设置`],
+		                      }), ` ${wanjuanT(`生成设置`)}`],
 	                    }),
 	                    jsxs(`button`, {
 	                      onClick: () => setActiveSettingsTab(`extensions`),
@@ -43517,7 +43632,7 @@ ${String(l || ``).slice(0, 5e4)}`;
 	                      children: [jsx(`span`, {
 	                        className: `wanjuan-skeuo-icon wanjuan-skeuo-icon-extensions`,
 	                        children: `🧩`
-	                      }), ` 拓展功能`],
+		                      }), ` ${wanjuanT(`拓展功能`)}`],
 	                    }),
 	                    jsxs(`button`, {
 	                      onClick: () => setActiveSettingsTab(`data`),
@@ -43525,7 +43640,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                       children: [jsx(`span`, {
                         className: `wanjuan-skeuo-icon wanjuan-skeuo-icon-data`,
                         children: `🗄️`,
-                      }), ` 数据管理`],
+	                      }), ` ${wanjuanT(`数据管理`)}`],
                     }),
                   ],
                 }),
@@ -43732,7 +43847,7 @@ ${String(l || ``).slice(0, 5e4)}`;
 	                                  children: [
 	                                    jsx(`label`, {
 	                                      className: `block text-xs font-bold text-gray-300 mb-2 wanjuan-settings-field-label`,
-	                                      children: `界面主题`,
+	                                      children: wanjuanT(`界面主题`),
 	                                    }),
 	                                    jsx(`select`, {
 	                                      className: `w-full bg-[#121212] border border-[#333] rounded-lg px-3 py-2.5 text-sm text-gray-200 focus:outline-none focus:border-blue-500 transition-all wanjuan-settings-control`,
@@ -43759,37 +43874,37 @@ ${String(l || ``).slice(0, 5e4)}`;
 	                                      children: [
 	                                        jsx(`option`, {
 	                                          value: `dark`,
-	                                          children: `曜石黑`,
+	                                          children: wanjuanT(`曜石黑`),
 	                                        }),
 	                                        jsx(`option`, {
 	                                          value: `light`,
-	                                          children: `晴空蓝`,
+	                                          children: wanjuanT(`晴空蓝`),
 	                                        }),
 	                                        jsx(`option`, {
 	                                          value: `warm-light`,
-	                                          children: `暖砂白`,
+	                                          children: wanjuanT(`暖砂白`),
 	                                        }),
 	                                        jsx(`option`, {
 	                                          value: `chrome-rose`,
-	                                          children: `樱雾粉`,
+	                                          children: wanjuanT(`樱雾粉`),
 	                                        }),
 	                                        jsx(`option`, {
 	                                          value: `sage-green`,
-	                                          children: `薄荷绿`,
+	                                          children: wanjuanT(`薄荷绿`),
 	                                        }),
 	                                        jsx(`option`, {
 	                                          value: `graphite`,
-	                                          children: `石墨灰`,
+	                                          children: wanjuanT(`石墨灰`),
 	                                        }),
 	                                        jsx(`option`, {
 	                                          value: `system`,
-	                                          children: `跟随系统`,
+	                                          children: wanjuanT(`跟随系统`),
 	                                        }),
 	                                      ],
 	                                    }),
 	                                    jsx(`p`, {
 	                                      className: `text-[10px] text-gray-500 mt-1 wanjuan-settings-help`,
-	                                      children: `切换石墨灰、曜石黑、晴空蓝、暖砂白、樱雾粉、薄荷绿或跟随系统外观，不改变现有布局结构`,
+		                                      children: wanjuanT(`切换石墨灰、曜石黑、晴空蓝、暖砂白、樱雾粉、薄荷绿或跟随系统外观，不改变现有布局结构`),
 	                                    }),
 	                                  ],
 	                                }),
@@ -43797,7 +43912,7 @@ ${String(l || ``).slice(0, 5e4)}`;
 	                                  children: [
 	                                    jsx(`label`, {
 	                                      className: `block text-xs font-bold text-gray-300 mb-2 wanjuan-settings-field-label`,
-	                                      children: `语言设置`,
+	                                      children: wanjuanT(`语言设置`),
 	                                    }),
 	                                    jsx(`select`, {
 	                                      className: `w-full bg-[#121212] border border-[#333] rounded-lg px-3 py-2.5 text-sm text-gray-200 focus:outline-none focus:border-blue-500 transition-all wanjuan-settings-control`,
@@ -43824,7 +43939,7 @@ ${String(l || ``).slice(0, 5e4)}`;
 	                                        }),
 	                                        jsx(`option`, {
 	                                          value: `zh-TW`,
-	                                          children: `繁体中文`,
+	                                          children: `繁體中文`,
 	                                        }),
 	                                        jsx(`option`, {
 	                                          value: `en-US`,
@@ -43834,7 +43949,7 @@ ${String(l || ``).slice(0, 5e4)}`;
 	                                    }),
 	                                    jsx(`p`, {
 	                                      className: `text-[10px] text-gray-500 mt-1 wanjuan-settings-help`,
-	                                      children: `选择界面语言偏好，后续多语言文案将按此设置展示`,
+	                                      children: wanjuanT(`选择界面语言偏好，后续多语言文案将按此设置展示`),
 	                                    }),
 	                                  ],
 	                                }),
@@ -43842,18 +43957,18 @@ ${String(l || ``).slice(0, 5e4)}`;
 	                                  children: [
 	                                    jsx(`label`, {
 	                                      className: `block text-xs font-bold text-gray-300 mb-2 wanjuan-settings-field-label`,
-	                                      children: `关于`,
+	                                      children: wanjuanT(`关于`),
 	                                    }),
 	                                    jsxs(`div`, {
 	                                      className: `bg-[#121212] border border-[#333] rounded-lg px-3 py-2.5 space-y-2 wanjuan-settings-about`,
 	                                      children: [
 	                                        jsx(`div`, {
 	                                          className: `text-sm font-semibold text-gray-100`,
-	                                          children: `版本更新日志`,
+	                                          children: wanjuanT(`版本更新日志`),
 	                                        }),
 	                                        jsx(`div`, {
 	                                          className: `pt-2 border-t border-[#262626] text-[11px] text-gray-500`,
-	                                          children: `1.2.7：修复素材远端链接过期后节点与资源库破图/黑屏的问题；优化即梦天玑人像预览兜底；新增生成资源本地持久化；同步 Qwen-TTS 状态检测兼容补丁。`,
+	                                          children: wanjuanT(`1.2.7：修复素材远端链接过期后节点与资源库破图/黑屏的问题；优化即梦天玑人像预览兜底；新增生成资源本地持久化；同步 Qwen-TTS 状态检测兼容补丁。`),
 	                                        }),
 	                                      ],
 	                                    }),
@@ -43863,7 +43978,7 @@ ${String(l || ``).slice(0, 5e4)}`;
 	                                  children: [
 	                                    jsx(`label`, {
 	                                      className: `block text-xs font-bold text-gray-300 mb-2 wanjuan-settings-field-label`,
-	                                      children: `当前版本`,
+	                                      children: wanjuanT(`当前版本`),
 	                                    }),
 	                                    jsxs(`div`, {
 	                                      className: `flex items-center justify-between gap-3 bg-[#121212] border border-[#333] rounded-lg px-3 py-2.5 wanjuan-settings-readonly-row`,
@@ -43874,7 +43989,7 @@ ${String(l || ``).slice(0, 5e4)}`;
 	                                        }),
 	                                        jsx(`span`, {
 	                                          className: `text-[10px] text-gray-500`,
-	                                          children: `当前已启用全局统一API配置`,
+	                                          children: wanjuanT(`当前已启用全局统一API配置`),
 	                                        }),
 	                                      ],
 	                                    }),
@@ -47707,13 +47822,13 @@ doubao-seedance-2-0-fast-260128`,
                             layeredRunMaxConcurrency: layeredRunMaxConcurrency,
                           },
                           () => {
-                            showToast2(`设置已保存`);
+                            showToast2(wanjuanT(`设置已保存`));
                           },
                         ) :
                         showToast2(`开发模式：设置已保存（仅内存）`);
                     },
                     className: `w-full max-w-md bg-blue-600 text-white py-3 rounded-xl hover:bg-blue-500 transition-colors text-sm font-bold shadow-lg shadow-blue-900/50 pointer-events-auto wanjuan-settings-save-button`,
-                    children: `保存设置`,
+                    children: wanjuanT(`保存设置`),
                   }),
                 }),
               ],
