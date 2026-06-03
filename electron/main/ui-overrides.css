@@ -4120,21 +4120,42 @@ html :is(button, [role="button"]):disabled {
  * 主题强调色选中态,优先级高于通用劫持规则。
  * 影响: 全部/图片/视频/音频/文本 + AI生成/外部素材 两组筛选。
  * ============================================================ */
-html:is(.theme-light,.theme-warm-light,.theme-mist-blue,.theme-chrome-blue,.theme-chrome-rose,.theme-chrome-sand,.theme-chrome-teal,.theme-sage-green,.theme-graphite,.theme-dark) button.wanjuan-resource-filter-button.wanjuan-resource-filter-button-active,
-html:is(.theme-light,.theme-warm-light,.theme-mist-blue,.theme-chrome-blue,.theme-chrome-rose,.theme-chrome-sand,.theme-chrome-teal,.theme-sage-green,.theme-graphite,.theme-dark) [class*="wanjuan-resource-filter-button-active"] {
+html:is(.theme-light,.theme-warm-light,.theme-mist-blue,.theme-chrome-blue,.theme-chrome-rose,.theme-chrome-sand,.theme-chrome-teal,.theme-sage-green,.theme-graphite,.theme-dark) .wanjuan-resource-toolbar button.wanjuan-resource-filter-button.wanjuan-resource-filter-button-active {
   background: var(--wanjuan-accent, #8ab4f8) !important;
   color: #0b0f15 !important;
   font-weight: 700 !important;
-  box-shadow: 0 1px 6px rgba(0,0,0,0.18) !important;
-  border-color: transparent !important;
+  box-shadow: none !important;
+  border: 0 !important;
 }
 /* 未选中态: 更清晰的可点击感 */
-html .wanjuan-resource-filter-button:not(.wanjuan-resource-filter-button-active) {
+html .wanjuan-resource-toolbar .wanjuan-resource-filter-button:not(.wanjuan-resource-filter-button-active) {
   background: transparent !important;
-  border-color: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
 }
-html .wanjuan-resource-filter-button:not(.wanjuan-resource-filter-button-active):hover {
+html .wanjuan-resource-toolbar .wanjuan-resource-filter-button:not(.wanjuan-resource-filter-button-active):hover {
   background: color-mix(in srgb, var(--wanjuan-accent, #8ab4f8) 14%, transparent) !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+html .wanjuan-resource-toolbar .wanjuan-resource-filter-group {
+  min-height: 36px !important;
+  padding: 4px !important;
+  gap: 3px !important;
+  background: color-mix(in srgb, var(--wj-bg) 58%, var(--wj-surface-2) 42%) !important;
+  border: 1px solid color-mix(in srgb, var(--wj-border) 82%, var(--wj-text) 6%) !important;
+  border-radius: 8px !important;
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--wj-text) 7%, transparent),
+    0 1px 0 color-mix(in srgb, #000 32%, transparent) !important;
+}
+
+html .wanjuan-resource-toolbar .wanjuan-resource-filter-button {
+  border: 0 !important;
+  border-radius: 8px !important;
+  min-height: 30px !important;
+  box-shadow: none !important;
 }
 
 /* ============================================================
@@ -4153,11 +4174,25 @@ html:is(.theme-light,.theme-warm-light,.theme-mist-blue,.theme-chrome-blue,.them
   border-radius: var(--wj-radius-md, 10px) !important;
 }
 html:is(.theme-light,.theme-warm-light,.theme-mist-blue,.theme-chrome-blue,.theme-chrome-rose,.theme-chrome-sand,.theme-chrome-teal,.theme-sage-green,.theme-graphite,.theme-dark) button[title="只看收藏"][class][class][class]:hover {
-  background: color-mix(in srgb, #f5c518 16%, transparent) !important;
-  border-color: color-mix(in srgb, #f5c518 40%, transparent) !important;
+  background: transparent !important;
+  border-color: transparent !important;
 }
-/* 注: 该按钮的"已激活"状态未在 DOM class 上体现(原作者实现如此),
- * 故不强加激活底色,避免误匹配 hover:text-yellow 前缀类。统一为无框图标按钮+hover 黄。 */
+html .wanjuan-resource-favorite-filter {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+}
+html .wanjuan-resource-favorite-filter:hover {
+  color: #facc15 !important;
+  background: transparent !important;
+  border: 0 !important;
+}
+html .wanjuan-resource-favorite-filter-active {
+  color: #facc15 !important;
+  background: transparent !important;
+  border: 0 !important;
+}
 
 /* ============================================================
  * 模式切换tab选中态统一 (2026-05-30, 配合JS加的wj-mode-tab类)

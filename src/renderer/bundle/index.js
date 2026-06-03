@@ -28182,6 +28182,7 @@ function St() {
 	  [resourceTypeFilter, setResourceTypeFilter] = useState(`all`),
 	  [resourceSourceFilter, setResourceSourceFilter] = useState(`all`),
 	  [resourceFavoriteOnly, setResourceFavoriteOnly] = useState(!1),
+	  [resourceCleanupBusy, setResourceCleanupBusy] = useState(!1),
 	  [wjResourceFullscreen, setWjResourceFullscreen] = useState(null),
 	  [transitGridCols, setTransitGridCols] = useState(4),
   [currentPage, setCurrentPage] = useState(1),
@@ -33418,6 +33419,92 @@ ${docText}`;
                   _ && chrome.storage.local.set({
                     transitResources: favoritedResources
                   }));
+              }
+            },
+            probeResourceAlive = (resource) =>
+              new Promise((resolve) => {
+                let type = String(resource?.type || resource?.mediaKind || ``).toLowerCase();
+                if (type.startsWith(`text`)) {
+                  resolve(!0);
+                  return;
+                }
+                if (resource?.tianjiPortraitAssetId || resource?.seedanceAssetId || resource?.isTianjiPortrait || resource?.isSeedanceVirtualPortrait) {
+                  resolve(!0);
+                  return;
+                }
+                let mediaUrl = String(type.startsWith(`image`) ? resource?.thumbnailUrl || resource?.previewUrl || resource?.url || `` : resource?.url || ``).trim();
+                if (!mediaUrl) {
+                  resolve(!1);
+                  return;
+                }
+                if (/^data:/i.test(mediaUrl)) {
+                  resolve(!0);
+                  return;
+                }
+                let done = !1,
+                  finish = (ok) => {
+                    if (done) return;
+                    done = !0;
+                    clearTimeout(timer);
+                    resolve(ok);
+                  },
+                  timer = setTimeout(() => finish(!1), 6e3);
+                if (type.startsWith(`image`)) {
+                  let image = new Image();
+                  image.onload = () => finish(image.naturalWidth > 0 || image.width > 0);
+                  image.onerror = () => finish(!1);
+                  image.src = mediaUrl;
+                  return;
+                }
+                if (type.startsWith(`video`) || type.startsWith(`audio`)) {
+                  let media = document.createElement(type.startsWith(`video`) ? `video` : `audio`);
+                  media.preload = `metadata`;
+                  media.muted = !0;
+                  media.onloadedmetadata = () => finish(!0);
+                  media.oncanplay = () => finish(!0);
+                  media.onerror = () => finish(!1);
+                  media.src = mediaUrl;
+                  try {
+                    media.load();
+                  } catch {
+                    finish(!1);
+                  }
+                  return;
+                }
+                finish(Boolean(mediaUrl));
+              }),
+            handleCleanInvalidResources = async () => {
+              if (resourceCleanupBusy) return;
+              let mediaResources = transitResources.filter((resource) => !String(resource?.type || resource?.mediaKind || ``).toLowerCase().startsWith(`text`));
+              if (mediaResources.length === 0) {
+                showToast2(`没有需要检查的媒体素材`);
+                return;
+              }
+              setResourceCleanupBusy(!0);
+              showToast2(`正在检查失效素材...`);
+              try {
+                let invalidIds = new Set();
+                for (let resource of mediaResources) {
+                  let alive = await probeResourceAlive(resource);
+                  alive || invalidIds.add(resource.id);
+                }
+                if (invalidIds.size === 0) {
+                  showToast2(`没有发现失效素材`);
+                  return;
+                }
+                if (!confirm(`检测到 ${invalidIds.size} 个失效素材，确定从资源库移除吗？`)) return;
+                let updatedResources = transitResources.filter((resource) => !invalidIds.has(resource.id));
+                (setTransitResources(updatedResources),
+                  setCurrentPage(1),
+                  await X.default.setItem(`transitResources`, updatedResources),
+                  _ && chrome.storage.local.set({
+                    transitResources: updatedResources
+                  }),
+                  showToast2(`已清理 ${invalidIds.size} 个失效素材`));
+              } catch (error) {
+                (console.error(`Clean invalid resources failed`, error), showToast2(`清理失败，请稍后重试`));
+              } finally {
+                setResourceCleanupBusy(!1);
               }
             };
   useEffect(() => {
@@ -40002,7 +40089,7 @@ ${String(l || ``).slice(0, 5e4)}`;
 	                          ],
 	                        }),
 	                        jsx(`button`, {
-	                          className: `w-9 h-8 rounded-lg border transition-colors inline-flex items-center justify-center text-sm ${resourceFavoriteOnly ? `border-yellow-400/60 text-yellow-300 bg-yellow-400/10` : `border-[#333] text-gray-500 hover:text-yellow-300 hover:border-yellow-400/40 bg-[#121212]`}`,
+	                          className: `wanjuan-resource-favorite-filter w-8 h-8 rounded-lg transition-colors inline-flex items-center justify-center text-sm ${resourceFavoriteOnly ? `wanjuan-resource-favorite-filter-active text-yellow-300` : `text-gray-500 hover:text-yellow-300`}`,
 	                          title: resourceFavoriteOnly ? `显示全部收藏筛选` : `只看收藏`,
 	                          onClick: () => {
 	                            (setResourceFavoriteOnly((prev) => !prev), setCurrentPage(1));
@@ -40311,14 +40398,30 @@ ${String(l || ``).slice(0, 5e4)}`;
                               ],
                             });
                         })(),
-                        jsxs(`button`, {
-                          onClick: handleClearUnfavorited,
-                          className: `text-xs text-red-400 hover:text-red-300 px-3 py-1.5 rounded hover:bg-[#333] transition-colors border border-transparent hover:border-red-900/50 whitespace-nowrap flex items-center gap-1`,
+                        jsxs(`div`, {
+                          className: `flex items-center gap-2`,
                           children: [
-                            jsx(fe, {
-                              size: 12
+                            jsxs(`button`, {
+                              onClick: handleCleanInvalidResources,
+                              disabled: resourceCleanupBusy,
+                              className: `text-xs text-amber-300 hover:text-amber-200 px-3 py-1.5 rounded hover:bg-[#333] transition-colors border border-transparent hover:border-amber-500/40 whitespace-nowrap flex items-center gap-1 disabled:opacity-50 disabled:cursor-wait`,
+                              children: [
+                                jsx(fe, {
+                                  size: 12
+                                }),
+                                resourceCleanupBusy ? `检查中...` : `清理失效素材`,
+                              ],
                             }),
-                            `清空全部`,
+                            jsxs(`button`, {
+                              onClick: handleClearUnfavorited,
+                              className: `text-xs text-red-400 hover:text-red-300 px-3 py-1.5 rounded hover:bg-[#333] transition-colors border border-transparent hover:border-red-900/50 whitespace-nowrap flex items-center gap-1`,
+                              children: [
+                                jsx(fe, {
+                                  size: 12
+                                }),
+                                `清空全部`,
+                              ],
+                            }),
                           ],
                         }),
                       ],
