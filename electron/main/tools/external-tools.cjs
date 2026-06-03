@@ -476,6 +476,7 @@ function getQwenTtsToolStatus() {
       error: "尚未安装 Qwen-TTS 本地克隆工具"
     };
   }
+  patchQwenTtsScriptForMac(script);
   try {
     const result = execFileSync(python, [script, "--help"], {
       encoding: "utf8",
