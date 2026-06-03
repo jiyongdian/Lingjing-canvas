@@ -18713,6 +18713,85 @@ ${combinedPrompt}`,
 		                      current?.[segment];
 		                  }, source);
 		                },
+		                normalizeImageProtocolResultValue = (value) => {
+		                  let trimmedValue = typeof value == `string` ? value.trim() : ``;
+		                  if (!trimmedValue) return ``;
+		                  let inlineDataImage = trimmedValue.match(/data:image\/[a-zA-Z0-9+.-]+;base64,[A-Za-z0-9+/=\s]+/i);
+		                  if (inlineDataImage) return inlineDataImage[0].replace(/\s+/g, ``);
+		                  if (/^(https?:|blob:)/i.test(trimmedValue)) return trimmedValue.replace(/[`\s]/g, ``);
+		                  let compactBase64 = trimmedValue.replace(/\s+/g, ``);
+		                  return /^[A-Za-z0-9+/=]+$/.test(compactBase64) && compactBase64.length > 120 ?
+		                    `data:image/png;base64,${compactBase64}` :
+		                    ``;
+		                },
+		                findImageProtocolResult = (value, seen = new Set()) => {
+		                  let directImage = normalizeImageProtocolResultValue(value);
+		                  if (directImage) return directImage;
+		                  if (!value || typeof value != `object` || seen.has(value)) return ``;
+		                  seen.add(value);
+		                  if (Array.isArray(value)) {
+		                    for (let item of value) {
+		                      let imageUrl = findImageProtocolResult(item, seen);
+		                      if (imageUrl) return imageUrl;
+		                    }
+		                    return ``;
+		                  }
+		                  let preferredKeys = [
+		                    `download_url`,
+		                    `downloadUrl`,
+		                    `original_url`,
+		                    `originalUrl`,
+		                    `origin_url`,
+		                    `originUrl`,
+		                    `large_image_url`,
+		                    `largeImageUrl`,
+		                    `result_url`,
+		                    `resultUrl`,
+		                    `output_url`,
+		                    `outputUrl`,
+		                    `image_url`,
+		                    `imageUrl`,
+		                    `b64_json`,
+		                    `b64Json`,
+		                    `url`,
+		                    `image`,
+		                    `data`,
+		                    `result`,
+		                    `output`,
+		                    `content`,
+		                    `text`,
+		                    `message`,
+		                  ];
+		                  for (let key of preferredKeys) {
+		                    if (!Object.prototype.hasOwnProperty.call(value, key)) continue;
+		                    let imageUrl = findImageProtocolResult(value[key], seen);
+		                    if (imageUrl) return imageUrl;
+		                  }
+		                  let ignoredKeys = new Set([
+		                    `request`,
+		                    `requests`,
+		                    `params`,
+		                    `payload`,
+		                    `input`,
+		                    `inputs`,
+		                    `prompt`,
+		                    `prompts`,
+		                    `reference`,
+		                    `references`,
+		                    `thumbnail`,
+		                    `thumbnail_url`,
+		                    `preview`,
+		                    `preview_url`,
+		                    `cover`,
+		                    `cover_url`,
+		                  ]);
+		                  for (let [key, childValue] of Object.entries(value)) {
+		                    if (preferredKeys.includes(key) || ignoredKeys.has(String(key).toLowerCase())) continue;
+		                    let imageUrl = findImageProtocolResult(childValue, seen);
+		                    if (imageUrl) return imageUrl;
+		                  }
+		                  return ``;
+		                },
 		                imageProtocolTaskIdPaths =
 		                imageProtocolProfile.responseMapping &&
 		                typeof imageProtocolProfile.responseMapping == `object` ?
@@ -18756,26 +18835,22 @@ ${combinedPrompt}`,
 	                  [imageProtocolResponsePaths] :
 	                  [])
 	                .map((e) => readImageProtocolResponsePath(seedreamResult, e))
-	                .map((value) => {
-	                  let trimmedValue = typeof value == `string` ? value.trim() : ``;
-	                  return trimmedValue && !/^(https?:|data:image\/|blob:)/i.test(trimmedValue) && /^[A-Za-z0-9+/=\s]+$/.test(trimmedValue) && trimmedValue.length > 120 ?
-	                    `data:image/png;base64,${trimmedValue.replace(/\s+/g, ``)}` :
-	                    trimmedValue;
-	                })
+	                .map((value) => findImageProtocolResult(value))
 	                .find((value) => typeof value == `string` && value.trim()),
 	                seedreamPrimaryImage = seedreamResult?.data?.[0] || {},
+		                imageProtocolFallbackImage = findImageProtocolResult(seedreamResult),
 	                seedreamImage =
 	                protocolMappedImage ||
-	                seedreamPrimaryImage.download_url ||
-                seedreamPrimaryImage.original_url ||
-                seedreamPrimaryImage.origin_url ||
-                seedreamPrimaryImage.large_image_url ||
-                seedreamPrimaryImage.result_url ||
-                seedreamPrimaryImage.output_url ||
-                seedreamPrimaryImage.url ||
-                seedreamPrimaryImage.image_url ||
-		                seedreamPrimaryImage.b64_json &&
-		                `data:image/png;base64,${seedreamResult.data[0].b64_json}`;
+		                normalizeImageProtocolResultValue(seedreamPrimaryImage.download_url) ||
+                normalizeImageProtocolResultValue(seedreamPrimaryImage.original_url) ||
+                normalizeImageProtocolResultValue(seedreamPrimaryImage.origin_url) ||
+                normalizeImageProtocolResultValue(seedreamPrimaryImage.large_image_url) ||
+                normalizeImageProtocolResultValue(seedreamPrimaryImage.result_url) ||
+                normalizeImageProtocolResultValue(seedreamPrimaryImage.output_url) ||
+                normalizeImageProtocolResultValue(seedreamPrimaryImage.url) ||
+                normalizeImageProtocolResultValue(seedreamPrimaryImage.image_url) ||
+		                normalizeImageProtocolResultValue(seedreamPrimaryImage.b64_json) ||
+		                imageProtocolFallbackImage;
 		              seedreamRemoteTaskId &&
 		                updateGlobalTaskList &&
 		                updateGlobalTaskList((tasks) =>
