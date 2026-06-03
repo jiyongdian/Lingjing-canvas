@@ -239,6 +239,10 @@ exposeGlobal("wanjuanDesktop", {
 			    const nextPayload = await uploadPayloadWithReadableBytes(payload);
 			    return ipcRenderer.invoke("wanjuan:blur-video-faces", nextPayload);
 			  },
+			  trimVideoSegment: async (payload = {}) => {
+			    const nextPayload = await uploadPayloadWithReadableBytes(payload);
+			    return ipcRenderer.invoke("wanjuan:trim-video-segment", nextPayload);
+			  },
 			  cloneVoiceWithQwenTts: async (payload = {}) => {
 			    const nextPayload = await uploadPayloadWithReadableBytes(payload);
 			    return ipcRenderer.invoke("wanjuan:qwen-tts-clone-voice", nextPayload);

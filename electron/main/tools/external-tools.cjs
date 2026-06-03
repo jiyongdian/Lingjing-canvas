@@ -1180,6 +1180,91 @@ async function blurVideoFaces(payload = {}) {
   };
 }
 
+async function trimVideoSegment(payload = {}) {
+  const ffmpeg = resolveFfmpegCommand();
+  if (!ffmpeg) throw new Error("视频剪辑导出需要 ffmpeg，请先在设置里的拓展工具安装依赖或安装 Homebrew ffmpeg。");
+
+  const start = Math.max(0, Number(payload?.start || 0));
+  const end = Math.max(start, Number(payload?.end || 0));
+  const duration = Math.max(0, end - start);
+  if (!Number.isFinite(duration) || duration <= 0.05) throw new Error("剪辑选区无效，请重新设置入点和出点。");
+
+  const url = String(payload?.url || "");
+  const workRoot = path.join(app.getPath("userData"), "video-editor");
+  fs.mkdirSync(workRoot, { recursive: true });
+  const jobId = `${Date.now()}-${crypto.randomBytes(4).toString("hex")}`;
+  const sourceName = sanitizeFilename(payload?.filename || `source-${jobId}.mp4`);
+  let inputPath =
+    (typeof payload?.localPath === "string" && payload.localPath && fs.existsSync(payload.localPath) && payload.localPath) ||
+    (typeof payload?.path === "string" && payload.path && fs.existsSync(payload.path) && payload.path) ||
+    "";
+  if (!inputPath && /^file:\/\//i.test(url)) {
+    try {
+      const candidate = decodeURIComponent(new URL(url).pathname);
+      if (fs.existsSync(candidate)) inputPath = candidate;
+    } catch {}
+  }
+
+  if (!inputPath) {
+    const { buffer, mime, filename: rawFilename } = await bufferFromMediaPayload(payload || {});
+    const inputExt = path.extname(rawFilename || sourceName) || extensionFromMime(mime) || ".mp4";
+    inputPath = path.join(workRoot, `${jobId}-input${inputExt}`);
+    fs.writeFileSync(inputPath, buffer);
+  }
+
+  const outputBase = sanitizeFilename(payload?.outputFilename || sourceName.replace(/\.[^.]+$/i, "") || "edited-video");
+  const outputPath = path.join(workRoot, `${jobId}-${outputBase.replace(/\.[^.]+$/i, "")}-edited.mp4`);
+  const args = [
+    "-y",
+    "-hide_banner",
+    "-ss",
+    String(start),
+    "-i",
+    inputPath,
+    "-t",
+    String(duration),
+    "-map",
+    "0:v:0",
+    "-map",
+    "0:a?",
+    "-c:v",
+    "libx264",
+    "-preset",
+    "veryfast",
+    "-crf",
+    "18",
+    "-c:a",
+    "aac",
+    "-b:a",
+    "192k",
+    "-movflags",
+    "+faststart",
+    outputPath
+  ];
+
+  try {
+    await execFileWithTimeout(ffmpeg, args, {
+      timeoutMs: Math.max(60 * 1000, Math.min(30 * 60 * 1000, Number(payload?.timeoutMs || Math.ceil(duration * 1200 + 120000))))
+    });
+  } catch (error) {
+    const detail = String(error?.stderr || error?.stdout || error?.message || error || "").trim();
+    throw new Error(`视频剪辑导出失败：${detail || "ffmpeg 未能生成片段"}`);
+  }
+
+  if (!fs.existsSync(outputPath) || fs.statSync(outputPath).size < 1024) {
+    throw new Error("视频剪辑导出失败：没有生成有效输出文件");
+  }
+  return {
+    ok: true,
+    url: `file://${encodeURI(outputPath).replace(/#/g, "%23")}`,
+    localPath: outputPath,
+    filename: path.basename(outputPath),
+    mime: "video/mp4",
+    size: fs.statSync(outputPath).size,
+    duration
+  };
+}
+
 module.exports = {
   execFileWithTimeout,
   parsePythonVersionText,
@@ -1226,6 +1311,7 @@ module.exports = {
   realEsrganJobProgressFromDirs,
   listRealEsrganSystemJobs,
   getRealEsrganJobStatus,
+  trimVideoSegment,
   setRealEsrganJobChild,
   execFileWithTimeoutAndJob,
   upscaleVideoWithRealEsrgan,

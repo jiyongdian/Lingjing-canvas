@@ -47,6 +47,7 @@ const {
   setRealEsrganJobPaused,
   getRealEsrganJobStatus,
   blurVideoFaces,
+  trimVideoSegment,
 } = require("./tools/external-tools.cjs");
 const { uploadToAnonymousHosts, validatePublicMediaUrl } = require("./uploaders/anonymous-hosts.cjs");
 const { uploadToTos, uploadToQiniuS3 } = require("./uploaders/cloud-storage.cjs");
@@ -440,6 +441,17 @@ function registerDesktopIpc() {
       return await blurVideoFaces(payload || {});
     } catch (error) {
       console.error("blur-video-faces failed", error);
+      return { ok: false, error: formatErrorMessage(error) };
+    }
+  });
+
+  ipcMain.handle("wanjuan:trim-video-segment", async (event, payload) => {
+    const blocked = rejectUntrustedIpc(event, "wanjuan:trim-video-segment");
+    if (blocked) return blocked;
+    try {
+      return await trimVideoSegment(payload || {});
+    } catch (error) {
+      console.error("trim-video-segment failed", error);
       return { ok: false, error: formatErrorMessage(error) };
     }
   });

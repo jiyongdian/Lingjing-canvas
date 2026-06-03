@@ -11543,7 +11543,11 @@ function videoEditorModal({
           resolve();
           return;
         }
-        let cleanup = () => {
+        let timeoutId = window.setTimeout(() => {
+            (cleanup(), reject(Error(`视频加载超时，请检查源文件是否可访问`)));
+          }, 12e3),
+          cleanup = () => {
+            window.clearTimeout(timeoutId);
             (video.removeEventListener(`loadedmetadata`, onLoaded),
               video.removeEventListener(`error`, onError));
           },
@@ -11569,7 +11573,11 @@ function videoEditorModal({
             resolve();
             return;
           }
-          let cleanup = () => {
+          let timeoutId = window.setTimeout(() => {
+              (cleanup(), reject(Error(`视频定位超时，请重新打开剪辑台后再试`)));
+            }, 8e3),
+            cleanup = () => {
+              window.clearTimeout(timeoutId);
               (video.removeEventListener(`seeked`, onSeeked),
                 video.removeEventListener(`error`, onError));
             },
@@ -11779,12 +11787,9 @@ function videoEditorModal({
                 if (isExporting) return;
                 let sourceVideo = videoRef.current;
                 if (!sourceVideo) return;
-                if (
-                  typeof MediaRecorder > `u` ||
-                  typeof HTMLCanvasElement > `u` ||
-                  typeof HTMLCanvasElement.prototype.captureStream != `function`
-                ) {
-                  setStatusMessage(`当前环境不支持视频导出`);
+                let segments = selectionSegments;
+                if (!segments.length) {
+                  setStatusMessage(`当前选区无效`);
                   return;
                 }
                 let recorder = null,
@@ -11792,8 +11797,40 @@ function videoEditorModal({
                   paintFrameId = null;
                 try {
                   (setIsExporting(!0), setStatusMessage(`正在准备导出...`), await waitForMetadata(sourceVideo));
-                  let segments = selectionSegments,
-                    exportVideo = document.createElement(`video`);
+                  if (segments.length === 1 && typeof window < `u` && typeof window.wanjuanDesktop?.trimVideoSegment == `function`) {
+                    try {
+                      let segment = segments[0];
+                      setStatusMessage(`正在导出副本...`);
+                      let nativeResult = await window.wanjuanDesktop.trimVideoSegment({
+                        url: videoUrl,
+                        filename: `${outputBaseName}.mp4`,
+                        outputFilename: `${outputBaseName}-edited.mp4`,
+                        start: segment.start,
+                        end: segment.end,
+                        duration: Math.max(0, segment.end - segment.start)
+                      });
+                      if (!nativeResult?.ok || (!nativeResult.url && !nativeResult.localPath))
+                        throw Error(nativeResult?.error || `桌面端未生成剪辑副本`);
+                      (setIsExporting(!1), setStatusMessage(`导出完成`), onSave({
+                        url: nativeResult.url || nativeResult.localPath,
+                        label: nativeResult.filename || `${outputBaseName}-edited.mp4`,
+                        mime: nativeResult.mime || `video/mp4`,
+                        size: nativeResult.size || 0,
+                        duration: nativeResult.duration || totalOutputDuration
+                      }));
+                      return;
+                    } catch (nativeError) {
+                      (console.warn(`Native video trim failed, falling back to recorder`, nativeError),
+                        setStatusMessage(`桌面导出失败，正在尝试兼容导出...`));
+                    }
+                  }
+                  if (
+                    typeof MediaRecorder > `u` ||
+                    typeof HTMLCanvasElement > `u` ||
+                    typeof HTMLCanvasElement.prototype.captureStream != `function`
+                  )
+                    throw Error(`当前环境不支持视频导出`);
+                  let exportVideo = document.createElement(`video`);
                   ((exportVideo.src = videoUrl),
                     (exportVideo.crossOrigin = `anonymous`),
                     (exportVideo.playsInline = !0),
@@ -11885,10 +11922,15 @@ function videoEditorModal({
                       await new Promise((resolve, reject) => {
                         let settled = !1,
                           intervalId = null,
+                          timeoutId = window.setTimeout(
+                            () => fail(Error(`视频导出超时，请重试或使用本地可访问的视频源`)),
+                            Math.max(15e3, Math.ceil((segment.end - segment.start) * 4e3 + 8e3)),
+                          ),
                           complete = () => {
                             if (settled) return;
                             settled = !0;
-                            (clearInterval(intervalId),
+                            (window.clearTimeout(timeoutId),
+                              clearInterval(intervalId),
                               exportVideo.pause(),
                               exportVideo.removeEventListener(`timeupdate`, onTimeUpdate),
                               exportVideo.removeEventListener(`ended`, onEnded),
@@ -11897,7 +11939,8 @@ function videoEditorModal({
                           fail = (reason) => {
                             if (settled) return;
                             settled = !0;
-                            (clearInterval(intervalId),
+                            (window.clearTimeout(timeoutId),
+                              clearInterval(intervalId),
                               exportVideo.pause(),
                               exportVideo.removeEventListener(`timeupdate`, onTimeUpdate),
                               exportVideo.removeEventListener(`ended`, onEnded),
