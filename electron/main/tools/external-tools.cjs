@@ -605,7 +605,7 @@ async function downloadFile(url, destination) {
   await new Promise((resolve, reject) => {
     const request = https.get(url, {
       headers: {
-        "User-Agent": "WanJuanCanvas/1.2.7.1"
+        "User-Agent": "WanJuanCanvas/1.2.8"
       }
     }, (response) => {
       if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {

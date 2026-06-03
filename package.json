@@ -1,6 +1,6 @@
 {
   "name": "wanjuan-lingjing",
-  "version": "1.2.7-1",
+  "version": "1.2.8",
   "private": true,
   "description": "万卷灵境 - macOS AI 创作画布桌面应用",
   "author": "",
@@ -37,7 +37,7 @@
   "build": {
     "appId": "com.wanjuan.lingjing",
     "productName": "万卷灵境",
-    "artifactName": "万卷灵境-1.2.7.1-${arch}.${ext}",
+    "artifactName": "万卷灵境-1.2.8-${arch}.${ext}",
     "directories": {
       "output": "release"
     },
@@ -49,8 +49,8 @@
       "category": "public.app-category.productivity",
       "icon": "build/icon.icns",
       "extendInfo": {
-        "CFBundleShortVersionString": "1.2.7.1",
-        "CFBundleVersion": "1.2.7.1"
+        "CFBundleShortVersionString": "1.2.8",
+        "CFBundleVersion": "1.2.8"
       }
     }
   }

@@ -37,7 +37,7 @@ function createChromeShim() {
     runtime: {
       id: "desktop",
       lastError: null,
-      getManifest: () => ({ version: "1.2.7.1" }),
+      getManifest: () => ({ version: "1.2.8" }),
       getURL: (p = "") => new URL(p, window.location.href).href,
       sendMessage: (_message, cb) => asyncCallback(cb, {}),
       onMessage: noopEvent

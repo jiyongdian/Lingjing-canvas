@@ -1,10 +1,12 @@
 # Changelog
 
-## 1.2.7.1 - 2026-06-03
+## 1.2.8 - 2026-06-03
 
 - Added working Simplified Chinese, Traditional Chinese, and English language packs for the core app shell, Personalization settings, and the Assets panel.
 - Fixed video editor toolbar clicks so Export Duplicate and layout buttons are no longer intercepted by drag/pan regions.
 - Polished the Assets panel filter controls and added invalid-asset cleanup.
+- Fixed Seedance/Jimeng node reference upload mode selection so per-node choices no longer snap back to the global default.
+- Tianji Seedance reference media uploads now honor the selected node upload channel: temporary public link, Volcengine TOS, custom public host, or Qiniu S3.
 
 ## 1.2.7 - 2026-06-03
 
