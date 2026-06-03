@@ -29464,7 +29464,7 @@ time=1h`,
         "当前已启用全局统一API配置": "目前已啟用全域統一 API 配置",
         "切换石墨灰、曜石黑、晴空蓝、暖砂白、樱雾粉、薄荷绿或跟随系统外观，不改变现有布局结构": "切換石墨灰、曜石黑、晴空藍、暖砂白、櫻霧粉、薄荷綠或跟隨系統外觀，不改變現有布局結構",
         "选择界面语言偏好，后续多语言文案将按此设置展示": "選擇介面語言偏好，介面文案會依此設定顯示",
-        "1.2.7：修复素材远端链接过期后节点与资源库破图/黑屏的问题；优化即梦天玑人像预览兜底；新增生成资源本地持久化；同步 Qwen-TTS 状态检测兼容补丁。": "1.2.7：修復素材遠端連結過期後節點與資源庫破圖/黑屏的問題；優化即夢天璣人像預覽兜底；新增生成資源本地持久化；同步 Qwen-TTS 狀態檢測相容補丁。",
+        "1.2.7.1：落实简体中文、繁体中文、英文语言包；修复视频剪辑台导出副本按钮点击被拖拽区域拦截的问题；完善资源页筛选样式与失效素材清理。": "1.2.7.1：落實簡體中文、繁體中文、英文語言包；修復影片剪輯台匯出副本按鈕點擊被拖曳區域攔截的問題；完善資源頁篩選樣式與失效素材清理。",
         "曜石黑": "曜石黑",
         "晴空蓝": "晴空藍",
         "暖砂白": "暖砂白",
@@ -29520,7 +29520,7 @@ time=1h`,
         "当前已启用全局统一API配置": "Global unified API config is enabled",
         "切换石墨灰、曜石黑、晴空蓝、暖砂白、樱雾粉、薄荷绿或跟随系统外观，不改变现有布局结构": "Switch the visual theme without changing the current layout.",
         "选择界面语言偏好，后续多语言文案将按此设置展示": "Choose the interface language. Supported interface text follows this setting.",
-        "1.2.7：修复素材远端链接过期后节点与资源库破图/黑屏的问题；优化即梦天玑人像预览兜底；新增生成资源本地持久化；同步 Qwen-TTS 状态检测兼容补丁。": "1.2.7: Fixed broken/black media after remote asset links expire; improved Jimeng Tianji portrait preview fallback; added local persistence for generated assets; added a Qwen-TTS status compatibility patch.",
+        "1.2.7.1：落实简体中文、繁体中文、英文语言包；修复视频剪辑台导出副本按钮点击被拖拽区域拦截的问题；完善资源页筛选样式与失效素材清理。": "1.2.7.1: Added working Simplified Chinese, Traditional Chinese, and English language packs; fixed video editor duplicate export toolbar clicks being intercepted by drag areas; polished asset filters and invalid asset cleanup.",
         "曜石黑": "Obsidian",
         "晴空蓝": "Sky Blue",
         "暖砂白": "Warm Sand",
@@ -39585,7 +39585,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                           [],
                         ),
                         buildBackupPayload = async (e, t, n, r = {}) => ({
-	                            version: `1.2.7`,
+	                            version: `1.2.7.1`,
                             backupFormat: `4`,
                             exportedAt: new Date().toISOString(),
                             modules: await buildBackupModules(e, t, n, r),
@@ -40170,7 +40170,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                 }),
                 jsx(`span`, {
                   className: `absolute bottom-1 right-2 text-[8px] text-gray-600 font-normal`,
-		                  children: `v1.2.7`,
+		                  children: `v1.2.7.1`,
                 }),
                 updateInfo?.hasUpdate &&
                 jsx(`span`, {
@@ -44017,7 +44017,7 @@ ${String(l || ``).slice(0, 5e4)}`;
 	                                        }),
 	                                        jsx(`div`, {
 	                                          className: `pt-2 border-t border-[#262626] text-[11px] text-gray-500`,
-	                                          children: wanjuanT(`1.2.7：修复素材远端链接过期后节点与资源库破图/黑屏的问题；优化即梦天玑人像预览兜底；新增生成资源本地持久化；同步 Qwen-TTS 状态检测兼容补丁。`),
+	                                          children: wanjuanT(`1.2.7.1：落实简体中文、繁体中文、英文语言包；修复视频剪辑台导出副本按钮点击被拖拽区域拦截的问题；完善资源页筛选样式与失效素材清理。`),
 	                                        }),
 	                                      ],
 	                                    }),
@@ -44034,7 +44034,7 @@ ${String(l || ``).slice(0, 5e4)}`;
 	                                      children: [
 	                                        jsx(`span`, {
 	                                          className: `text-sm font-semibold text-gray-100`,
-	                                          children: `1.2.7`,
+	                                          children: `1.2.7.1`,
 	                                        }),
 	                                        jsx(`span`, {
 	                                          className: `text-[10px] text-gray-500`,

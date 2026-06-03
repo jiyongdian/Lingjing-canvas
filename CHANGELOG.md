@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.7.1 - 2026-06-03
+
+- Added working Simplified Chinese, Traditional Chinese, and English language packs for the core app shell, Personalization settings, and the Assets panel.
+- Fixed video editor toolbar clicks so Export Duplicate and layout buttons are no longer intercepted by drag/pan regions.
+- Polished the Assets panel filter controls and added invalid-asset cleanup.
+
 ## 1.2.7 - 2026-06-03
 
 - Fixed image nodes falling back to the browser's broken-image text when thumbnails or remote image URLs expire.
