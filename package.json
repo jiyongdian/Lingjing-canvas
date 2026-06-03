@@ -1,8 +1,8 @@
 {
   "name": "wanjuan-lingjing",
-  "version": "1.2.6",
+  "version": "1.2.7",
   "private": true,
-  "description": "万卷灵境 - 可维护源码工程（由 dist 产物逆向重建）",
+  "description": "万卷灵境 - macOS AI 创作画布桌面应用",
   "author": "",
   "main": "electron/main/index.cjs",
   "type": "module",
