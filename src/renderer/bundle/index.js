@@ -689,6 +689,27 @@ var TongyiWanxiangLogo = ({
                   draggable: !1,
                   loading: `lazy`,
                   decoding: `async`,
+                  onError: (event) => {
+                    let imageElement = event.currentTarget,
+                      fallbackUrl = imageUrl;
+                    if (
+                      imageElement.dataset.wanjuanImageFallback !== `1` &&
+                      data.thumbnailUrl &&
+                      fallbackUrl &&
+                      data.thumbnailUrl !== fallbackUrl
+                    ) {
+                      imageElement.dataset.wanjuanImageFallback = `1`;
+                      imageElement.src = fallbackUrl;
+                      updateNodeData(nodeId, {
+                        thumbnailUrl: void 0
+                      });
+                      return;
+                    }
+                    imageElement.onerror = null;
+                    imageElement.src = wanjuanBrokenResourceImage;
+                    imageElement.classList.add(`wanjuan-resource-image-broken`);
+                    imageElement.title = `素材图片无法加载，可能是链接已失效或本地文件不可访问`;
+                  },
                   onDoubleClick: (event) => {
                     (event.stopPropagation(), data.onZoom && data.onZoom(imageUrl));
                   },
@@ -4320,7 +4341,7 @@ var Le = reactMemo(({
       );
       data.onShowToast?.(`已添加虚拟人像参考`);
     };
-    let addTianjiPortraitToNode = (portrait, index = 0) => {
+    let addTianjiPortraitToNode = async (portrait, index = 0) => {
       if (portrait?.localUploaded) {
         data.onShowToast?.(`这张人像还没有从天玑素材库返回，请稍后刷新素材列表后再选择`);
         return;
@@ -4336,6 +4357,12 @@ var Le = reactMemo(({
         return;
       }
       setSeedancePortraitPickerOpen(!1);
+      let displayImageUrl = resource.previewUrl || resource.thumbnailUrl || resource.url || ``;
+      try {
+        displayImageUrl = await wanjuanPortableSeedancePortraitPreview(displayImageUrl) || displayImageUrl;
+      } catch (error) {
+        console.warn(`Tianji portrait preview portable fallback`, error);
+      }
       let tianjiPortraitImageNodeId = `tianji-portrait-image-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
       setVideoNodes((nodes) => {
         let currentNode = nodes.find((node) => node.id === nodeId),
@@ -4359,7 +4386,9 @@ var Le = reactMemo(({
             height: 224
           },
           data: {
-            imageUrl: resource.url,
+            imageUrl: displayImageUrl || resource.url,
+            thumbnailUrl: displayImageUrl || void 0,
+            tianjiPortraitPreviewUrl: resource.url,
             label: resource.name || resource.label || `天玑人像`,
             tianjiPortraitAssetId: resource.tianjiPortraitAssetId,
             tianjiPortraitGroupType: resource.groupType,
@@ -33603,6 +33632,62 @@ ${docText}`;
         );
       });
   }, [activeView, transitResources]);
+  let persistTransitResource = async (resource) => {
+    if (
+      !resource ||
+      !window.wanjuanDesktop?.persistProjectAsset ||
+      typeof resource.url != `string` ||
+      !resource.url ||
+      /^file:\/\//i.test(resource.url) ||
+      resource.type === `text`
+    )
+      return null;
+    try {
+      let kind = resource.type?.startsWith(`video`) ?
+          `video` :
+          resource.type?.startsWith(`audio`) ?
+          `audio` :
+          resource.type?.startsWith(`image`) ?
+          `image` :
+          ``,
+        persisted = await window.wanjuanDesktop.persistProjectAsset({
+          url: resource.url,
+          projectId: (typeof globalThis !== `undefined` && globalThis.__wanjuanCurrentProjectId) || document.documentElement.dataset.wanjuanProjectId || `default`,
+          nodeId: `transit-resource`,
+          field: `url`,
+          kind: kind || `asset`,
+          filename: resource.originalName || resource.pageTitle || `${kind || `asset`}-${Date.now()}`,
+          mime: resource.type,
+          directory: ``,
+        });
+      if (!persisted?.ok || !persisted.localPath) return null;
+      let localUrl = buildProjectMediaFileUrl(persisted.localPath) || `file://${encodeURI(persisted.localPath).replace(/#/g, `%23`)}`;
+      return {
+        ...resource,
+        url: localUrl,
+        localPath: persisted.localPath,
+        originalUrl: resource.originalUrl || resource.url,
+        projectAssetBinding: {
+          ok: !0,
+          assetId: persisted.assetId,
+          localPath: persisted.localPath,
+          filename: persisted.filename,
+          mime: persisted.mime,
+          size: persisted.size,
+          sha256: persisted.sha256,
+          projectId: persisted.projectId,
+          nodeId: persisted.nodeId,
+          field: persisted.field,
+          kind: persisted.kind,
+          savedAt: persisted.savedAt,
+          sourceOrigin: resource.sourceOrigin || resource.source || `generated`,
+        },
+      };
+    } catch (error) {
+      console.warn(`transit resource persist skipped`, error);
+      return null;
+    }
+  };
   let addTransitResource = (url, resourceType = `image`, resourceName = `AI生成内容`, source = `generated`) => {
     if (!url || typeof url != `string`) return;
     let mimeType = resourceType === `audio` ? `audio/mpeg` : resourceType === `video` ? `video/mp4` : resourceType === `text` ? `text` : `image/png`;
@@ -33610,8 +33695,8 @@ ${docText}`;
       /^data:audio\/wav/i.test(url) || /\.wav(?:$|[?#])/i.test(url) ? mimeType = `audio/wav` : /^data:audio\/ogg/i.test(url) || /\.ogg(?:$|[?#])/i.test(url) ? mimeType = `audio/ogg` : /^data:audio\/mp4/i.test(url) || /\.(m4a|aac)(?:$|[?#])/i.test(url) ? mimeType = `audio/mp4` : /^data:audio\/flac/i.test(url) || /\.flac(?:$|[?#])/i.test(url) ? mimeType = `audio/flac` : mimeType = `audio/mpeg`;
     }
     setTransitResources((existingResources) => {
-      if (existingResources.some((resource) => resource.url === url)) return existingResources;
-      let updatedResources = [{
+      if (existingResources.some((resource) => resource.url === url || resource.originalUrl === url)) return existingResources;
+      let resourceEntry = {
         id: `${resourceType}-${Date.now()}-${Math.random().toString(16).slice(2)}`,
         url: url,
         type: mimeType,
@@ -33621,7 +33706,25 @@ ${docText}`;
 	        source,
 	        sourceOrigin: source,
 	        originalName: resourceName || ``,
-	      }, ...existingResources];
+	      },
+        updatedResources = [resourceEntry, ...existingResources];
+      persistTransitResource(resourceEntry).then((persistedResource) => {
+        if (!persistedResource) return;
+        setTransitResources((resources) => {
+          let replaced = resources.map((resource) => resource.id === resourceEntry.id ? {
+            ...resource,
+            ...persistedResource,
+            isFavorite: resource.isFavorite,
+          } : resource);
+          return (
+            X.default.setItem(`transitResources`, replaced),
+            _ && chrome.storage.local.set({
+              transitResources: replaced
+            }),
+            replaced
+          );
+        });
+      });
       return (
         X.default.setItem(`transitResources`, updatedResources),
         _ && chrome.storage.local.set({

@@ -1165,6 +1165,7 @@ function installDesktopPatches() {
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#39;");
+  const tianjiBrokenAssetImage = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96"><rect width="96" height="96" rx="8" fill="#111827"/><rect x="17" y="21" width="62" height="38" rx="5" fill="#1f2937" stroke="#374151"/><circle cx="35" cy="36" r="5" fill="#4b5563"/><path d="M24 55l14-14 9 9 7-8 18 13H24z" fill="#334155"/><text x="48" y="78" text-anchor="middle" font-size="10" font-family="Arial, sans-serif" fill="#9ca3af">素材失效</text></svg>`)}`;
 
   const tianjiNormalizeConfig = (value = {}) => ({
     ...TIANJI_DEFAULT_CONFIG,
@@ -1418,7 +1419,7 @@ function installDesktopPatches() {
             const img = item.image_url || item.imageUrl || item.cover_url || item.preview_url || item.url || item.URL || "";
             const status = isLocalPending ? "待天玑素材库返回" : item.status || item.Status || "";
             return `<div class="wanjuan-tianji-asset${isLocalPending ? " is-pending" : ""}" title="${tianjiEscapeHtml(isLocalPending ? "上传已提交，等待刷新为天玑资产" : img || id || "")}">
-              ${img ? `<img src="${tianjiEscapeHtml(img)}" alt="">` : `<span>无图</span>`}
+              ${img ? `<img src="${tianjiEscapeHtml(img)}" alt="" onerror="this.onerror=null;this.src='${tianjiBrokenAssetImage}';this.title='素材图片无法加载，可能是天玑返回的签名链接已过期或不可访问';">` : `<span>无图</span>`}
               ${isLocalPending ? `<div class="wanjuan-tianji-asset-badge">待刷新</div>` : ``}
               <div class="wanjuan-tianji-asset-name">${tianjiEscapeHtml(name)}</div>
               <div class="wanjuan-tianji-asset-status">${tianjiEscapeHtml(status || id).slice(0, 24)}</div>
