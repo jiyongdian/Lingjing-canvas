@@ -28900,6 +28900,7 @@ Suno 音乐生成`,
   [seedanceSettingsExpanded, setSeedanceSettingsExpanded] = useState(!1),
   [tongyiWanxiangSettingsExpanded, setTongyiWanxiangSettingsExpanded] = useState(!1),
   [themeMode, setThemeMode] = useState(`graphite`),
+  [appLanguage, setAppLanguage] = useState(`zh-CN`),
   [downloadDirectory, setDownloadDirectory] = useState(``),
   [videoResolutions, setVideoResolutions] = useState(`1280x720
 		720x1280
@@ -29421,6 +29422,8 @@ time=1h`,
             uiTheme: themeMode,
             theme: themeMode,
             appearanceTheme: themeMode,
+            appLanguage: appLanguage,
+            uiLanguage: appLanguage,
             downloadDirectory: downloadDirectory,
             presetPrompts: presetPrompts,
             layeredRunConcurrencyOptions: layeredRunConcurrencyOptions,
@@ -32866,6 +32869,8 @@ ${docText}`;
                   `customPublicUploadConfig`,
                   `qiniuConfig`,
                   `themeMode`,
+                  `appLanguage`,
+                  `uiLanguage`,
                   `downloadDirectory`,
                   `backupExportSelection`,
                   `backupImportSelection`,
@@ -33073,6 +33078,8 @@ ${docText}`;
                       ...settings.qiniuConfig,
                     })),
                     settings.themeMode && setThemeMode(normalizeThemeMode(settings.themeMode)),
+                    (settings.appLanguage || settings.uiLanguage) &&
+                    setAppLanguage(settings.appLanguage || settings.uiLanguage),
                     settings.downloadDirectory &&
                     setDownloadDirectory(settings.downloadDirectory),
                     Array.isArray(settings.backupExportSelection) &&
@@ -33180,6 +33187,7 @@ ${docText}`;
       pollingInterval,
       maxPollingDuration,
       themeMode,
+      appLanguage,
       downloadDirectory,
       presetPrompts,
       layeredRunConcurrencyOptions,
@@ -37872,6 +37880,8 @@ ${String(l || ``).slice(0, 5e4)}`;
 	        `uiTheme`,
 	        `theme`,
 	        `appearanceTheme`,
+	        `appLanguage`,
+	        `uiLanguage`,
 	      ],
 	      models: [
 	        `apiUrl`,
@@ -43787,20 +43797,44 @@ ${String(l || ``).slice(0, 5e4)}`;
 	                                  children: [
 	                                    jsx(`label`, {
 	                                      className: `block text-xs font-bold text-gray-300 mb-2 wanjuan-settings-field-label`,
-	                                      children: `当前版本`,
+	                                      children: `语言设置`,
 	                                    }),
-	                                    jsxs(`div`, {
-	                                      className: `flex items-center justify-between gap-3 bg-[#121212] border border-[#333] rounded-lg px-3 py-2.5 wanjuan-settings-readonly-row`,
+	                                    jsx(`select`, {
+	                                      className: `w-full bg-[#121212] border border-[#333] rounded-lg px-3 py-2.5 text-sm text-gray-200 focus:outline-none focus:border-blue-500 transition-all wanjuan-settings-control`,
+	                                      value: appLanguage,
+	                                      onChange: (event) => {
+	                                        let nextLanguage = event.target.value || `zh-CN`;
+	                                        setAppLanguage(nextLanguage);
+	                                        try {
+	                                          localStorage.setItem(`appLanguage`, nextLanguage),
+	                                            localStorage.setItem(`uiLanguage`, nextLanguage);
+	                                        } catch {}
+	                                        typeof chrome < `u` &&
+	                                          chrome.storage &&
+	                                          chrome.storage.local &&
+	                                          chrome.storage.local.set({
+	                                            appLanguage: nextLanguage,
+	                                            uiLanguage: nextLanguage,
+	                                          });
+	                                      },
 	                                      children: [
-	                                        jsx(`span`, {
-	                                          className: `text-sm font-semibold text-gray-100`,
-	                                          children: `1.2.7`,
+	                                        jsx(`option`, {
+	                                          value: `zh-CN`,
+	                                          children: `简体中文`,
 	                                        }),
-	                                        jsx(`span`, {
-	                                          className: `text-[10px] text-gray-500`,
-	                                          children: `当前已启用全局统一API配置`,
+	                                        jsx(`option`, {
+	                                          value: `zh-TW`,
+	                                          children: `繁体中文`,
+	                                        }),
+	                                        jsx(`option`, {
+	                                          value: `en-US`,
+	                                          children: `English`,
 	                                        }),
 	                                      ],
+	                                    }),
+	                                    jsx(`p`, {
+	                                      className: `text-[10px] text-gray-500 mt-1 wanjuan-settings-help`,
+	                                      children: `选择界面语言偏好，后续多语言文案将按此设置展示`,
 	                                    }),
 	                                  ],
 	                                }),
@@ -43820,6 +43854,27 @@ ${String(l || ``).slice(0, 5e4)}`;
 	                                        jsx(`div`, {
 	                                          className: `pt-2 border-t border-[#262626] text-[11px] text-gray-500`,
 	                                          children: `1.2.7：修复素材远端链接过期后节点与资源库破图/黑屏的问题；优化即梦天玑人像预览兜底；新增生成资源本地持久化；同步 Qwen-TTS 状态检测兼容补丁。`,
+	                                        }),
+	                                      ],
+	                                    }),
+	                                  ],
+	                                }),
+	                                jsxs(`div`, {
+	                                  children: [
+	                                    jsx(`label`, {
+	                                      className: `block text-xs font-bold text-gray-300 mb-2 wanjuan-settings-field-label`,
+	                                      children: `当前版本`,
+	                                    }),
+	                                    jsxs(`div`, {
+	                                      className: `flex items-center justify-between gap-3 bg-[#121212] border border-[#333] rounded-lg px-3 py-2.5 wanjuan-settings-readonly-row`,
+	                                      children: [
+	                                        jsx(`span`, {
+	                                          className: `text-sm font-semibold text-gray-100`,
+	                                          children: `1.2.7`,
+	                                        }),
+	                                        jsx(`span`, {
+	                                          className: `text-[10px] text-gray-500`,
+	                                          children: `当前已启用全局统一API配置`,
 	                                        }),
 	                                      ],
 	                                    }),
@@ -47617,6 +47672,8 @@ doubao-seedance-2-0-fast-260128`,
                             customPublicUploadConfig: customPublicUploadConfig,
                             qiniuConfig: qiniuConfig,
                             themeMode: themeMode,
+                            appLanguage: appLanguage,
+                            uiLanguage: appLanguage,
                             downloadDirectory: downloadDirectory,
                             audioModel: audioModels,
                             ttsMusicModel: ttsMusicModel,
