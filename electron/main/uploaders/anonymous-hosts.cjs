@@ -19,7 +19,7 @@ async function validatePublicMediaUrl(url, kind = "media", redirectCount = 0) {
     method: "GET",
     headers: {
       Range: "bytes=0-0",
-      "User-Agent": "Mozilla/5.0 WanJuanCanvas/1.2.5.10"
+      "User-Agent": "Mozilla/5.0 WanJuanCanvas/1.2.7"
     },
     requestTimeout: 45000
   }, 2);

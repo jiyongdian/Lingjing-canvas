@@ -39324,7 +39324,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                           [],
                         ),
                         buildBackupPayload = async (e, t, n, r = {}) => ({
-	                            version: `1.2.5.10`,
+	                            version: `1.2.7`,
                             backupFormat: `4`,
                             exportedAt: new Date().toISOString(),
                             modules: await buildBackupModules(e, t, n, r),
@@ -39909,7 +39909,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                 }),
                 jsx(`span`, {
                   className: `absolute bottom-1 right-2 text-[8px] text-gray-600 font-normal`,
-		                  children: `v1.2.5.10`,
+		                  children: `v1.2.7`,
                 }),
                 updateInfo?.hasUpdate &&
                 jsx(`span`, {
@@ -43691,7 +43691,7 @@ ${String(l || ``).slice(0, 5e4)}`;
 	                                      children: [
 	                                        jsx(`span`, {
 	                                          className: `text-sm font-semibold text-gray-100`,
-	                                          children: `1.2.5.10`,
+	                                          children: `1.2.7`,
 	                                        }),
 	                                        jsx(`span`, {
 	                                          className: `text-[10px] text-gray-500`,
@@ -43716,7 +43716,7 @@ ${String(l || ``).slice(0, 5e4)}`;
 	                                        }),
 	                                        jsx(`div`, {
 	                                          className: `pt-2 border-t border-[#262626] text-[11px] text-gray-500`,
-	                                          children: `1.2.5.10：新增性能/渲染档位；优化备份中心独立模块、主题适配和滑动开关；修复 Electron prompt 异常；降低高并发生成时的渲染进程压力。`,
+	                                          children: `1.2.7：修复素材远端链接过期后节点与资源库破图/黑屏的问题；优化即梦天玑人像预览兜底；新增生成资源本地持久化；同步 Qwen-TTS 状态检测兼容补丁。`,
 	                                        }),
 	                                      ],
 	                                    }),
