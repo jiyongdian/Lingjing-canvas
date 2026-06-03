@@ -12162,7 +12162,7 @@ function videoEditorModal({
   }, []);
   return ze.createPortal(
     jsxs(`div`, {
-      className: `fixed inset-0 z-[9999] bg-[#08090c] flex flex-col`,
+      className: `fixed inset-0 z-[9999] bg-[#08090c] flex flex-col nodrag nopan wanjuan-video-editor-modal`,
       style: {
         position: `fixed`,
         inset: 0,
@@ -12179,7 +12179,10 @@ function videoEditorModal({
       },
       children: [
         jsxs(`div`, {
-          className: `flex items-center justify-between gap-4 px-5 py-3 bg-[#111317] border-b border-[#23262d]`,
+          className: `flex items-center justify-between gap-4 px-5 py-3 bg-[#111317] border-b border-[#23262d] nodrag nopan wanjuan-video-editor-toolbar`,
+          onPointerDown: (event) => event.stopPropagation(),
+          onMouseDown: (event) => event.stopPropagation(),
+          onClick: (event) => event.stopPropagation(),
           style: {
             display: `flex`,
             alignItems: `center`,
@@ -12231,7 +12234,7 @@ function videoEditorModal({
                   children: guideState.label,
                 }),
                 jsx(`button`, {
-                  className: `px-3 py-1.5 rounded-lg text-sm transition-colors`,
+                  className: `px-3 py-1.5 rounded-lg text-sm transition-colors nodrag nopan`,
                   style: {
                     background: layoutPreset === `balanced` ? `#2563eb` : `#1f2430`,
                     color: `#ffffff`,
@@ -12240,7 +12243,7 @@ function videoEditorModal({
                   children: `均衡布局`,
                 }),
                 jsx(`button`, {
-                  className: `px-3 py-1.5 rounded-lg text-sm transition-colors`,
+                  className: `px-3 py-1.5 rounded-lg text-sm transition-colors nodrag nopan`,
                   style: {
                     background: layoutPreset === `focus-preview` ? `#2563eb` : `#1f2430`,
                     color: `#ffffff`,
@@ -12249,7 +12252,7 @@ function videoEditorModal({
                   children: `预览优先`,
                 }),
                 jsx(`button`, {
-                  className: `px-3 py-1.5 rounded-lg text-sm transition-colors`,
+                  className: `px-3 py-1.5 rounded-lg text-sm transition-colors nodrag nopan`,
                   style: {
                     background: layoutPreset === `timeline-focus` ? `#2563eb` : `#1f2430`,
                     color: `#ffffff`,
@@ -12258,7 +12261,7 @@ function videoEditorModal({
                   children: `时间线优先`,
                 }),
                 jsx(`button`, {
-                  className: `px-3 py-1.5 rounded-lg text-sm transition-colors`,
+                  className: `px-3 py-1.5 rounded-lg text-sm transition-colors nodrag nopan`,
                   style: {
                     background: maximizedPanel === `preview` ? `#2563eb` : `#1f2430`,
                     color: `#ffffff`,
@@ -12267,7 +12270,7 @@ function videoEditorModal({
                   children: maximizedPanel === `preview` ? `还原预览` : `放大预览`,
                 }),
                 jsx(`button`, {
-                  className: `px-3 py-1.5 rounded-lg text-sm transition-colors`,
+                  className: `px-3 py-1.5 rounded-lg text-sm transition-colors nodrag nopan`,
                   style: {
                     background: maximizedPanel === `timeline` ? `#2563eb` : `#1f2430`,
                     color: `#ffffff`,
@@ -12276,25 +12279,28 @@ function videoEditorModal({
                   children: maximizedPanel === `timeline` ? `还原轨道` : `放大轨道`,
                 }),
                 jsx(`button`, {
-                  className: `px-3 py-1.5 rounded-lg text-sm text-gray-300 hover:bg-[#23262d] transition-colors`,
+                  className: `px-3 py-1.5 rounded-lg text-sm text-gray-300 hover:bg-[#23262d] transition-colors nodrag nopan`,
                   onClick: () => applyLayoutPreset(`balanced`),
                   children: `重置工作区`,
                 }),
                 jsx(`button`, {
-                  className: `px-3 py-1.5 rounded-lg text-sm text-gray-300 hover:bg-[#23262d] transition-colors`,
+                  className: `px-3 py-1.5 rounded-lg text-sm text-gray-300 hover:bg-[#23262d] transition-colors nodrag nopan`,
                   onClick: () => setIsTimelineCollapsed((prev) => !prev),
                   children: isTimelineCollapsed ? `展开时间线` : `隐藏时间线`,
                 }),
                 jsx(`button`, {
-                  className: `px-3 py-1.5 rounded-lg text-sm text-gray-300 hover:bg-[#23262d] transition-colors`,
+                  className: `px-3 py-1.5 rounded-lg text-sm text-gray-300 hover:bg-[#23262d] transition-colors nodrag nopan`,
                   onClick: () => {
                     !isExporting && onClose();
                   },
                   children: `关闭`,
                 }),
                 jsx(`button`, {
-                  className: `px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white text-sm font-medium transition-colors`,
-                  onClick: exportClip,
+                  className: `px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white text-sm font-medium transition-colors nodrag nopan`,
+                  onClick: (event) => {
+                    event.stopPropagation();
+                    exportClip();
+                  },
 	                  disabled: isExporting || totalOutputDuration <= 0.05,
 	                  children: isExporting ? `导出中...` : totalOutputDuration <= 0.05 ? `选区无效` : `导出副本`,
                 }),
