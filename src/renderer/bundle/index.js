@@ -14647,7 +14647,9 @@ X.default.config({
 	                filename: filename
 	              });
 	              if (saved?.ok) {
-	                nodeData.onShowToast?.(`打码视频已保存到下载目录`);
+	                let savedUrl = saved.path ? `file://${encodeURI(saved.path).replace(/#/g, `%23`)}` : nodeData.videoUrl;
+	                (nodeData.addTransitResource?.(savedUrl, `video`, filename, `face-blur-download`),
+	                  nodeData.onShowToast?.(saved.path ? `打码视频已保存：${saved.path}` : `打码视频已保存到下载目录`));
 	                return;
 	              }
 	              if (saved?.canceled) return;

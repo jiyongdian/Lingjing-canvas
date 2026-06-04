@@ -14,7 +14,7 @@ const {
   localFileToDataUrl,
   uploadPayloadWithReadableBytes,
 } = require("./media-utils.cjs");
-const { getPerformanceSettings, persistPerformanceProfile } = require("./storage.cjs");
+const { getDesktopStorageItems, getPerformanceSettings, persistPerformanceProfile } = require("./storage.cjs");
 const {
   beforeProjectCanvasSave,
   listProjectSafetySnapshots,
@@ -154,6 +154,12 @@ exposeGlobal("wanjuanDesktop", {
   showInputDialog: async (options = {}) => showWanjuanInputDialog(options),
 	  saveDownload: async (payload = {}) => {
 	    let nextPayload = { ...payload };
+	    if (!nextPayload.directory) {
+	      try {
+	        const store = await getDesktopStorageItems(["downloadDirectory"]);
+	        if (store?.downloadDirectory) nextPayload.directory = store.downloadDirectory;
+	      } catch {}
+	    }
 	    if (typeof nextPayload.url === "string" && /^file:\/\//i.test(nextPayload.url)) {
 	      try {
 	        nextPayload = {
