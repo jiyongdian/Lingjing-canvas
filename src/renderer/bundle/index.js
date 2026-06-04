@@ -14616,6 +14616,44 @@ X.default.config({
 	              errorMsg: error?.message || `打码失败`
 	            });
 	          }
+	        },
+	        handleDownload = async (event) => {
+	          if ((event.stopPropagation(), !nodeData.videoUrl)) return;
+	          let filename = nodeData.videoName || `人脸打码视频-${Date.now()}.mp4`;
+	          try {
+	            nodeData.onShowToast?.(`开始下载打码视频...`);
+	            if (window.wanjuanDesktop?.saveDownload) {
+	              let saved = await window.wanjuanDesktop.saveDownload({
+	                url: nodeData.videoUrl,
+	                mime: `video/mp4`,
+	                filename: filename
+	              });
+	              if (saved?.ok) {
+	                nodeData.onShowToast?.(`打码视频已保存到下载目录`);
+	                return;
+	              }
+	              if (saved?.canceled) return;
+	              throw Error(saved?.error || `保存失败`);
+	            }
+	            if (typeof chrome < `u` && chrome.downloads) {
+	              chrome.downloads.download({
+	                url: nodeData.videoUrl,
+	                filename: `wanjuan/${filename}`,
+	                saveAs: !1
+	              });
+	              return;
+	            }
+	            let link = document.createElement(`a`);
+	            ((link.href = nodeData.videoUrl),
+	              (link.download = filename),
+	              document.body.appendChild(link),
+	              link.click(),
+	              document.body.removeChild(link));
+	          } catch (error) {
+	            (console.error(`Video face blur download failed`, error),
+	              nodeData.onShowToast?.(`下载失败，请重试`),
+	              window.open(nodeData.videoUrl, `_blank`));
+	          }
 	        };
 	        return jsxs(`div`, {
 	          className: `w-[320px] bg-[#1a1a1a] rounded-xl shadow-2xl border-2 transition-colors overflow-hidden ${selected ? `border-rose-500` : `border-[#333] hover:border-[#444]`}`,
@@ -14642,32 +14680,45 @@ X.default.config({
 	            jsxs(`div`, {
 	              className: `p-3 space-y-3`,
 	              children: [
-	                jsx(`div`, {
-	                  className: `border border-[#333] rounded-lg bg-[#111] aspect-video overflow-hidden flex items-center justify-center`,
-	                  children: nodeData.videoUrl ?
-	                  jsx(`video`, {
-	                    src: nodeData.videoUrl,
-	                    controls: !0,
-	                    className: `w-full h-full object-contain`,
-	                    preload: `metadata`
-	                  }) :
-	                  sourceMedia?.url ?
-	                  jsxs(`div`, {
-	                    className: `text-xs text-gray-400 flex flex-col items-center gap-1`,
-	                    children: [
-	                      jsx(`span`, {
-	                        className: `text-rose-300 text-lg`,
-	                        children: `▶`
-	                      }),
-	                      jsx(`span`, {
-	                        children: `已接收视频`
-	                      }),
-	                    ],
-	                  }) :
-	                  jsx(`span`, {
-	                    className: `text-[11px] text-gray-600`,
-	                    children: `连接视频后自动追踪人脸打码`
-	                  }),
+	                jsxs(`div`, {
+	                  className: `relative group/face-blur-preview border border-[#333] rounded-lg bg-[#111] aspect-video overflow-hidden flex items-center justify-center`,
+	                  children: [
+	                    nodeData.videoUrl ?
+	                    jsx(`video`, {
+	                      src: nodeData.videoUrl,
+	                      controls: !0,
+	                      className: `w-full h-full object-contain`,
+	                      preload: `metadata`
+	                    }) :
+	                    sourceMedia?.url ?
+	                    jsxs(`div`, {
+	                      className: `text-xs text-gray-400 flex flex-col items-center gap-1`,
+	                      children: [
+	                        jsx(`span`, {
+	                          className: `text-rose-300 text-lg`,
+	                          children: `▶`
+	                        }),
+	                        jsx(`span`, {
+	                          children: `已接收视频`
+	                        }),
+	                      ],
+	                    }) :
+	                    jsx(`span`, {
+	                      className: `text-[11px] text-gray-600`,
+	                      children: `连接视频后自动追踪人脸打码`
+	                    }),
+	                    nodeData.videoUrl &&
+	                    !nodeData.loading &&
+	                    jsx(`button`, {
+	                      type: `button`,
+	                      onClick: handleDownload,
+	                      title: `下载`,
+	                      className: `absolute top-2 right-2 z-20 p-1.5 rounded-md bg-black/65 text-gray-200 border border-white/15 shadow-lg backdrop-blur-sm hover:bg-white/15 hover:text-white transition-colors nodrag nopan`,
+	                      children: jsx(p, {
+	                        size: 14
+	                      })
+	                    }),
+	                  ],
 	                }),
 	                jsxs(`div`, {
 	                  className: `grid grid-cols-3 gap-1.5`,
