@@ -14606,9 +14606,24 @@ X.default.config({
 	              errorMsg: null,
 	              videoUrl: result.url,
 	              videoName: result.filename || `人脸打码视频.mp4`,
+	              localPath: result.localPath || null,
+	              filePath: result.localPath || null,
+	              resultData: result.url,
 	              text: result.url,
-	              mediaKind: `video`
-	            }), nodeData.onShowToast?.(`视频人脸打码完成`));
+	              mediaKind: `video`,
+	              projectAssetBindings: result.localPath ? {
+	                ...(nodeData.projectAssetBindings || {}),
+	                videoUrl: {
+	                  kind: `video`,
+	                  localPath: result.localPath,
+	                  filename: result.filename || `人脸打码视频.mp4`,
+	                  mime: result.mime || `video/mp4`,
+	                  size: result.size || 0,
+	                  field: `videoUrl`,
+	                  nodeId: nodeId,
+	                },
+	              } : nodeData.projectAssetBindings,
+	            }), nodeData.addTransitResource?.(result.url, `video`, result.filename || `人脸打码视频.mp4`), nodeData.onShowToast?.(`视频人脸打码完成`));
 	          } catch (error) {
 	            console.error(`Video face blur failed`, error);
 	            updateNodeData(nodeId, {
@@ -14623,8 +14638,11 @@ X.default.config({
 	          try {
 	            nodeData.onShowToast?.(`开始下载打码视频...`);
 	            if (window.wanjuanDesktop?.saveDownload) {
+	              let videoBinding = nodeData.projectAssetBindings?.videoUrl || {},
+	                localPath = nodeData.localPath || nodeData.filePath || videoBinding.localPath || ``;
 	              let saved = await window.wanjuanDesktop.saveDownload({
 	                url: nodeData.videoUrl,
+	                localPath: localPath,
 	                mime: `video/mp4`,
 	                filename: filename
 	              });
@@ -14712,6 +14730,12 @@ X.default.config({
 	                    jsx(`button`, {
 	                      type: `button`,
 	                      onClick: handleDownload,
+	                      onMouseDown: (event) => {
+	                        (event.preventDefault(), event.stopPropagation());
+	                      },
+	                      onPointerDown: (event) => {
+	                        (event.preventDefault(), event.stopPropagation());
+	                      },
 	                      title: `下载`,
 	                      className: `absolute top-2 right-2 z-20 p-1.5 rounded-md bg-black/65 text-gray-200 border border-white/15 shadow-lg backdrop-blur-sm hover:bg-white/15 hover:text-white transition-colors nodrag nopan`,
 	                      children: jsx(p, {
@@ -25161,7 +25185,7 @@ ${combinedPrompt}`,
             audioModelProtocolBindings: nodeType === `audioNode` || nodeType === `ttsMusicNode` || nodeType === `musicNode` ? audioModelProtocolBindings : void 0,
             projectId: nodeType === `audioNode` || nodeType === `ttsMusicNode` || nodeType === `musicNode` ? projectIdRef.current : void 0,
             updateGlobalTasks: nodeType === `audioNode` || nodeType === `ttsMusicNode` || nodeType === `musicNode` ? updateTaskList : void 0,
-            addTransitResource: nodeType === `audioNode` || nodeType === `ttsMusicNode` || nodeType === `musicNode` || nodeType === `qwenTtsCloneNode` ? addGeneratedAsset : void 0,
+            addTransitResource: nodeType === `audioNode` || nodeType === `ttsMusicNode` || nodeType === `musicNode` || nodeType === `videoFaceBlurNode` || nodeType === `qwenTtsCloneNode` ? addGeneratedAsset : void 0,
           },
         };
       if ((setNodes((nodes2) => nodes2.concat(newNode)), connection)) {
@@ -25992,6 +26016,9 @@ ${combinedPrompt}`,
 	            ((nodeData.customPublicUploadConfig = customPublicUploadConfig), (hasChanged = !0)),
 	            nodeData.qiniuConfig !== qiniuConfig &&
 	            ((nodeData.qiniuConfig = qiniuConfig), (hasChanged = !0)),
+	            nodeData.onShowToast !== showToast && ((nodeData.onShowToast = showToast), (hasChanged = !0))),
+	          node.type === `videoFaceBlurNode` &&
+	          (nodeData.addTransitResource !== addGeneratedAsset && ((nodeData.addTransitResource = addGeneratedAsset), (hasChanged = !0)),
 	            nodeData.onShowToast !== showToast && ((nodeData.onShowToast = showToast), (hasChanged = !0))),
 	          node.type === `qwenTtsCloneNode` &&
 	          nodeData.onShowToast !== showToast &&

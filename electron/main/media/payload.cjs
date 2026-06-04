@@ -98,6 +98,16 @@ async function bufferFromDownloadPayload(payload) {
       mime: payload?.mime || "application/json"
     };
   }
+  if (payload?.localPath && fs.existsSync(payload.localPath)) {
+    const file = readLocalFilePayload(payload.localPath);
+    emitProgress({ percent: 100, receivedBytes: file.buffer.length, totalBytes: file.buffer.length });
+    return file;
+  }
+  if (payload?.path && fs.existsSync(payload.path)) {
+    const file = readLocalFilePayload(payload.path);
+    emitProgress({ percent: 100, receivedBytes: file.buffer.length, totalBytes: file.buffer.length });
+    return file;
+  }
   if (!url) throw new Error("Missing download URL");
 
   if (url.startsWith("data:")) {
@@ -118,16 +128,6 @@ async function bufferFromDownloadPayload(payload) {
       buffer: Buffer.from(String(payload.base64), "base64"),
       mime: payload.mime || ""
     };
-  }
-  if (payload?.localPath && fs.existsSync(payload.localPath)) {
-    const file = readLocalFilePayload(payload.localPath);
-    emitProgress({ percent: 100, receivedBytes: file.buffer.length, totalBytes: file.buffer.length });
-    return file;
-  }
-  if (payload?.path && fs.existsSync(payload.path)) {
-    const file = readLocalFilePayload(payload.path);
-    emitProgress({ percent: 100, receivedBytes: file.buffer.length, totalBytes: file.buffer.length });
-    return file;
   }
   if (/^file:\/\//i.test(url)) {
     const file = readLocalFilePayload(decodeURIComponent(new URL(url).pathname));
