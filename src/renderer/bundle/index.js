@@ -19214,9 +19214,14 @@ ${combinedPrompt}`,
                 },
                 suChuangDone = !1,
                 suChuangPollCount = 0,
-                suChuangRetryCount = 0;
+                suChuangRetryCount = 0,
+                suChuangNetworkErrorCount = 0,
+                suChuangPollingTimeoutMs = Math.max(5e3, (Number(timeoutSeconds) || 600) * 1e3),
+                suChuangPollingStartedAt = Date.now();
               for (; !suChuangDone;) {
                 if (suChuangController.signal.aborted) throw Error(`已取消`);
+                if (Date.now() - suChuangPollingStartedAt >= suChuangPollingTimeoutMs)
+                  throw Error(`图片异步轮询超时，可能已在中转站完成；可在任务清单手动拉回结果`);
                 (await new Promise((resolve) => setTimeout(resolve, 3e3)),
                   suChuangPollCount++,
                   suChuangPollCount % 20 == 0 &&
@@ -19244,6 +19249,9 @@ ${combinedPrompt}`,
                     ),
                   ));
                 let detailUrl = `${suChuangDetailEndpoint}?key=${encodeURIComponent(imageApiKey)}&id=${encodeURIComponent(suChuangRemoteTaskId)}`,
+                  response,
+                  pollResult;
+                try {
                   response = await fetch(detailUrl, {
                     method: `GET`,
                     headers: {
@@ -19252,9 +19260,20 @@ ${combinedPrompt}`,
                     },
                     signal: suChuangController.signal,
                   });
-                if (!response.ok) continue;
-                let pollResult = await response.json(),
-                  status = Number(pollResult.data?.status ?? pollResult.status ?? 0);
+                  if (!response.ok) continue;
+                  pollResult = await response.json();
+                  suChuangNetworkErrorCount = 0;
+                } catch (error) {
+                  if (suChuangController.signal.aborted || error?.name === `AbortError`)
+                    throw error;
+                  if (!WanJuanIsTransientNetworkError(error)) throw error;
+                  (suChuangNetworkErrorCount++,
+                    console.warn(`GPT-Image-2 polling transient network error:`, error),
+                    suChuangNetworkErrorCount === 3 &&
+                    showToast(`GPT-Image-2 状态查询遇到临时网络错误，仍会继续重试...`));
+                  continue;
+                }
+                let status = Number(pollResult.data?.status ?? pollResult.status ?? 0);
                 if (pollResult.code && pollResult.code !== 200) throw Error(pollResult.msg || `GPT-Image-2 查询失败`);
                 if (status === 3) {
                   let message = pollResult.data?.message || pollResult.msg || `GPT-Image-2 生成失败`;
@@ -19643,9 +19662,9 @@ ${combinedPrompt}`,
 	                  markImageTaskNeedsManualRecovery());
 	              return;
 	            }
-	            if (/Proxy fetch request timeout|request timeout|timed out|timeout|超时/i.test(String(error?.message || error || ``))) {
+	            if (WanJuanIsTransientNetworkError(error)) {
 	              (console.error(error),
-	                markImageTaskNeedsManualRecovery(`图片请求超时，可能已在中转站完成；可在任务清单手动拉回结果`));
+	                markImageTaskNeedsManualRecovery(`图片状态查询遇到临时网络错误，可能仍在中转站生成；可稍后在任务清单手动刷新拉回结果`));
 	              return;
 	            }
 	            (updateGlobalTaskList &&
@@ -24310,6 +24329,7 @@ ${combinedPrompt}`,
               });
               let customPollingTimeoutMs = Math.max(5e3, (Number(timeoutSeconds) || 600) * 1e3),
                 customPollingStartedAt = Date.now(),
+                customPollingNetworkErrorCount = 0,
                 maxPollingAttempts = Math.max(1, Math.ceil(customPollingTimeoutMs / Math.max(Number(pollIntervalMs) || 3e3, 500)));
               for (; !isCompleted;) {
                 if (abortController.signal.aborted) throw Error(`已取消`);
@@ -24332,10 +24352,24 @@ ${combinedPrompt}`,
                   headers: pollingHeaders
                 };
                 pollingMethod !== `GET` && pollingBody && (fetchOptions.body = pollingBody);
-                let pollingResponse = await fetch(pollingUrl, fetchOptions);
-                if (!pollingResponse.ok) continue;
-                let pollingData = await pollingResponse.json(),
-                  resultPath = config.pollingResultPath || ``,
+                let pollingResponse,
+                  pollingData;
+                try {
+                  pollingResponse = await fetch(pollingUrl, fetchOptions);
+                  if (!pollingResponse.ok) continue;
+                  pollingData = await pollingResponse.json();
+                  customPollingNetworkErrorCount = 0;
+                } catch (error) {
+                  if (abortController.signal.aborted || error?.name === `AbortError`)
+                    throw error;
+                  if (!WanJuanIsTransientNetworkError(error)) throw error;
+                  (customPollingNetworkErrorCount++,
+                    console.warn(`Custom node polling transient network error:`, error),
+                    customPollingNetworkErrorCount === 3 &&
+                    showToast(`异步节点状态查询遇到临时网络错误，仍会继续重试...`));
+                  continue;
+                }
+                let resultPath = config.pollingResultPath || ``,
                   responseBody = pollingData;
                 resultPath.includes(`{{task_id}}`) &&
                   (resultPath = resultPath.replace(/\{\{task_id\}\}/g, taskId2));
@@ -48629,6 +48663,23 @@ function serializeErrorPreview(errorPayload, maxLength = 1200) {
     let messageSuffix = error && error.message ? `: ${error.message}` : ``;
     return `[unserializable error payload${messageSuffix}]`;
   }
+}
+
+function WanJuanIsTransientNetworkError(error) {
+  let message = String(
+      error?.message ||
+      error?.reason ||
+      error?.code ||
+      error?.name ||
+      error ||
+      ``,
+    ),
+    code = String(error?.code || error?.cause?.code || ``),
+    name = String(error?.name || ``),
+    combined = `${name} ${code} ${message}`;
+  return /socket hang up|ECONNRESET|ECONNABORTED|ETIMEDOUT|EPIPE|ENETUNREACH|EHOSTUNREACH|ECONNREFUSED|EAI_AGAIN|ENOTFOUND|network error|failed to fetch|load failed|fetch failed|Proxy fetch request timeout|request timeout|timed out|timeout|超时/i.test(
+    combined,
+  );
 }
 
 function safeStringifyRequestForLog(requestPayload, maxLength = 4000) {
