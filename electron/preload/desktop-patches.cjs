@@ -1137,6 +1137,7 @@ function installDesktopPatches() {
   let tianjiSettingsState = null;
   let tianjiAssetsState = { LivenessFace: [], AIGC: [] };
   let tianjiGroupsState = {};
+  let tianjiPointsLogsDialog = null;
 
   const tianjiStorageGet = (keys) =>
     new Promise((resolve) => {
@@ -1222,6 +1223,203 @@ function installDesktopPatches() {
       return "";
     };
     return visit(value);
+  };
+
+  const tianjiPadNumber = (value) => String(value).padStart(2, "0");
+
+  const tianjiFormatDateTime = (date) => {
+    const next = date instanceof Date ? date : new Date(date || Date.now());
+    if (!Number.isFinite(next.getTime())) return "";
+    return `${next.getFullYear()}-${tianjiPadNumber(next.getMonth() + 1)}-${tianjiPadNumber(next.getDate())} ${tianjiPadNumber(next.getHours())}:${tianjiPadNumber(next.getMinutes())}:${tianjiPadNumber(next.getSeconds())}`;
+  };
+
+  const tianjiPointsLogsRange = (preset = "30d") => {
+    const end = new Date();
+    const start = new Date(end);
+    if (preset === "today") start.setHours(0, 0, 0, 0);
+    else start.setDate(start.getDate() - (preset === "7d" ? 7 : 30));
+    return {
+      startDate: tianjiFormatDateTime(start),
+      endDate: tianjiFormatDateTime(end)
+    };
+  };
+
+  const tianjiNormalizePointsLogRows = (result) => {
+    const rows = tianjiFindArray(result);
+    const totalText = tianjiFindDeepValue(result, ["total", "Total", "count", "Count", "total_count", "totalCount", "TotalCount"]);
+    const total = Number(totalText || rows.length || 0) || rows.length || 0;
+    return { rows, total };
+  };
+
+  const tianjiPointsLogCell = (row, keys, fallback = "") => {
+    if (!row || typeof row !== "object") return fallback;
+    for (const key of keys) {
+      if (Object.prototype.hasOwnProperty.call(row, key) && row[key] !== undefined && row[key] !== null && String(row[key]) !== "") return String(row[key]);
+    }
+    return tianjiFindDeepValue(row, keys) || fallback;
+  };
+
+  const tianjiRenderPointsLogsRows = (rows) => {
+    if (!Array.isArray(rows) || rows.length === 0) {
+      return `<tr><td colspan="5" class="wanjuan-tianji-points-empty">没有查到积分变动记录。</td></tr>`;
+    }
+    return rows.map((row) => {
+      const time = tianjiPointsLogCell(row, ["created_at", "createdAt", "create_time", "createTime", "updated_at", "time", "date", "created"]);
+      const type = tianjiPointsLogCell(row, ["type", "log_type", "logType", "event", "scene", "business_type", "businessType", "source"], "积分变动");
+      const change = tianjiPointsLogCell(row, ["points", "point", "amount", "change", "change_points", "changePoints", "value", "num"], "-");
+      const balance = tianjiPointsLogCell(row, ["balance", "after_balance", "afterBalance", "remaining_points", "remainingPoints", "remain_points", "remainPoints"], "-");
+      const remark = tianjiPointsLogCell(row, ["remark", "remarks", "description", "desc", "message", "msg", "task_id", "taskId", "execute_id", "executeId", "title", "name"], "");
+      return `<tr>
+        <td>${tianjiEscapeHtml(time || "-")}</td>
+        <td>${tianjiEscapeHtml(type || "-")}</td>
+        <td class="${String(change).trim().startsWith("-") ? "is-negative" : "is-positive"}">${tianjiEscapeHtml(change)}</td>
+        <td>${tianjiEscapeHtml(balance)}</td>
+        <td title="${tianjiEscapeHtml(remark)}">${tianjiEscapeHtml(remark || "-")}</td>
+      </tr>`;
+    }).join("");
+  };
+
+  const tianjiOpenPointsLogsDialog = async (panel, status) => {
+    if (tianjiPointsLogsDialog && document.body.contains(tianjiPointsLogsDialog)) tianjiPointsLogsDialog.remove();
+    const initialRange = tianjiPointsLogsRange("30d");
+    const state = {
+      page: 1,
+      pageSize: 30,
+      startDate: initialRange.startDate,
+      endDate: initialRange.endDate,
+      total: 0,
+      loading: false
+    };
+    const overlay = document.createElement("div");
+    overlay.className = "wanjuan-tianji-points-overlay";
+    overlay.innerHTML = `
+      <div class="wanjuan-tianji-points-dialog" role="dialog" aria-modal="true" aria-label="积分明细">
+        <div class="wanjuan-tianji-points-header">
+          <div>
+            <div class="wanjuan-tianji-points-title">积分明细</div>
+            <div class="wanjuan-tianji-points-subtitle">查看天玑模式账户积分变动记录</div>
+          </div>
+          <button type="button" data-tianji-points-close aria-label="关闭">关闭</button>
+        </div>
+        <div class="wanjuan-tianji-points-toolbar">
+          <div class="wanjuan-tianji-points-presets">
+            <button type="button" data-tianji-points-preset="today">今天</button>
+            <button type="button" data-tianji-points-preset="7d">7天</button>
+            <button type="button" data-tianji-points-preset="30d" class="is-active">30天</button>
+          </div>
+          <label>开始时间<input data-tianji-points-field="startDate" value="${tianjiEscapeHtml(state.startDate)}"></label>
+          <label>结束时间<input data-tianji-points-field="endDate" value="${tianjiEscapeHtml(state.endDate)}"></label>
+          <button type="button" class="wanjuan-tianji-primary" data-tianji-points-refresh>刷新</button>
+        </div>
+        <div class="wanjuan-tianji-points-status" data-tianji-points-status></div>
+        <div class="wanjuan-tianji-points-table-wrap">
+          <table class="wanjuan-tianji-points-table">
+            <thead><tr><th>时间</th><th>类型</th><th>变动</th><th>余额</th><th>说明</th></tr></thead>
+            <tbody data-tianji-points-rows><tr><td colspan="5" class="wanjuan-tianji-points-empty">正在加载...</td></tr></tbody>
+          </table>
+        </div>
+        <div class="wanjuan-tianji-points-footer">
+          <button type="button" data-tianji-points-prev>上一页</button>
+          <span data-tianji-points-page>第 1 页</span>
+          <button type="button" data-tianji-points-next>下一页</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+    tianjiPointsLogsDialog = overlay;
+    const close = () => {
+      if (document.body.contains(overlay)) overlay.remove();
+      if (tianjiPointsLogsDialog === overlay) tianjiPointsLogsDialog = null;
+    };
+    const setDialogStatus = (text) => {
+      const target = overlay.querySelector("[data-tianji-points-status]");
+      if (target) target.textContent = text || "";
+    };
+    const syncFields = () => {
+      const startInput = overlay.querySelector("[data-tianji-points-field='startDate']");
+      const endInput = overlay.querySelector("[data-tianji-points-field='endDate']");
+      if (startInput) startInput.value = state.startDate;
+      if (endInput) endInput.value = state.endDate;
+      const pageText = overlay.querySelector("[data-tianji-points-page]");
+      const totalPage = state.total ? Math.max(1, Math.ceil(state.total / state.pageSize)) : "";
+      if (pageText) pageText.textContent = `第 ${state.page} 页${totalPage ? ` / ${totalPage} 页` : ""}${state.total ? ` · 共 ${state.total} 条` : ""}`;
+      const prev = overlay.querySelector("[data-tianji-points-prev]");
+      const next = overlay.querySelector("[data-tianji-points-next]");
+      if (prev) prev.disabled = state.loading || state.page <= 1;
+      if (next) next.disabled = state.loading || (state.total ? state.page >= Math.ceil(state.total / state.pageSize) : false);
+    };
+    const load = async () => {
+      state.loading = true;
+      syncFields();
+      setDialogStatus("正在查询积分明细...");
+      overlay.querySelector("[data-tianji-points-rows]").innerHTML = `<tr><td colspan="5" class="wanjuan-tianji-points-empty">正在加载...</td></tr>`;
+      try {
+        await tianjiSaveConfigFromPanel(panel);
+        const result = await tianjiRequest(tianjiSettingsState, "/api/tasks/points-logs", {
+          method: "GET",
+          query: {
+            page: state.page,
+            pageSize: state.pageSize,
+            start_date: state.startDate,
+            end_date: state.endDate
+          }
+        });
+        const normalized = tianjiNormalizePointsLogRows(result);
+        state.total = normalized.total;
+        overlay.querySelector("[data-tianji-points-rows]").innerHTML = tianjiRenderPointsLogsRows(normalized.rows);
+        setDialogStatus(`查询完成：第 ${state.page} 页，${normalized.rows.length} 条记录${state.total ? `，共 ${state.total} 条` : ""}`);
+        status?.(`积分明细已更新：${normalized.rows.length} 条记录`);
+      } catch (error) {
+        console.error("Tianji points logs failed", error);
+        overlay.querySelector("[data-tianji-points-rows]").innerHTML = `<tr><td colspan="5" class="wanjuan-tianji-points-empty">${tianjiEscapeHtml(error?.message || String(error))}</td></tr>`;
+        setDialogStatus(error?.message || String(error));
+        status?.(error?.message || String(error));
+      } finally {
+        state.loading = false;
+        syncFields();
+      }
+    };
+    overlay.addEventListener("click", (event) => {
+      if (event.target === overlay || event.target?.hasAttribute?.("data-tianji-points-close")) {
+        event.preventDefault();
+        close();
+      }
+    });
+    overlay.addEventListener("input", (event) => {
+      const field = event.target?.getAttribute?.("data-tianji-points-field");
+      if (field === "startDate" || field === "endDate") state[field] = event.target.value;
+    });
+    overlay.addEventListener("click", (event) => {
+      const preset = event.target?.getAttribute?.("data-tianji-points-preset");
+      if (preset) {
+        event.preventDefault();
+        const range = tianjiPointsLogsRange(preset);
+        state.startDate = range.startDate;
+        state.endDate = range.endDate;
+        state.page = 1;
+        overlay.querySelectorAll("[data-tianji-points-preset]").forEach((button) => button.classList.toggle("is-active", button.getAttribute("data-tianji-points-preset") === preset));
+        load();
+        return;
+      }
+      if (event.target?.hasAttribute?.("data-tianji-points-refresh")) {
+        event.preventDefault();
+        state.page = 1;
+        load();
+      }
+      if (event.target?.hasAttribute?.("data-tianji-points-prev")) {
+        event.preventDefault();
+        if (state.page > 1) {
+          state.page -= 1;
+          load();
+        }
+      }
+      if (event.target?.hasAttribute?.("data-tianji-points-next")) {
+        event.preventDefault();
+        state.page += 1;
+        load();
+      }
+    });
+    await load();
   };
 
   const tianjiCreateLocalUploadAsset = ({ type, name, imageUrl, result }) => ({
@@ -1594,7 +1792,30 @@ function installDesktopPatches() {
       .wanjuan-tianji-asset-actions{display:grid;grid-template-columns:1fr 1fr;gap:4px}
       .wanjuan-tianji-asset-actions button{padding:4px 2px!important;font-size:9px!important;border-radius:5px!important}
       .wanjuan-tianji-empty{font-size:12px;color:var(--wj-muted,#6b7280);text-align:center;border:1px dashed color-mix(in srgb,var(--wj-border,#333) 72%,transparent);border-radius:8px;padding:16px}
+      .wanjuan-tianji-points-overlay{position:fixed;inset:0;z-index:2147483000;display:grid;place-items:center;padding:28px;background:rgba(0,0,0,.45);backdrop-filter:blur(10px)}
+      .wanjuan-tianji-points-dialog{width:min(920px,calc(100vw - 36px));max-height:min(720px,calc(100vh - 36px));display:grid;grid-template-rows:auto auto auto minmax(0,1fr) auto;gap:12px;background:color-mix(in srgb,var(--wj-surface-2,#171717) 96%,#000);border:1px solid color-mix(in srgb,var(--wj-border,#333) 78%,transparent);border-radius:10px;color:var(--wj-text,#e5e7eb);box-shadow:0 24px 80px rgba(0,0,0,.42);padding:14px;overflow:hidden}
+      .wanjuan-tianji-points-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+      .wanjuan-tianji-points-title{font-size:15px;font-weight:750;color:var(--wj-text,#f3f4f6)}
+      .wanjuan-tianji-points-subtitle{margin-top:4px;font-size:11px;color:var(--wj-muted,#9ca3af)}
+      .wanjuan-tianji-points-toolbar{display:grid;grid-template-columns:auto minmax(170px,1fr) minmax(170px,1fr) auto;gap:8px;align-items:end}
+      .wanjuan-tianji-points-toolbar label{font-size:11px;color:var(--wj-muted,#9ca3af)}
+      .wanjuan-tianji-points-presets{display:flex;gap:6px;align-items:center}
+      .wanjuan-tianji-points-presets button.is-active{background:color-mix(in srgb,var(--wj-accent,#60a5fa) 18%,var(--wj-surface-3,#222))!important;border-color:color-mix(in srgb,var(--wj-accent,#60a5fa) 54%,var(--wj-border,#333))!important;color:var(--wj-text,#fff)!important}
+      .wanjuan-tianji-points-status{min-height:16px;font-size:11px;color:var(--wj-muted,#9ca3af)}
+      .wanjuan-tianji-points-table-wrap{min-height:0;overflow:auto;border:1px solid color-mix(in srgb,var(--wj-border,#333) 72%,transparent);border-radius:8px;background:color-mix(in srgb,var(--wj-surface,#111) 94%,transparent)}
+      .wanjuan-tianji-points-table{width:100%;border-collapse:collapse;font-size:11px;table-layout:fixed}
+      .wanjuan-tianji-points-table th,.wanjuan-tianji-points-table td{padding:9px 10px;border-bottom:1px solid color-mix(in srgb,var(--wj-border,#333) 58%,transparent);text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      .wanjuan-tianji-points-table th{position:sticky;top:0;background:color-mix(in srgb,var(--wj-surface-3,#202020) 94%,#000);font-size:10px;color:var(--wj-muted,#9ca3af);font-weight:700;z-index:1}
+      .wanjuan-tianji-points-table th:nth-child(1){width:170px}
+      .wanjuan-tianji-points-table th:nth-child(2){width:140px}
+      .wanjuan-tianji-points-table th:nth-child(3),.wanjuan-tianji-points-table th:nth-child(4){width:90px}
+      .wanjuan-tianji-points-table td.is-positive{color:#22c55e}
+      .wanjuan-tianji-points-table td.is-negative{color:#ef4444}
+      .wanjuan-tianji-points-empty{text-align:center!important;color:var(--wj-muted,#9ca3af)!important;padding:32px 12px!important}
+      .wanjuan-tianji-points-footer{display:flex;gap:8px;align-items:center;justify-content:flex-end;font-size:11px;color:var(--wj-muted,#9ca3af)}
+      .wanjuan-tianji-points-footer button:disabled{opacity:.45;cursor:not-allowed}
       @media(max-width:900px){.wanjuan-tianji-row{grid-template-columns:1fr}}
+      @media(max-width:720px){.wanjuan-tianji-points-toolbar{grid-template-columns:1fr}.wanjuan-tianji-points-presets{flex-wrap:wrap}.wanjuan-tianji-points-table{min-width:720px}}
     `;
       document.head.appendChild(style);
     }
@@ -1606,6 +1827,7 @@ function installDesktopPatches() {
       <div class="wanjuan-tianji-body">
         <div class="wanjuan-tianji-actions">
           <button data-tianji-action="balance">查询积分</button>
+          <button data-tianji-action="pointsLogs">积分明细</button>
           <button data-tianji-action="groups">获取组 ID</button>
           <button data-tianji-action="refresh">刷新素材</button>
           <button class="wanjuan-tianji-primary" data-tianji-action="save">保存</button>
@@ -1708,6 +1930,10 @@ function installDesktopPatches() {
         if (action === "balance") {
           const result = await tianjiRequest(tianjiSettingsState, "/api/cut/model/fetch-points-balance");
           status(`积分余额：${result?.data?.points ?? result?.points ?? "未知"}`);
+        }
+        if (action === "pointsLogs") {
+          status("正在打开积分明细...");
+          await tianjiOpenPointsLogsDialog(panel, status);
         }
         if (action === "groups") {
           const type = panel.querySelector("[data-tianji-upload-type]")?.value || "";
