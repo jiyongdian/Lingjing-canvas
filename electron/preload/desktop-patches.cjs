@@ -1299,7 +1299,7 @@ function installDesktopPatches() {
             <div class="wanjuan-tianji-points-title">积分明细</div>
             <div class="wanjuan-tianji-points-subtitle">查看天玑模式账户积分变动记录</div>
           </div>
-          <button type="button" data-tianji-points-close aria-label="关闭">关闭</button>
+          <button type="button" class="wanjuan-tianji-points-close" data-tianji-points-close aria-label="关闭">关闭</button>
         </div>
         <div class="wanjuan-tianji-points-toolbar">
           <div class="wanjuan-tianji-points-presets">
@@ -1309,7 +1309,7 @@ function installDesktopPatches() {
           </div>
           <label>开始时间<input data-tianji-points-field="startDate" value="${tianjiEscapeHtml(state.startDate)}"></label>
           <label>结束时间<input data-tianji-points-field="endDate" value="${tianjiEscapeHtml(state.endDate)}"></label>
-          <button type="button" class="wanjuan-tianji-primary" data-tianji-points-refresh>刷新</button>
+          <button type="button" class="wanjuan-tianji-points-refresh" data-tianji-points-refresh>刷新</button>
         </div>
         <div class="wanjuan-tianji-points-status" data-tianji-points-status></div>
         <div class="wanjuan-tianji-points-table-wrap">
@@ -1792,25 +1792,34 @@ function installDesktopPatches() {
       .wanjuan-tianji-asset-actions{display:grid;grid-template-columns:1fr 1fr;gap:4px}
       .wanjuan-tianji-asset-actions button{padding:4px 2px!important;font-size:9px!important;border-radius:5px!important}
       .wanjuan-tianji-empty{font-size:12px;color:var(--wj-muted,#6b7280);text-align:center;border:1px dashed color-mix(in srgb,var(--wj-border,#333) 72%,transparent);border-radius:8px;padding:16px}
-      .wanjuan-tianji-points-overlay{position:fixed;inset:0;z-index:2147483000;display:grid;place-items:center;padding:28px;background:rgba(0,0,0,.45);backdrop-filter:blur(10px)}
-      .wanjuan-tianji-points-dialog{width:min(920px,calc(100vw - 36px));max-height:min(720px,calc(100vh - 36px));display:grid;grid-template-rows:auto auto auto minmax(0,1fr) auto;gap:12px;background:color-mix(in srgb,var(--wj-surface-2,#171717) 96%,#000);border:1px solid color-mix(in srgb,var(--wj-border,#333) 78%,transparent);border-radius:10px;color:var(--wj-text,#e5e7eb);box-shadow:0 24px 80px rgba(0,0,0,.42);padding:14px;overflow:hidden}
+      .wanjuan-tianji-points-overlay{position:fixed;inset:0;z-index:2147483000;display:grid;place-items:center;padding:28px;background:color-mix(in srgb,var(--wj-surface,#111827) 46%,transparent);backdrop-filter:blur(10px)}
+      .wanjuan-tianji-points-dialog{width:min(920px,calc(100vw - 36px));max-height:min(720px,calc(100vh - 36px));display:grid;grid-template-rows:auto auto auto minmax(0,1fr) auto;gap:12px;background:var(--wj-surface-2,var(--wj-surface,#171717));border:1px solid color-mix(in srgb,var(--wj-border,#333) 78%,transparent);border-radius:10px;color:var(--wj-text,#e5e7eb);box-shadow:0 24px 80px color-mix(in srgb,var(--wj-surface,#000) 62%,transparent);padding:14px;overflow:hidden}
       .wanjuan-tianji-points-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
       .wanjuan-tianji-points-title{font-size:15px;font-weight:750;color:var(--wj-text,#f3f4f6)}
       .wanjuan-tianji-points-subtitle{margin-top:4px;font-size:11px;color:var(--wj-muted,#9ca3af)}
-      .wanjuan-tianji-points-toolbar{display:grid;grid-template-columns:auto minmax(170px,1fr) minmax(170px,1fr) auto;gap:8px;align-items:end}
-      .wanjuan-tianji-points-toolbar label{font-size:11px;color:var(--wj-muted,#9ca3af)}
-      .wanjuan-tianji-points-presets{display:flex;gap:6px;align-items:center}
-      .wanjuan-tianji-points-presets button.is-active{background:color-mix(in srgb,var(--wj-accent,#60a5fa) 18%,var(--wj-surface-3,#222))!important;border-color:color-mix(in srgb,var(--wj-accent,#60a5fa) 54%,var(--wj-border,#333))!important;color:var(--wj-text,#fff)!important}
+      .wanjuan-tianji-points-dialog button{height:30px;border:1px solid color-mix(in srgb,var(--wj-border,#333) 72%,transparent);border-radius:8px;background:color-mix(in srgb,var(--wj-surface-3,var(--wj-surface,#222)) 88%,transparent);color:var(--wj-text,#e5e7eb);padding:0 11px;font-size:11px;font-weight:650;cursor:pointer;transition:background .14s ease,border-color .14s ease,color .14s ease,box-shadow .14s ease}
+      .wanjuan-tianji-points-dialog button:hover{background:color-mix(in srgb,var(--wj-accent,#60a5fa) 10%,var(--wj-surface-3,var(--wj-surface,#222)));border-color:color-mix(in srgb,var(--wj-accent,#60a5fa) 38%,var(--wj-border,#333))}
+      .wanjuan-tianji-points-dialog button:focus-visible{outline:2px solid color-mix(in srgb,var(--wj-accent,#60a5fa) 72%,transparent);outline-offset:2px}
+      .wanjuan-tianji-points-close{min-width:54px}
+      .wanjuan-tianji-points-toolbar{display:grid;grid-template-columns:auto minmax(176px,1fr) minmax(176px,1fr) auto;gap:8px;align-items:end}
+      .wanjuan-tianji-points-toolbar label{display:grid;gap:5px;font-size:11px;color:var(--wj-muted,#9ca3af)}
+      .wanjuan-tianji-points-toolbar input{height:30px;background:color-mix(in srgb,var(--wj-surface,var(--wj-surface-2,#121212)) 92%,transparent);border:1px solid color-mix(in srgb,var(--wj-border,#333) 68%,transparent);border-radius:8px;color:var(--wj-text,#e5e7eb);padding:0 9px;font-size:11px;outline:none}
+      .wanjuan-tianji-points-toolbar input:focus{border-color:color-mix(in srgb,var(--wj-accent,#60a5fa) 66%,var(--wj-border,#333));box-shadow:0 0 0 2px color-mix(in srgb,var(--wj-accent,#60a5fa) 16%,transparent)}
+      .wanjuan-tianji-points-presets{display:inline-flex;gap:3px;align-items:center;padding:3px;border:1px solid color-mix(in srgb,var(--wj-border,#333) 72%,transparent);border-radius:9px;background:color-mix(in srgb,var(--wj-surface,var(--wj-surface-2,#121212)) 92%,transparent);box-shadow:0 1px 0 color-mix(in srgb,var(--wj-text,#fff) 7%,transparent) inset}
+      .wanjuan-tianji-points-presets button{height:26px;min-width:46px;padding:0 10px;border-color:transparent;background:transparent;color:var(--wj-muted,#9ca3af);border-radius:7px;box-shadow:none}
+      .wanjuan-tianji-points-presets button:hover{background:color-mix(in srgb,var(--wj-accent,#60a5fa) 10%,var(--wj-surface-3,var(--wj-surface,#222)));border-color:transparent;color:var(--wj-text,#e5e7eb)}
+      .wanjuan-tianji-points-presets button.is-active{background:color-mix(in srgb,var(--wj-accent,#60a5fa) 16%,var(--wj-surface-3,var(--wj-surface,#222)) 84%);border-color:color-mix(in srgb,var(--wj-accent,#60a5fa) 52%,var(--wj-border,#333) 48%);color:color-mix(in srgb,var(--wj-accent,#60a5fa) 82%,var(--wj-text,#fff) 18%);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--wj-text,#fff) 10%,transparent),0 2px 8px color-mix(in srgb,var(--wj-accent,#60a5fa) 18%,transparent)}
+      .wanjuan-tianji-points-refresh{background:color-mix(in srgb,var(--wj-accent,#2563eb) 76%,var(--wj-surface-3,var(--wj-surface,#222)))!important;border-color:color-mix(in srgb,var(--wj-accent,#60a5fa) 80%,var(--wj-border,#333))!important;color:var(--wj-on-accent,var(--wj-text,#fff))!important;min-width:58px}
       .wanjuan-tianji-points-status{min-height:16px;font-size:11px;color:var(--wj-muted,#9ca3af)}
       .wanjuan-tianji-points-table-wrap{min-height:0;overflow:auto;border:1px solid color-mix(in srgb,var(--wj-border,#333) 72%,transparent);border-radius:8px;background:color-mix(in srgb,var(--wj-surface,#111) 94%,transparent)}
       .wanjuan-tianji-points-table{width:100%;border-collapse:collapse;font-size:11px;table-layout:fixed}
       .wanjuan-tianji-points-table th,.wanjuan-tianji-points-table td{padding:9px 10px;border-bottom:1px solid color-mix(in srgb,var(--wj-border,#333) 58%,transparent);text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-      .wanjuan-tianji-points-table th{position:sticky;top:0;background:color-mix(in srgb,var(--wj-surface-3,#202020) 94%,#000);font-size:10px;color:var(--wj-muted,#9ca3af);font-weight:700;z-index:1}
+      .wanjuan-tianji-points-table th{position:sticky;top:0;background:color-mix(in srgb,var(--wj-surface-3,var(--wj-surface,#202020)) 94%,var(--wj-surface,#000));font-size:10px;color:var(--wj-muted,#9ca3af);font-weight:700;z-index:1}
       .wanjuan-tianji-points-table th:nth-child(1){width:170px}
       .wanjuan-tianji-points-table th:nth-child(2){width:140px}
       .wanjuan-tianji-points-table th:nth-child(3),.wanjuan-tianji-points-table th:nth-child(4){width:90px}
-      .wanjuan-tianji-points-table td.is-positive{color:#22c55e}
-      .wanjuan-tianji-points-table td.is-negative{color:#ef4444}
+      .wanjuan-tianji-points-table td.is-positive{color:var(--wj-success,#22c55e)}
+      .wanjuan-tianji-points-table td.is-negative{color:var(--wj-danger,#ef4444)}
       .wanjuan-tianji-points-empty{text-align:center!important;color:var(--wj-muted,#9ca3af)!important;padding:32px 12px!important}
       .wanjuan-tianji-points-footer{display:flex;gap:8px;align-items:center;justify-content:flex-end;font-size:11px;color:var(--wj-muted,#9ca3af)}
       .wanjuan-tianji-points-footer button:disabled{opacity:.45;cursor:not-allowed}
