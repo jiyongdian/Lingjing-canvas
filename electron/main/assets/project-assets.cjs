@@ -534,8 +534,10 @@ function copyExternalProjectAssetFiles(targetJsonPath, assetFiles = [], requeste
     version: 2,
     exportedAt: new Date().toISOString(),
     total: entries.length,
+    physicalFileCount: 0,
     files: []
   };
+  const exportedByHash = new Map();
   for (const entry of entries) {
     const source = resolveAssetExportBuffer(entry);
     const preferredName =
@@ -544,10 +546,17 @@ function copyExternalProjectAssetFiles(targetJsonPath, assetFiles = [], requeste
       entry.filename ||
       (entry.path ? path.basename(entry.path) : "");
     const fallbackExt = extensionFromMime(source?.mime || entry.mime || "") || path.extname(preferredName) || ".bin";
-    const targetPath = uniqueAssetExportPath(folderPath, preferredName, `asset-${manifest.files.length + 1}${fallbackExt}`);
     try {
       if (!source) throw new Error(entry?.path ? "源素材文件不存在，且没有可恢复的内嵌素材数据" : "没有可导出的素材数据");
-      fs.writeFileSync(targetPath, source.buffer);
+      const contentHash = sha256Buffer(source.buffer);
+      const existingTargetPath = exportedByHash.get(contentHash);
+      const targetPath = existingTargetPath ||
+        uniqueAssetExportPath(folderPath, preferredName, `asset-${manifest.files.length + 1}${fallbackExt}`);
+      if (!existingTargetPath) {
+        fs.writeFileSync(targetPath, source.buffer);
+        exportedByHash.set(contentHash, targetPath);
+        manifest.physicalFileCount += 1;
+      }
       const stat = fs.statSync(targetPath);
       manifest.files.push({
         projectId: entry.projectId || "",
@@ -558,7 +567,8 @@ function copyExternalProjectAssetFiles(targetJsonPath, assetFiles = [], requeste
         originalName: entry.originalName || entry.filename || (entry.path ? path.basename(entry.path) : path.basename(targetPath)),
         filename: path.basename(targetPath),
         size: stat.size,
-        sha256: sha256Buffer(source.buffer),
+        sha256: contentHash,
+        deduplicated: Boolean(existingTargetPath),
         mime: source.mime || entry.mime || "",
         source: source.source || "file",
         sourceOrigin: entry.sourceOrigin || "",
@@ -600,6 +610,7 @@ function summarizeExternalAssetBundle(assetBundle) {
     manifestVersion: manifest.version || 2,
     folderName: assetBundle.folderName || "",
     fileCount: Array.isArray(manifest.files) ? manifest.files.length : 0,
+    physicalFileCount: Number(manifest.physicalFileCount || 0),
     copied: assetBundle.copied || 0,
     failed: assetBundle.failed || 0,
     assets: (manifest.files || []).map((entry) => ({
@@ -614,6 +625,7 @@ function summarizeExternalAssetBundle(assetBundle) {
       filename: entry.filename || "",
       originalName: entry.originalName || "",
       sourceOrigin: entry.sourceOrigin || "",
+      deduplicated: entry.deduplicated === true,
       error: entry.error || ""
     }))
   };

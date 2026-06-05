@@ -8,7 +8,11 @@ const root = fs.mkdtempSync(path.join(os.tmpdir(), "wanjuan-storage-electron-"))
 app.setPath("userData", path.join(root, "user-data"));
 
 app.whenReady().then(async () => {
-  const { persistProjectAsset, diagnoseProjectAssets } = require("../electron/main/assets/project-assets.cjs");
+  const {
+    persistProjectAsset,
+    diagnoseProjectAssets,
+    copyExternalProjectAssetFiles
+  } = require("../electron/main/assets/project-assets.cjs");
   const payload = {
     arrayBuffer: Buffer.alloc(4096, 7),
     mime: "video/mp4",
@@ -54,6 +58,17 @@ app.whenReady().then(async () => {
   assert.equal(image.valueFormat, "file-url");
   assert.equal(image.value, undefined);
   assert.equal(image.localPath.endsWith(".png"), true);
+
+  const backupTarget = path.join(root, "backup.json");
+  const bundle = copyExternalProjectAssetFiles(backupTarget, [
+    { projectId: "project-a", nodeId: "image-a", field: "imageUrl", assetId: "asset-a", kind: "image", mime: "image/png", path: image.localPath },
+    { projectId: "project-a", nodeId: "image-b", field: "imageUrl", assetId: "asset-b", kind: "image", mime: "image/png", path: image.localPath }
+  ], "backup-assets");
+  assert.equal(bundle.manifest.files.length, 2);
+  assert.equal(bundle.manifest.physicalFileCount, 1);
+  assert.equal(bundle.manifest.files[0].filename, bundle.manifest.files[1].filename);
+  assert.equal(bundle.manifest.files[1].deduplicated, true);
+  assert.equal(fs.readdirSync(bundle.folderPath).filter((name) => name !== "wanjuan-external-assets-manifest.json").length, 1);
 
   console.log("storage lab electron integration passed");
 }).then(() => {

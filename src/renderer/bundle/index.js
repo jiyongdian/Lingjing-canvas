@@ -16939,7 +16939,7 @@ wan2.7-videoedit-1080P`,
     relinkMissingProjectAssetsFromFolder = useCallback(async () => {
       let missingMediaEntries = globalThis.getMissingProjectMediaEntries(nodesRef.current);
       if (!missingMediaEntries.length) {
-        window.alert(`当前项目没有检测到需要批量重连的外部上传素材`);
+        window.alert(`当前项目没有检测到需要批量重连的本地媒体素材`);
         return;
       }
       if (
@@ -17474,7 +17474,7 @@ wan2.7-videoedit-1080P`,
 		          document.body.appendChild(bannerEl));
 		      (bannerEl.querySelector(`[data-relink-label]`) ||
 		        (bannerEl.innerHTML = `<span data-relink-label style="display:block;padding-right:28px;"></span><div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;"><button data-relink-folder style="appearance:none;border:1px solid rgba(255,255,255,0.32);background:rgba(255,255,255,0.18);color:#fff;border-radius:8px;padding:6px 9px;font-size:12px;font-weight:700;cursor:pointer;">立即链接丢失文件</button><button data-relink-single style="appearance:none;border:1px solid rgba(255,255,255,0.22);background:rgba(0,0,0,0.12);color:#fff;border-radius:8px;padding:6px 9px;font-size:12px;font-weight:700;cursor:pointer;">逐个选择</button><button data-relink-never style="appearance:none;border:1px solid rgba(255,255,255,0.18);background:rgba(0,0,0,0.18);color:#ffe8e8;border-radius:8px;padding:6px 9px;font-size:12px;font-weight:700;cursor:pointer;">关闭提示不再询问</button></div><span data-relink-close title="关闭" aria-label="关闭" style="position:absolute;right:10px;top:10px;display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:999px;font-size:20px;line-height:22px;color:#fff;background:rgba(255,255,255,0.16);border:1px solid rgba(255,255,255,0.28);flex:0 0 auto;">&times;</span>`));
-		      ((bannerEl.querySelector(`[data-relink-label]`).textContent = `检测到 ${missingCount} 个外部上传素材丢失`),
+		      ((bannerEl.querySelector(`[data-relink-label]`).textContent = `检测到 ${missingCount} 个本地媒体素材丢失`),
 		        (bannerEl.onclick = (event) => {
 		          if (event?.target?.closest?.(`[data-relink-close]`)) {
 		            globalThis.__wanjuanAssetRelinkBannerDismissedCount = missingCount;
@@ -39050,7 +39050,10 @@ ${String(l || ``).slice(0, 5e4)}`;
 	                          missing: strippedBinding?.localPath ? !fileExists : !1,
 	                          lastCheckedAt: new Date().toISOString(),
 	                        };
-                      (nextBindings[bindingKey] = resolvedBinding), resolvedBinding.missing && isExternalUploadedProjectAssetBinding(resolvedBinding, bindingKey, data) && missingAssets.push(bindingKey);
+                      (nextBindings[bindingKey] = resolvedBinding),
+                        resolvedBinding.missing &&
+                        isProjectMediaFileBackedBinding(resolvedBinding, bindingKey, resolvedBinding.kind) &&
+                        missingAssets.push(bindingKey);
                       let revivedValue = reviveProjectMediaBindingValue(resolvedBinding);
                       if (resolvedBinding.localPath && isProjectMediaFileBackedBinding(resolvedBinding, bindingKey, resolvedBinding.kind)) {
                         let fileUrl = buildProjectMediaFileUrl(resolvedBinding.localPath);
@@ -39084,7 +39087,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                         let bindings = node?.data?.projectAssetBindings || {};
                         Object.entries(bindings).forEach(([bindingKey, binding]) => {
                           binding?.missing &&
-                            isExternalUploadedProjectAssetBinding(binding, bindingKey, node?.data || {}) &&
+                            isProjectMediaFileBackedBinding(binding, bindingKey, binding?.kind) &&
                             missingEntries.push({
                               nodeId: node.id,
                               nodeType: node.type,

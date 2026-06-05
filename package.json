@@ -1,6 +1,6 @@
 {
   "name": "wanjuan-lingjing-storage-lab",
-  "version": "1.2.8-storage-lab.2",
+  "version": "1.2.8-storage-lab.3",
   "private": true,
   "description": "万卷灵境存储实验版 - 隔离验证媒体去重与诊断",
   "author": "",
@@ -40,7 +40,7 @@
   "build": {
     "appId": "com.wanjuan.lingjing.storage-lab",
     "productName": "万卷灵境-存储实验版",
-    "artifactName": "万卷灵境-存储实验版-1.2.8-storage-lab.2-${arch}.${ext}",
+    "artifactName": "万卷灵境-存储实验版-1.2.8-storage-lab.3-${arch}.${ext}",
     "directories": {
       "output": "release"
     },
@@ -52,8 +52,8 @@
       "category": "public.app-category.productivity",
       "icon": "build/icon.icns",
       "extendInfo": {
-        "CFBundleShortVersionString": "1.2.8-storage-lab.2",
-        "CFBundleVersion": "1.2.8.2"
+        "CFBundleShortVersionString": "1.2.8-storage-lab.3",
+        "CFBundleVersion": "1.2.8.3"
       }
     }
   }
