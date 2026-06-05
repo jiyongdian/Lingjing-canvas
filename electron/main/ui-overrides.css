@@ -3250,7 +3250,7 @@ html.wanjuan-canvas-lite .react-flow__edge-textbg {
 }
 
 .wanjuan-context-menu {
-  min-width: 148px !important;
+  min-width: 168px !important;
   gap: 1px !important;
 }
 
@@ -3272,6 +3272,17 @@ html.wanjuan-canvas-lite .react-flow__edge-textbg {
     background 120ms ease,
     color 120ms ease,
     box-shadow 120ms ease !important;
+}
+
+.wanjuan-context-shortcut {
+  margin-left: auto !important;
+  min-width: 26px !important;
+  color: color-mix(in srgb, var(--wj-muted) 78%, var(--wj-text) 22%) !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+  text-align: right !important;
+  letter-spacing: 0 !important;
 }
 
 .wanjuan-context-menu-item:hover,

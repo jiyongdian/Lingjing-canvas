@@ -16252,10 +16252,11 @@ wan2.7-videoedit-1080P`,
 	  onInitialEmptyProjectReady: onInitialEmptyProjectReady,
 	}) {
   let [nodes, setNodes, onNodesChange] = le([]),
-	    [edges, setEdges, onEdgesChange] = te(ct),
-	    [shouldFitView, setShouldFitView] = useState(!1),
-	    [menuPosition, setMenuPosition] = useState(null),
-	    [contextToolGroupsOpen, setContextToolGroupsOpen] = useState({
+		    [edges, setEdges, onEdgesChange] = te(ct),
+		    [shouldFitView, setShouldFitView] = useState(!1),
+		    [menuPosition, setMenuPosition] = useState(null),
+		    lastCanvasMenuPositionRef = useRef(null),
+		    [contextToolGroupsOpen, setContextToolGroupsOpen] = useState({
 	      format: !1,
 	      tools: !1,
 	      extensions: !1,
@@ -17586,12 +17587,16 @@ wan2.7-videoedit-1080P`,
         if (containerRect) {
           let clientX = event.clientX || event.clientX,
             clientY = event.clientY || event.clientY;
-          (setMenuPosition({
-            x: clientX - containerRect.left,
-            y: clientY - containerRect.top,
-            menuOrigin: clientY - containerRect.top > containerRect.height / 2 ? `bottom` : `top`,
-            menuBottom: containerRect.height - (clientY - containerRect.top),
-            type: `canvas`
+	          (lastCanvasMenuPositionRef.current = {
+	            x: clientX - containerRect.left,
+	            y: clientY - containerRect.top,
+	          },
+	          setMenuPosition({
+	            x: clientX - containerRect.left,
+	            y: clientY - containerRect.top,
+	            menuOrigin: clientY - containerRect.top > containerRect.height / 2 ? `bottom` : `top`,
+	            menuBottom: containerRect.height - (clientY - containerRect.top),
+	            type: `canvas`
           }), ye(!1), Ce(!1));
         }
       },
@@ -26313,9 +26318,9 @@ ${combinedPrompt}`,
 	        edgesByTarget
 	      );
 	    }, [edges, nodes]),
-	    wanjuanCanvasNodes = useMemo(
-	      () =>
-	      nodes.map((node) => {
+		    wanjuanCanvasNodes = useMemo(
+		      () =>
+		      nodes.map((node) => {
 	        let referenceSources = wanjuanSelectedReferenceSourcesByTarget.get(node.id);
 	        return referenceSources && referenceSources.length ?
 	          {
@@ -26334,10 +26339,49 @@ ${combinedPrompt}`,
 	            },
 	          } :
 	          node;
-	      }),
-	      [nodes, wanjuanSelectedReferenceSourcesByTarget],
-	    );
-	  return (
+		      }),
+		      [nodes, wanjuanSelectedReferenceSourcesByTarget],
+		    );
+		  const getShortcutNodePosition = () => {
+		      let rect = wrapperRef.current?.getBoundingClientRect(),
+		        activeMenu =
+		        menuPosition &&
+		        (menuPosition.type === `canvas` || menuPosition.type === `connection`) ?
+		        menuPosition :
+		        null,
+		        anchor = activeMenu || lastCanvasMenuPositionRef.current;
+		      return rect && anchor ?
+		        screenToFlowPosition({
+		          x: rect.left + anchor.x,
+		          y: rect.top + anchor.y,
+		        }) :
+		        rect ?
+		        screenToFlowPosition({
+		          x: rect.left + rect.width / 2,
+		          y: rect.top + rect.height / 2,
+		        }) :
+		        {
+		          x: 0,
+		          y: 0
+		        };
+		    },
+		    addKeyboardNode = (nodeType, nodeData = {}) => {
+		      let activeMenu =
+		        menuPosition &&
+		        (menuPosition.type === `canvas` || menuPosition.type === `connection`) ?
+		        menuPosition :
+		        null;
+		      $(nodeType, getShortcutNodePosition(), nodeData, activeMenu?.connection);
+		    },
+		    clipboardHasPastePayload = async () => {
+		      let text = await navigator.clipboard?.readText?.().catch(() => ``);
+		      if (text && text.trim()) return !0;
+		      let items = await navigator.clipboard?.read?.().catch(() => []);
+		      return Array.isArray(items) && items.some((item) =>
+		        Array.from(item.types || []).some((type) => /^image\//i.test(type) || type === `text/plain`),
+		      );
+		    };
+		  return (
     useEffect(() => {
       let guard = (event) => {
           let targetElement = event.target;
@@ -26347,10 +26391,10 @@ ${combinedPrompt}`,
             nodesRef.current.some((node) => node.dragging)
           );
         },
-        handleKeyDown = (event) => {
-          let fullscreenElement =
-            document.fullscreenElement ||
-            document.webkitFullscreenElement ||
+	        handleKeyDown = async (event) => {
+	          let fullscreenElement =
+	            document.fullscreenElement ||
+	            document.webkitFullscreenElement ||
             document.mozFullScreenElement ||
             document.msFullscreenElement;
           if (
@@ -26360,16 +26404,45 @@ ${combinedPrompt}`,
               window.screenY === 0)
           )
             return;
-          if ((event.ctrlKey || event.metaKey) && event.key === `z`) {
-            if (guard(event)) return;
-            (event.preventDefault(), event.shiftKey ? redo() : $e());
-          } else if ((event.ctrlKey || event.metaKey) && event.key === `y`) {
-            if (guard(event)) return;
-            (event.preventDefault(), redo());
-          }
-          else if ((event.ctrlKey || event.metaKey) && event.key === `c`) {
-            if (guard(event)) return;
-            copySelectedNodes();
+	          let shortcutKey = String(event.key || ``).toLowerCase(),
+	            isPlainCommand = (event.ctrlKey || event.metaKey) && !event.altKey && !event.shiftKey;
+	          if ((event.ctrlKey || event.metaKey) && event.key === `z`) {
+	            if (guard(event)) return;
+	            (event.preventDefault(), event.shiftKey ? redo() : $e());
+	          } else if ((event.ctrlKey || event.metaKey) && event.key === `y`) {
+	            if (guard(event)) return;
+	            (event.preventDefault(), redo());
+	          }
+	          else if (isPlainCommand && [`t`, `i`, `v`, `j`, `w`].includes(shortcutKey)) {
+	            if (guard(event) || event.repeat) return;
+	            event.preventDefault();
+	            if (shortcutKey === `v` && await clipboardHasPastePayload()) {
+	              handlePaste();
+	              return;
+	            }
+	            shortcutKey === `t` ?
+	              addKeyboardNode(`textNode`, {
+	                text: ``
+	              }) :
+	              shortcutKey === `i` ?
+	              addKeyboardNode(`promptNode`, {
+	                prompt: ``
+	              }) :
+	              shortcutKey === `v` ?
+	              addKeyboardNode(`videoNode`, {
+	                prompt: ``
+	              }) :
+	              shortcutKey === `j` ?
+	              addKeyboardNode(`seedanceNode`, {
+	                prompt: ``
+	              }) :
+	              addKeyboardNode(`tongyiWanxiangNode`, {
+	                prompt: ``
+	              });
+	          }
+	          else if ((event.ctrlKey || event.metaKey) && event.key === `c`) {
+	            if (guard(event)) return;
+	            copySelectedNodes();
           } else if ((event.ctrlKey || event.metaKey) && event.key === `g`) {
             if (guard(event)) return;
             (event.preventDefault(), groupSelectedNodes());
@@ -26411,7 +26484,7 @@ ${combinedPrompt}`,
             window.removeEventListener(`paste`, handlePaste2));
         }
       );
-    }, [$e, redo, handlePaste, copySelectedNodes, groupSelectedNodes, autoLayout, stopGeneration, setNodes, setEdges]),
+	    }, [$e, redo, handlePaste, copySelectedNodes, groupSelectedNodes, autoLayout, stopGeneration, setNodes, setEdges, menuPosition]),
     jsxs(`div`, {
       style: {
         width: `100%`,
@@ -26934,11 +27007,15 @@ ${combinedPrompt}`,
                           size: 16,
                           className: `text-green-500`,
                         }),
-                        jsx(`span`, {
-                          children: `文本节点`
-                        }),
-                      ],
-                    }),
+	                        jsx(`span`, {
+	                          children: `文本节点`
+	                        }),
+	                        jsx(`span`, {
+	                          className: `wanjuan-context-shortcut`,
+	                          children: `⌘T`
+	                        }),
+	                      ],
+	                    }),
                     jsxs(`button`, {
                       className: `w-full text-left px-3 py-2 text-sm text-gray-300 hover:bg-[#333] hover:text-white rounded flex items-center gap-2 wanjuan-context-menu-item`,
                       onClick: () =>
@@ -26961,11 +27038,15 @@ ${combinedPrompt}`,
                           size: 16,
                           className: `text-blue-400`,
                         }),
-                        jsx(`span`, {
-                          children: `生图节点`
-                        }),
-                      ],
-                    }),
+	                        jsx(`span`, {
+	                          children: `生图节点`
+	                        }),
+	                        jsx(`span`, {
+	                          className: `wanjuan-context-shortcut`,
+	                          children: `⌘I`
+	                        }),
+	                      ],
+	                    }),
                     jsxs(`button`, {
                       className: `w-full text-left px-3 py-2 text-sm text-gray-300 hover:bg-[#333] hover:text-white rounded flex items-center gap-2 wanjuan-context-menu-item`,
                       onClick: () =>
@@ -26988,11 +27069,15 @@ ${combinedPrompt}`,
                           size: 16,
                           className: `text-purple-400`,
                         }),
-                        jsx(`span`, {
-                          children: `视频节点`
-                        }),
-                      ],
-                    }),
+	                        jsx(`span`, {
+	                          children: `视频节点`
+	                        }),
+	                        jsx(`span`, {
+	                          className: `wanjuan-context-shortcut`,
+	                          children: `⌘V`
+	                        }),
+	                      ],
+	                    }),
                     jsxs(`button`, {
                       className: `w-full text-left px-3 py-2 text-sm text-gray-300 hover:bg-[#333] hover:text-white rounded flex items-center gap-2 wanjuan-context-menu-item`,
                       onClick: () =>
@@ -27015,11 +27100,15 @@ ${combinedPrompt}`,
                           size: 16,
                           className: `text-cyan-400`,
                         }),
-                        jsx(`span`, {
-                          children: `即梦节点`,
-                        }),
-                      ],
-                    }),
+	                        jsx(`span`, {
+	                          children: `即梦节点`,
+	                        }),
+	                        jsx(`span`, {
+	                          className: `wanjuan-context-shortcut`,
+	                          children: `⌘J`
+	                        }),
+	                      ],
+	                    }),
                     jsxs(`button`, {
                       className: `w-full text-left px-3 py-2 text-sm text-gray-300 hover:bg-[#333] hover:text-white rounded flex items-center gap-2 wanjuan-context-menu-item`,
                       onClick: () =>
@@ -27042,11 +27131,15 @@ ${combinedPrompt}`,
                           size: 16,
                           className: `text-purple-400 flex-shrink-0`,
                         }),
-                        jsx(`span`, {
-                          children: `通义万相`,
-                        }),
-                      ],
-                    }),
+	                        jsx(`span`, {
+	                          children: `通义万相`,
+	                        }),
+	                        jsx(`span`, {
+	                          className: `wanjuan-context-shortcut`,
+	                          children: `⌘W`
+	                        }),
+	                      ],
+	                    }),
                     jsxs(`button`, {
                       className: `w-full text-left px-3 py-2 text-sm text-gray-300 hover:bg-[#333] hover:text-white rounded flex items-center gap-2 wanjuan-context-menu-item`,
                       onClick: () =>
