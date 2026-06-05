@@ -39129,8 +39129,40 @@ ${String(l || ``).slice(0, 5e4)}`;
                       extensions: [`*`]
                     },
                   ],
+                  forceRehomeProjectDataFileReferences = async (value, context, pathParts = []) => {
+                    if (typeof value == `string` && value.startsWith(`file://`)) {
+                      try {
+                        let archivedAsset = await window.wanjuanDesktop.persistProjectAsset({
+                          url: value,
+                          projectId: context.projectId,
+                          nodeId: context.nodeId,
+                          field: pathParts.join(`.`) || `file`,
+                          kind: `binary`,
+                          directory: context.directory,
+                          forceArchiveExistingFile: !0,
+                        });
+                        if (archivedAsset?.ok && archivedAsset.localPath)
+                          return buildProjectMediaFileUrl(archivedAsset.localPath);
+                      } catch (error) {
+                        console.warn(`Nested project file force archive skipped`, error);
+                      }
+                      return value;
+                    }
+                    if (Array.isArray(value))
+                      return Promise.all(value.map((item, index) => forceRehomeProjectDataFileReferences(item, context, [...pathParts, String(index)])));
+                    if (!value || typeof value != `object`) return value;
+                    let result = {};
+                    for (let [key, item] of Object.entries(value)) {
+                      if (key === `projectAssetBindings`) {
+                        result[key] = item;
+                        continue;
+                      }
+                      result[key] = await forceRehomeProjectDataFileReferences(item, context, [...pathParts, key]);
+                    }
+                    return result;
+                  },
                   prepareProjectMediaStateForPersistence =
-                  (globalThis.prepareProjectMediaStateForPersistence = async (canvasState, projectId, n) => {
+                  (globalThis.prepareProjectMediaStateForPersistence = async (canvasState, projectId, n, options = {}) => {
                     if (!window.wanjuanDesktop?.persistProjectAsset || !X.default) return canvasState;
                     let clonedState = cloneBackupValue(canvasState || {});
                     if (!Array.isArray(clonedState.nodes) || !clonedState.nodes.length) return clonedState;
@@ -39148,6 +39180,49 @@ ${String(l || ``).slice(0, 5e4)}`;
                             binding = bindings[bindingKey] || {},
                             kind = binding.kind || getProjectMediaBindingKind(bindingKey, node),
                             strippedBinding = stripLargeProjectMediaPortablePayload(binding, bindingKey, kind);
+                          if (options.forceRehomeExistingFiles) {
+                            let existingFileValue =
+                              binding.localPath ||
+                              (typeof fieldValue == `string` && fieldValue.startsWith(`file://`) ? fieldValue : ``);
+                            if (existingFileValue) {
+                              try {
+                                let archivedAsset = await window.wanjuanDesktop.persistProjectAsset({
+                                    localPath: binding.localPath,
+                                    url: binding.localPath ? `` : existingFileValue,
+                                    mime: binding.mime,
+                                    filename: binding.filename || binding.originalName,
+                                    projectId: projectId,
+                                    nodeId: node.id,
+                                    field: bindingKey,
+                                    kind: kind,
+                                    assetId: binding.assetId,
+                                    directory: n,
+                                    forceArchiveExistingFile: !0,
+                                  });
+                                if (!archivedAsset?.ok || !archivedAsset.localPath)
+                                  throw Error(archivedAsset?.error || `Project media archive failed`);
+                                let archivedFileUrl = buildProjectMediaFileUrl(archivedAsset.localPath);
+                                archivedFileUrl && (data[bindingKey] = archivedFileUrl);
+                                try {
+                                  binding.portableDataRef && (await X.default.removeItem(binding.portableDataRef));
+                                } catch {}
+                                bindings[bindingKey] = {
+                                  ...binding,
+                                  ...archivedAsset,
+                                  field: bindingKey,
+                                  portableDataRef: void 0,
+                                  portableData: void 0,
+                                  value: archivedFileUrl,
+                                  sourceSignature: archivedFileUrl,
+                                  valueFormat: archivedAsset.valueFormat || binding.valueFormat,
+                                  missing: !1,
+                                };
+                                continue;
+                              } catch (error) {
+                                console.warn(`Project media force archive skipped`, error);
+                              }
+                            }
+                          }
                           if (strippedBinding !== binding) {
                             try {
                               binding.portableDataRef && (await X.default.removeItem(binding.portableDataRef));
@@ -39253,6 +39328,12 @@ ${String(l || ``).slice(0, 5e4)}`;
                             };
                           }
                         }
+                        options.forceRehomeExistingFiles &&
+                          (data = await forceRehomeProjectDataFileReferences(data, {
+                            projectId: projectId,
+                            nodeId: node.id,
+                            directory: n,
+                          }));
                         return {
                           ...node,
                           data: {

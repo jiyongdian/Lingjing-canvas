@@ -8,6 +8,7 @@ const require = createRequire(import.meta.url);
 const {
   contentAddressedPath,
   writeContentAddressedFile,
+  writeContentAddressedFileFromPath,
   diagnoseContentStore
 } = require("../electron/main/assets/content-store.cjs");
 
@@ -23,6 +24,11 @@ try {
   assert.equal(new Set(writes.map((result) => result.path)).size, 1);
   assert.equal(readFileSync(writes[0].path).toString(), body.toString());
   assert.equal(writes.filter((result) => result.created).length, 1);
+  const sourcePath = join(root, "stream-source.bin");
+  writeFileSync(sourcePath, body);
+  const streamed = await writeContentAddressedFileFromPath(root, sourcePath, ".bin");
+  assert.equal(streamed.path, writes[0].path);
+  assert.equal(streamed.deduplicated, true);
 
   const duplicateA = join(root, "legacy-a.bin");
   const duplicateB = join(root, "legacy-b.bin");
@@ -30,10 +36,10 @@ try {
   writeFileSync(duplicateB, body);
   const report = diagnoseContentStore(root);
   assert.equal(report.ok, true);
-  assert.equal(report.fileCount, 3);
+  assert.equal(report.fileCount, 4);
   assert.equal(report.duplicateGroupCount, 1);
-  assert.equal(report.duplicateFileCount, 2);
-  assert.equal(report.reclaimableBytes, body.length * 2);
+  assert.equal(report.duplicateFileCount, 3);
+  assert.equal(report.reclaimableBytes, body.length * 3);
 
   console.log("storage lab: content addressing, concurrent dedupe and read-only diagnosis passed");
 } finally {

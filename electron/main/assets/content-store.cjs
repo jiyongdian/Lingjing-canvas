@@ -54,6 +54,47 @@ async function writeContentAddressedFile(projectRoot, buffer, extension = "") {
   return operation;
 }
 
+async function writeContentAddressedFileFromPath(projectRoot, sourcePath, extension = "") {
+  const sha256 = sha256File(sourcePath);
+  const normalizedExtension = String(extension || path.extname(sourcePath) || "");
+  const suffix = normalizedExtension.startsWith(".") ? normalizedExtension : normalizedExtension ? `.${normalizedExtension}` : "";
+  const addressed = {
+    sha256,
+    path: path.join(projectRoot, "blobs", `${sha256}${suffix.toLowerCase()}`)
+  };
+  const existing = pendingWrites.get(addressed.path);
+  if (existing) {
+    return existing.then((result) => ({ ...result, deduplicated: true, created: false }));
+  }
+
+  const operation = Promise.resolve().then(() => {
+    fs.mkdirSync(path.dirname(addressed.path), { recursive: true });
+    if (fs.existsSync(addressed.path)) {
+      return { ...addressed, deduplicated: true, created: false };
+    }
+    const temporaryPath = `${addressed.path}.tmp-${process.pid}-${Math.random().toString(16).slice(2)}`;
+    try {
+      fs.copyFileSync(sourcePath, temporaryPath, fs.constants.COPYFILE_EXCL);
+      try {
+        fs.renameSync(temporaryPath, addressed.path);
+        return { ...addressed, deduplicated: false, created: true };
+      } catch (error) {
+        if (!fs.existsSync(addressed.path)) throw error;
+        return { ...addressed, deduplicated: true, created: false };
+      }
+    } finally {
+      try {
+        fs.rmSync(temporaryPath, { force: true });
+      } catch {}
+    }
+  }).finally(() => {
+    pendingWrites.delete(addressed.path);
+  });
+
+  pendingWrites.set(addressed.path, operation);
+  return operation;
+}
+
 function walkFiles(root, results = []) {
   if (!root || !fs.existsSync(root)) return results;
   for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
@@ -108,5 +149,6 @@ function diagnoseContentStore(root) {
 module.exports = {
   contentAddressedPath,
   writeContentAddressedFile,
+  writeContentAddressedFileFromPath,
   diagnoseContentStore
 };

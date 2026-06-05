@@ -34,11 +34,26 @@ app.whenReady().then(async () => {
   assert.equal(first.deduplicated, false);
   assert.equal(second.deduplicated, true);
   assert.equal(fs.readFileSync(first.localPath).length, 4096);
+  const rehomed = await persistProjectAsset({
+    localPath: first.localPath,
+    mime: "video/mp4",
+    filename: "rehomed.mp4",
+    directory: root,
+    projectId: "project-b",
+    nodeId: "node-c",
+    field: "videoUrl",
+    kind: "video",
+    forceArchiveExistingFile: true
+  });
+  assert.equal(rehomed.ok, true);
+  assert.equal(rehomed.archivedFromExistingFile, true);
+  assert.equal(rehomed.localPath.includes(`${path.sep}project-b${path.sep}blobs${path.sep}`), true);
+  assert.equal(fs.readFileSync(rehomed.localPath).length, 4096);
 
   const report = diagnoseProjectAssets({ directory: root });
   assert.equal(report.ok, true);
-  assert.equal(report.fileCount, 1);
-  assert.equal(report.duplicateFileCount, 0);
+  assert.equal(report.fileCount, 2);
+  assert.equal(report.duplicateFileCount, 1);
 
   const png = Buffer.from(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",

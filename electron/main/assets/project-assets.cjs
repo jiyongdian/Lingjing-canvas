@@ -19,7 +19,7 @@ const {
   bufferFromDataUrlValue
 } = require("../utils/paths.cjs");
 const { resolveAssetPayload, normalizeImagePayload, readLocalFilePayload } = require("../media/payload.cjs");
-const { writeContentAddressedFile, diagnoseContentStore } = require("./content-store.cjs");
+const { writeContentAddressedFile, writeContentAddressedFileFromPath, diagnoseContentStore } = require("./content-store.cjs");
 
 async function persistProjectAsset(payload = {}) {
   const downloadRoot = payload?.directory || defaultDownloadDirectory();
@@ -32,6 +32,37 @@ async function persistProjectAsset(payload = {}) {
     `${kind}-${Date.now()}`
   );
   const projectRoot = path.join(mediaLibraryRoot(downloadRoot), projectId);
+  const forceArchiveSource = payload?.forceArchiveExistingFile && payload?.localPath && fs.existsSync(payload.localPath)
+    ? path.resolve(payload.localPath)
+    : "";
+  if (forceArchiveSource) {
+    const filename = ensureExtname(sanitizeFilename(payload?.filename || path.basename(forceArchiveSource)), payload?.mime);
+    const finalMime = payload?.mime || guessMimeFromFilename(filename) || guessMimeFromFilename(forceArchiveSource);
+    const stored = await writeContentAddressedFileFromPath(
+      projectRoot,
+      forceArchiveSource,
+      extensionFromMime(finalMime) || path.extname(forceArchiveSource)
+    );
+    const stat = fs.statSync(stored.path);
+    return {
+      ok: true,
+      assetId,
+      kind,
+      mime: finalMime,
+      filename,
+      localPath: stored.path,
+      projectId,
+      nodeId,
+      field,
+      size: stat.size,
+      savedAt: new Date().toISOString(),
+      sha256: stored.sha256,
+      deduplicated: stored.deduplicated,
+      contentAddressed: true,
+      archivedFromExistingFile: true,
+      valueFormat: /^(image|video|audio)\//i.test(finalMime) ? "file-url" : undefined
+    };
+  }
   const resolved = await resolveAssetPayload(payload);
   const shouldNormalizeImage =
     /^image\//i.test(String(resolved.mime || "")) ||
