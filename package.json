@@ -16,7 +16,9 @@
     "test:storage": "node scripts/test-storage-lab.mjs",
     "test:storage:electron": "electron scripts/test-storage-electron.cjs",
     "test:storage:state": "node scripts/test-storage-state-policy.mjs",
-    "scan:storage-preview": "node scripts/scan-storage-migration-preview.mjs"
+    "scan:storage-preview": "node scripts/scan-storage-migration-preview.mjs",
+    "test:migrate-project": "node scripts/migrate-project-media-test.mjs",
+    "test:migrated-project:electron": "electron scripts/test-migrated-project-electron.cjs"
   },
   "dependencies": {
     "@xyflow/react": "^12.10.2",
