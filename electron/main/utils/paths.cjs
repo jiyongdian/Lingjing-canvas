@@ -24,7 +24,7 @@ function sanitizePathSegment(value, fallback = "asset") {
 }
 
 function defaultDownloadDirectory() {
-  return path.join(app.getPath("downloads"), "万卷灵境");
+  return path.join(app.getPath("downloads"), "万卷灵境-存储实验版");
 }
 
 function resolveWritableDownloadDirectory(requestedDirectory) {

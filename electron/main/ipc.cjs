@@ -26,6 +26,7 @@ const { extractKnowledgeFileText } = require("./knowledge.cjs");
 const { normalizeImagePayload, bufferFromDownloadPayload, bufferFromMediaPayload } = require("./media/payload.cjs");
 const {
   persistProjectAsset,
+  diagnoseProjectAssets,
   checkProjectAssets,
   findProjectAssetsInFolder,
   removeProjectAssets,
@@ -539,6 +540,17 @@ function registerDesktopIpc() {
     } catch (error) {
       console.error("check-project-assets failed", error);
       return { ok: false, error: formatErrorMessage(error), assets: [] };
+    }
+  });
+
+  ipcMain.handle("wanjuan:diagnose-project-assets", async (event, payload) => {
+    const blocked = rejectUntrustedIpc(event, "wanjuan:diagnose-project-assets");
+    if (blocked) return blocked;
+    try {
+      return diagnoseProjectAssets(payload || {});
+    } catch (error) {
+      console.error("diagnose-project-assets failed", error);
+      return { ok: false, error: formatErrorMessage(error) };
     }
   });
 

@@ -1,8 +1,8 @@
 {
-  "name": "wanjuan-lingjing",
-  "version": "1.2.8",
+  "name": "wanjuan-lingjing-storage-lab",
+  "version": "1.2.8-storage-lab.1",
   "private": true,
-  "description": "万卷灵境 - macOS AI 创作画布桌面应用",
+  "description": "万卷灵境存储实验版 - 隔离验证媒体去重与诊断",
   "author": "",
   "main": "electron/main/index.cjs",
   "type": "module",
@@ -12,7 +12,9 @@
     "debug": "cross-env WANJUAN_DEBUG=1 electron .",
     "build": "vite build --config vite.config.mjs && electron-builder",
     "typecheck": "tsc --noEmit",
-    "test:lib": "node scripts/test-lib.mjs"
+    "test:lib": "node scripts/test-lib.mjs",
+    "test:storage": "node scripts/test-storage-lab.mjs",
+    "test:storage:electron": "electron scripts/test-storage-electron.cjs"
   },
   "dependencies": {
     "@xyflow/react": "^12.10.2",
@@ -35,9 +37,9 @@
     "vite": "^6.4.2"
   },
   "build": {
-    "appId": "com.wanjuan.lingjing",
-    "productName": "万卷灵境",
-    "artifactName": "万卷灵境-1.2.8-${arch}.${ext}",
+    "appId": "com.wanjuan.lingjing.storage-lab",
+    "productName": "万卷灵境-存储实验版",
+    "artifactName": "万卷灵境-存储实验版-1.2.8-storage-lab.1-${arch}.${ext}",
     "directories": {
       "output": "release"
     },
@@ -49,8 +51,8 @@
       "category": "public.app-category.productivity",
       "icon": "build/icon.icns",
       "extendInfo": {
-        "CFBundleShortVersionString": "1.2.8",
-        "CFBundleVersion": "1.2.8"
+        "CFBundleShortVersionString": "1.2.8-storage-lab.1",
+        "CFBundleVersion": "1.2.8.1"
       }
     }
   }

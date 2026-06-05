@@ -49,7 +49,7 @@ function projectSafetyTimestampSegment(date = new Date()) {
 }
 
 function defaultProjectSafetyBackupRoot() {
-  return path.join(os.homedir(), "Downloads", "万卷灵境", "自动备份");
+  return path.join(os.homedir(), "Downloads", "万卷灵境-存储实验版", "自动备份");
 }
 
 function projectSafetySnapshotFileRoot(root = defaultProjectSafetyBackupRoot()) {

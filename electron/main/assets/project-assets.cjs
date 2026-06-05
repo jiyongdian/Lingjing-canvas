@@ -19,6 +19,7 @@ const {
   bufferFromDataUrlValue
 } = require("../utils/paths.cjs");
 const { resolveAssetPayload, normalizeImagePayload, readLocalFilePayload } = require("../media/payload.cjs");
+const { writeContentAddressedFile, diagnoseContentStore } = require("./content-store.cjs");
 
 async function persistProjectAsset(payload = {}) {
   const downloadRoot = payload?.directory || defaultDownloadDirectory();
@@ -31,9 +32,6 @@ async function persistProjectAsset(payload = {}) {
     `${kind}-${Date.now()}`
   );
   const projectRoot = path.join(mediaLibraryRoot(downloadRoot), projectId);
-  const assetRoot = path.join(projectRoot, "assets", nodeId);
-  fs.mkdirSync(assetRoot, { recursive: true });
-
   const resolved = await resolveAssetPayload(payload);
   const shouldNormalizeImage =
     /^image\//i.test(String(resolved.mime || "")) ||
@@ -47,12 +45,16 @@ async function persistProjectAsset(payload = {}) {
   const rawFilename = resolved.filename;
   const sourceName = sanitizeFilename(rawFilename || `${field}-${assetId}`);
   const filename = ensureExtname(sourceName, mime);
-  const targetPath = path.join(assetRoot, `${field}-${assetId}-${filename}`);
-  const finalMime = mime || guessMimeFromFilename(targetPath);
+  const finalMime = mime || guessMimeFromFilename(filename);
   if ((/^video\//i.test(finalMime) || /^audio\//i.test(finalMime)) && buffer.length < 1024) {
     throw new Error("Media asset is empty or too small to save");
   }
-  if (!fs.existsSync(targetPath)) fs.writeFileSync(targetPath, buffer);
+  const stored = await writeContentAddressedFile(
+    projectRoot,
+    buffer,
+    extensionFromMime(finalMime) || path.extname(filename)
+  );
+  const targetPath = stored.path;
   const stat = fs.statSync(targetPath);
   const portableValue =
     /^video\//i.test(finalMime) || /^audio\//i.test(finalMime)
@@ -70,9 +72,17 @@ async function persistProjectAsset(payload = {}) {
     field,
     size: stat.size,
     savedAt: new Date().toISOString(),
-    sha256: sha256Buffer(buffer),
+    sha256: stored.sha256,
+    deduplicated: stored.deduplicated,
+    contentAddressed: true,
     ...portableValue
   };
+}
+
+function diagnoseProjectAssets(payload = {}) {
+  const downloadRoot = payload?.directory || defaultDownloadDirectory();
+  const root = mediaLibraryRoot(downloadRoot);
+  return diagnoseContentStore(root);
 }
 
 async function checkProjectAssets(payload = {}) {
@@ -642,6 +652,7 @@ async function removeProjectAssets(payload = {}) {
 
 module.exports = {
   persistProjectAsset,
+  diagnoseProjectAssets,
   checkProjectAssets,
   normalizeAssetMatchName,
   getAssetMatchNames,

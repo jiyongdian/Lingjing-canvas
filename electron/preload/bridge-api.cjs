@@ -206,6 +206,8 @@ exposeGlobal("wanjuanDesktop", {
   },
   checkProjectAssets: async (paths = []) =>
     ipcRenderer.invoke("wanjuan:check-project-assets", { paths }),
+  diagnoseProjectAssets: async (payload = {}) =>
+    ipcRenderer.invoke("wanjuan:diagnose-project-assets", payload),
   findProjectAssetsInFolder: async (payload = {}) =>
     ipcRenderer.invoke("wanjuan:find-project-assets-in-folder", payload),
 	  removeProjectAssets: async (payload = {}) =>
