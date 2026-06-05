@@ -33,3 +33,6 @@ ui-audit/
 *.key
 *credentials*
 **/chrome_storage*
+
+# 迁移扫描明细包含本机绝对路径，仅保留在本地
+reports/*.json
