@@ -184,9 +184,27 @@ function installDesktopPatches() {
     installMergedProjectSwitcher(leftGroup, projectButton, select);
   };
 
-  const buildProjectComboMenu = (combo, select, label) => {
+  const projectComboMenuSignature = (select) => {
+    const parts = [`active:${select.value || ""}`];
+    Array.from(select.children).forEach((child) => {
+      if (child instanceof HTMLOptGroupElement) {
+        parts.push(`group:${child.label || ""}`);
+        Array.from(child.children).forEach((option) => {
+          if (option instanceof HTMLOptionElement) parts.push(`option:${option.value}:${option.textContent || ""}`);
+        });
+      } else if (child instanceof HTMLOptionElement) {
+        parts.push(`option:${child.value}:${child.textContent || ""}`);
+      }
+    });
+    return parts.join("|");
+  };
+
+  const buildProjectComboMenu = (combo, select, label, options = {}) => {
     const menu = combo.querySelector(".wanjuan-project-combo-menu");
     if (!(menu instanceof HTMLElement)) return;
+    const signature = projectComboMenuSignature(select);
+    if (!options.force && menu.childElementCount > 0 && combo.dataset.menuSignature === signature) return;
+    combo.dataset.menuSignature = signature;
     menu.textContent = "";
 
     const addOption = (option) => {
@@ -281,7 +299,7 @@ function installDesktopPatches() {
     arrow.onclick = (event) => {
       event.preventDefault();
       event.stopPropagation();
-      buildProjectComboMenu(combo, select, label);
+      buildProjectComboMenu(combo, select, label, { force: true });
       combo.dataset.open = combo.dataset.open === "true" ? "false" : "true";
     };
 
@@ -289,6 +307,7 @@ function installDesktopPatches() {
       label.textContent = select.selectedOptions?.[0]?.textContent?.trim() ||
         projectButton.textContent?.trim() ||
         "未命名项目";
+      combo.dataset.menuSignature = "";
     };
 
     projectButton.classList.add("wanjuan-project-combo-source");

@@ -2497,6 +2497,13 @@ html:is(.theme-light, .theme-warm-light, .theme-mist-blue, .theme-chrome-blue, .
     0 8px 18px color-mix(in srgb, var(--wanjuan-theme-shadow, rgba(0, 0, 0, 0.18)) 34%, transparent) !important;
 }
 
+.wanjuan-project-combo[data-open="true"] {
+  border-color: color-mix(in srgb, var(--wj-accent) 44%, var(--wj-border) 56%) !important;
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--wj-text) 8%, transparent),
+    0 8px 18px color-mix(in srgb, var(--wanjuan-theme-shadow, rgba(0, 0, 0, 0.18)) 34%, transparent) !important;
+}
+
 .wanjuan-project-combo-label {
   flex: 1 1 auto;
   min-width: 0;
@@ -2561,6 +2568,9 @@ html:is(.theme-light, .theme-warm-light, .theme-mist-blue, .theme-chrome-blue, .
   border: 1px solid color-mix(in srgb, var(--wj-border) 82%, transparent);
   background: color-mix(in srgb, var(--wj-surface) 96%, var(--wj-surface-2) 4%);
   box-shadow: var(--wj-shadow-popover);
+  transform: translateZ(0);
+  will-change: opacity;
+  contain: layout paint;
 }
 
 .wanjuan-project-combo[data-open="true"] .wanjuan-project-combo-menu {
@@ -2590,6 +2600,7 @@ html:is(.theme-light, .theme-warm-light, .theme-mist-blue, .theme-chrome-blue, .
   overflow: hidden;
   text-overflow: ellipsis;
   cursor: pointer;
+  transition: none !important;
 }
 
 .wanjuan-project-combo-option:hover,
