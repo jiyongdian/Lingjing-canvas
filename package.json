@@ -1,6 +1,6 @@
 {
   "name": "wanjuan-lingjing-storage-lab",
-  "version": "1.2.8-storage-lab.1",
+  "version": "1.2.8-storage-lab.2",
   "private": true,
   "description": "万卷灵境存储实验版 - 隔离验证媒体去重与诊断",
   "author": "",
@@ -14,7 +14,8 @@
     "typecheck": "tsc --noEmit",
     "test:lib": "node scripts/test-lib.mjs",
     "test:storage": "node scripts/test-storage-lab.mjs",
-    "test:storage:electron": "electron scripts/test-storage-electron.cjs"
+    "test:storage:electron": "electron scripts/test-storage-electron.cjs",
+    "test:storage:state": "node scripts/test-storage-state-policy.mjs"
   },
   "dependencies": {
     "@xyflow/react": "^12.10.2",
@@ -39,7 +40,7 @@
   "build": {
     "appId": "com.wanjuan.lingjing.storage-lab",
     "productName": "万卷灵境-存储实验版",
-    "artifactName": "万卷灵境-存储实验版-1.2.8-storage-lab.1-${arch}.${ext}",
+    "artifactName": "万卷灵境-存储实验版-1.2.8-storage-lab.2-${arch}.${ext}",
     "directories": {
       "output": "release"
     },
@@ -51,8 +52,8 @@
       "category": "public.app-category.productivity",
       "icon": "build/icon.icns",
       "extendInfo": {
-        "CFBundleShortVersionString": "1.2.8-storage-lab.1",
-        "CFBundleVersion": "1.2.8.1"
+        "CFBundleShortVersionString": "1.2.8-storage-lab.2",
+        "CFBundleVersion": "1.2.8.2"
       }
     }
   }

@@ -56,10 +56,13 @@ async function persistProjectAsset(payload = {}) {
   );
   const targetPath = stored.path;
   const stat = fs.statSync(targetPath);
-  const portableValue =
-    /^video\//i.test(finalMime) || /^audio\//i.test(finalMime)
-      ? { valueFormat: "file-url" }
-      : portableValueFromBuffer(buffer, finalMime);
+  const isBinaryMedia =
+    /^image\//i.test(finalMime) ||
+    /^video\//i.test(finalMime) ||
+    /^audio\//i.test(finalMime);
+  const portableValue = isBinaryMedia
+    ? { valueFormat: "file-url" }
+    : portableValueFromBuffer(buffer, finalMime);
   return {
     ok: true,
     assetId,

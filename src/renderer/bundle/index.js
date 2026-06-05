@@ -38920,21 +38920,24 @@ ${String(l || ``).slice(0, 5e4)}`;
                   if (origin === `media` && hasExternalUploadLikeFileName(binding, data)) return !0;
                   return !1;
                 },
-                isProjectMediaLargeBinaryBinding = (binding, t, fallbackKind) => {
+                isProjectMediaFileBackedBinding = (binding, t, fallbackKind) => {
                   let mime = String(binding?.mime || ``).toLowerCase(),
                     kind = String(binding?.kind || fallbackKind || ``).toLowerCase();
                   return (
+                    kind === `image` ||
                     kind === `video` ||
                     kind === `audio` ||
+                    /^image\//i.test(mime) ||
                     /^video\//i.test(mime) ||
                     /^audio\//i.test(mime) ||
+                    t === `imageUrl` ||
                     t === `videoUrl` ||
                     t === `audioUrl`
                   );
                 },
                 stripLargeProjectMediaPortablePayload = (binding, bindingKey, data) => {
                   if (!binding || typeof binding != `object`) return binding;
-                  if (!binding.localPath || !isProjectMediaLargeBinaryBinding(binding, bindingKey, data)) return binding;
+                  if (!binding.localPath || !isProjectMediaFileBackedBinding(binding, bindingKey, data)) return binding;
                   let {
                     value,
                     portableData,
@@ -39049,7 +39052,7 @@ ${String(l || ``).slice(0, 5e4)}`;
 	                        };
                       (nextBindings[bindingKey] = resolvedBinding), resolvedBinding.missing && isExternalUploadedProjectAssetBinding(resolvedBinding, bindingKey, data) && missingAssets.push(bindingKey);
                       let revivedValue = reviveProjectMediaBindingValue(resolvedBinding);
-                      if (resolvedBinding.localPath && isProjectMediaLargeBinaryBinding(resolvedBinding, bindingKey, resolvedBinding.kind)) {
+                      if (resolvedBinding.localPath && isProjectMediaFileBackedBinding(resolvedBinding, bindingKey, resolvedBinding.kind)) {
                         let fileUrl = buildProjectMediaFileUrl(resolvedBinding.localPath);
                         fileUrl &&
                           (bindingKey === `audioUrl` ||
@@ -39146,6 +39149,8 @@ ${String(l || ``).slice(0, 5e4)}`;
                             try {
                               binding.portableDataRef && (await X.default.removeItem(binding.portableDataRef));
                             } catch {}
+                            let localFileUrl = buildProjectMediaFileUrl(strippedBinding.localPath);
+                            localFileUrl && (data[bindingKey] = localFileUrl);
                             ((bindings[bindingKey] = {
                                 ...strippedBinding,
                                 field: bindingKey,
@@ -39194,31 +39199,48 @@ ${String(l || ``).slice(0, 5e4)}`;
                             binding.portableDataRef ||
                             buildProjectAssetStorageKey(projectId, node.id || `node`, `media-${bindingKey}-portable`);
                           try {
-                            ((await X.default.setItem(storageKey, payload.portableValue)),
-                              (bindings[bindingKey] = {
-                                ...binding,
-                                ...(await window.wanjuanDesktop.persistProjectAsset({
-                                  ...payload.persistPayload,
-                                  projectId: projectId,
-                                  nodeId: node.id,
-                                  field: bindingKey,
-                                  kind: getProjectMediaBindingKind(bindingKey, node),
-                                  assetId: binding.assetId,
-                                  directory: n,
-                                })),
+                            let persistedAsset = await window.wanjuanDesktop.persistProjectAsset({
+                                ...payload.persistPayload,
+                                projectId: projectId,
+                                nodeId: node.id,
                                 field: bindingKey,
-                                portableDataRef: storageKey,
-                                sourceSignature: sourceSignature,
-                                valueFormat: payload.valueFormat,
+                                kind: getProjectMediaBindingKind(bindingKey, node),
+                                assetId: binding.assetId,
+                                directory: n,
+                              }),
+                              fileBacked = persistedAsset?.localPath &&
+                                isProjectMediaFileBackedBinding(persistedAsset, bindingKey, kind);
+                            if (!persistedAsset?.ok) throw Error(persistedAsset?.error || `Project media persist failed`);
+                            if (fileBacked) {
+                              try {
+                                await X.default.removeItem(storageKey);
+                              } catch {}
+                              let localFileUrl = buildProjectMediaFileUrl(persistedAsset.localPath);
+                              localFileUrl && (data[bindingKey] = localFileUrl);
+                            } else {
+                              await X.default.setItem(storageKey, payload.portableValue);
+                            }
+                            (bindings[bindingKey] = {
+                                ...binding,
+                                ...persistedAsset,
+                                field: bindingKey,
+                                portableDataRef: fileBacked ? void 0 : storageKey,
+                                sourceSignature: fileBacked ?
+                                  buildProjectMediaFileUrl(persistedAsset.localPath) :
+                                  sourceSignature,
+                                valueFormat: fileBacked ? `file-url` : payload.valueFormat,
                                 sourceOrigin: binding.sourceOrigin ||
                                   data.sourceOrigin ||
                                   data.mediaSourceOrigin ||
                                   (bindingKey === `text` || bindingKey === `resultData` ? `generated-text` : `media`),
                                 originalName: binding.originalName || data.originalName || data.label || data.name || ``,
                                 missing: !1,
-                              }));
+                              });
                           } catch (error) {
                             console.warn(`Project media persist skipped`, error);
+                            try {
+                              await X.default.setItem(storageKey, payload.portableValue);
+                            } catch {}
                             bindings[bindingKey] = {
                               ...binding,
                               field: bindingKey,

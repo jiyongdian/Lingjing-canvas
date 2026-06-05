@@ -36,6 +36,25 @@ app.whenReady().then(async () => {
   assert.equal(report.fileCount, 1);
   assert.equal(report.duplicateFileCount, 0);
 
+  const png = Buffer.from(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+    "base64"
+  );
+  const image = await persistProjectAsset({
+    arrayBuffer: png,
+    mime: "image/png",
+    filename: "result.png",
+    directory: root,
+    projectId: "project-a",
+    nodeId: "image-node",
+    field: "imageUrl",
+    kind: "image"
+  });
+  assert.equal(image.ok, true);
+  assert.equal(image.valueFormat, "file-url");
+  assert.equal(image.value, undefined);
+  assert.equal(image.localPath.endsWith(".png"), true);
+
   console.log("storage lab electron integration passed");
 }).then(() => {
   fs.rmSync(root, { recursive: true, force: true });
