@@ -19,7 +19,8 @@ const {
   bufferFromDataUrlValue
 } = require("../utils/paths.cjs");
 const { resolveAssetPayload, normalizeImagePayload, readLocalFilePayload } = require("../media/payload.cjs");
-const { writeContentAddressedFile, writeContentAddressedFileFromPath, diagnoseContentStore } = require("./content-store.cjs");
+const { writeContentAddressedFile, writeContentAddressedFileFromPath, diagnoseContentStore, globalContentRoot } = require("./content-store.cjs");
+const { assertActiveMigration, recordMigrationAsset, removeProjectReferences } = require("./migration-manager.cjs");
 
 async function persistProjectAsset(payload = {}) {
   const downloadRoot = payload?.directory || defaultDownloadDirectory();
@@ -31,7 +32,8 @@ async function persistProjectAsset(payload = {}) {
     payload?.assetId || `${kind}-${Date.now()}-${Math.random().toString(16).slice(2, 10)}`,
     `${kind}-${Date.now()}`
   );
-  const projectRoot = path.join(mediaLibraryRoot(downloadRoot), projectId);
+  const projectRoot = globalContentRoot(mediaLibraryRoot(downloadRoot));
+  assertActiveMigration(payload?.migrationId, projectId);
   const forceArchiveSource = payload?.forceArchiveExistingFile && payload?.localPath && fs.existsSync(payload.localPath)
     ? path.resolve(payload.localPath)
     : "";
@@ -44,7 +46,7 @@ async function persistProjectAsset(payload = {}) {
       extensionFromMime(finalMime) || path.extname(forceArchiveSource)
     );
     const stat = fs.statSync(stored.path);
-    return {
+    const result = {
       ok: true,
       assetId,
       kind,
@@ -62,6 +64,8 @@ async function persistProjectAsset(payload = {}) {
       archivedFromExistingFile: true,
       valueFormat: /^(image|video|audio)\//i.test(finalMime) ? "file-url" : undefined
     };
+    recordMigrationAsset(payload?.migrationId, result);
+    return result;
   }
   const resolved = await resolveAssetPayload(payload);
   const shouldNormalizeImage =
@@ -94,7 +98,7 @@ async function persistProjectAsset(payload = {}) {
   const portableValue = isBinaryMedia
     ? { valueFormat: "file-url" }
     : portableValueFromBuffer(buffer, finalMime);
-  return {
+  const result = {
     ok: true,
     assetId,
     kind,
@@ -111,6 +115,8 @@ async function persistProjectAsset(payload = {}) {
     contentAddressed: true,
     ...portableValue
   };
+  recordMigrationAsset(payload?.migrationId, result);
+  return result;
 }
 
 function diagnoseProjectAssets(payload = {}) {
@@ -690,7 +696,8 @@ async function removeProjectAssets(payload = {}) {
     if (fs.existsSync(projectRoot)) {
       fs.rmSync(projectRoot, { recursive: true, force: true });
     }
-    return { ok: true, path: projectRoot, removed: true };
+    removeProjectReferences({ directory: downloadRoot, projectId });
+    return { ok: true, path: projectRoot, removed: true, sharedBlobsRetained: true };
   } catch (error) {
     return { ok: false, error: String(error?.message || error), path: projectRoot };
   }

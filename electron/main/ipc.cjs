@@ -37,6 +37,19 @@ const {
   injectExternalAssetBundleSummary,
 } = require("./assets/project-assets.cjs");
 const {
+  beginProjectMigration,
+  getProjectMigration,
+  listIncompleteMigrations,
+  saveProjectMigrationSnapshot,
+  loadProjectMigrationSnapshot,
+  cancelProjectMigration,
+  commitProjectMigration,
+  rollbackProjectMigration,
+  syncProjectReferences,
+  cleanupUnreferencedBlobs,
+  isProjectMigrationLocked,
+} = require("./assets/migration-manager.cjs");
+const {
   getQwenTtsToolStatus,
   installQwenTtsTool,
   getRealEsrganToolStatus,
@@ -530,6 +543,51 @@ function registerDesktopIpc() {
       console.error("persist-project-asset failed", error);
       return { ok: false, error: formatErrorMessage(error) };
     }
+  });
+
+  ipcMain.handle("wanjuan:begin-project-migration", async (event, payload) => {
+    const blocked = rejectUntrustedIpc(event, "wanjuan:begin-project-migration");
+    return blocked || beginProjectMigration(payload || {});
+  });
+  ipcMain.handle("wanjuan:get-project-migration", async (event, payload) => {
+    const blocked = rejectUntrustedIpc(event, "wanjuan:get-project-migration");
+    return blocked || getProjectMigration(payload || {});
+  });
+  ipcMain.handle("wanjuan:list-incomplete-migrations", async (event, payload) => {
+    const blocked = rejectUntrustedIpc(event, "wanjuan:list-incomplete-migrations");
+    return blocked || listIncompleteMigrations(payload || {});
+  });
+  ipcMain.handle("wanjuan:save-project-migration-snapshot", async (event, payload) => {
+    const blocked = rejectUntrustedIpc(event, "wanjuan:save-project-migration-snapshot");
+    return blocked || saveProjectMigrationSnapshot(payload || {});
+  });
+  ipcMain.handle("wanjuan:load-project-migration-snapshot", async (event, payload) => {
+    const blocked = rejectUntrustedIpc(event, "wanjuan:load-project-migration-snapshot");
+    return blocked || loadProjectMigrationSnapshot(payload || {});
+  });
+  ipcMain.handle("wanjuan:cancel-project-migration", async (event, payload) => {
+    const blocked = rejectUntrustedIpc(event, "wanjuan:cancel-project-migration");
+    return blocked || cancelProjectMigration(payload || {});
+  });
+  ipcMain.handle("wanjuan:commit-project-migration", async (event, payload) => {
+    const blocked = rejectUntrustedIpc(event, "wanjuan:commit-project-migration");
+    return blocked || commitProjectMigration(payload || {});
+  });
+  ipcMain.handle("wanjuan:rollback-project-migration", async (event, payload) => {
+    const blocked = rejectUntrustedIpc(event, "wanjuan:rollback-project-migration");
+    return blocked || rollbackProjectMigration(payload || {});
+  });
+  ipcMain.handle("wanjuan:cleanup-unreferenced-blobs", async (event, payload) => {
+    const blocked = rejectUntrustedIpc(event, "wanjuan:cleanup-unreferenced-blobs");
+    return blocked || cleanupUnreferencedBlobs(payload || {});
+  });
+  ipcMain.handle("wanjuan:sync-project-references", async (event, payload) => {
+    const blocked = rejectUntrustedIpc(event, "wanjuan:sync-project-references");
+    return blocked || syncProjectReferences(payload || {});
+  });
+  ipcMain.handle("wanjuan:is-project-migration-locked", async (event, payload) => {
+    const blocked = rejectUntrustedIpc(event, "wanjuan:is-project-migration-locked");
+    return blocked || { ok: true, locked: isProjectMigrationLocked(payload || {}) };
   });
 
   ipcMain.handle("wanjuan:check-project-assets", async (event, payload) => {

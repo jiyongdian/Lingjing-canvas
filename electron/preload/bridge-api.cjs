@@ -208,6 +208,28 @@ exposeGlobal("wanjuanDesktop", {
     ipcRenderer.invoke("wanjuan:check-project-assets", { paths }),
   diagnoseProjectAssets: async (payload = {}) =>
     ipcRenderer.invoke("wanjuan:diagnose-project-assets", payload),
+  beginProjectMigration: async (payload = {}) =>
+    ipcRenderer.invoke("wanjuan:begin-project-migration", payload),
+  getProjectMigration: async (payload = {}) =>
+    ipcRenderer.invoke("wanjuan:get-project-migration", payload),
+  listIncompleteMigrations: async (payload = {}) =>
+    ipcRenderer.invoke("wanjuan:list-incomplete-migrations", payload),
+  saveProjectMigrationSnapshot: async (payload = {}) =>
+    ipcRenderer.invoke("wanjuan:save-project-migration-snapshot", payload),
+  loadProjectMigrationSnapshot: async (payload = {}) =>
+    ipcRenderer.invoke("wanjuan:load-project-migration-snapshot", payload),
+  cancelProjectMigration: async (payload = {}) =>
+    ipcRenderer.invoke("wanjuan:cancel-project-migration", payload),
+  commitProjectMigration: async (payload = {}) =>
+    ipcRenderer.invoke("wanjuan:commit-project-migration", payload),
+  rollbackProjectMigration: async (payload = {}) =>
+    ipcRenderer.invoke("wanjuan:rollback-project-migration", payload),
+  cleanupUnreferencedBlobs: async (payload = {}) =>
+    ipcRenderer.invoke("wanjuan:cleanup-unreferenced-blobs", payload),
+  syncProjectReferences: async (payload = {}) =>
+    ipcRenderer.invoke("wanjuan:sync-project-references", payload),
+  isProjectMigrationLocked: async (payload = {}) =>
+    ipcRenderer.invoke("wanjuan:is-project-migration-locked", typeof payload === "string" ? { projectId: payload } : payload),
   findProjectAssetsInFolder: async (payload = {}) =>
     ipcRenderer.invoke("wanjuan:find-project-assets-in-folder", payload),
 	  removeProjectAssets: async (payload = {}) =>

@@ -16,5 +16,14 @@ assert.match(source, /portableDataRef: void 0/);
 assert.match(source, /resolvedBinding\.missing &&\s*isProjectMediaFileBackedBinding/);
 assert.match(source, /binding\?\.missing &&\s*isProjectMediaFileBackedBinding/);
 assert.doesNotMatch(source, /binding\?\.missing &&\s*isExternalUploadedProjectAssetBinding/);
+assert.match(source, /saveProjectMigrationSnapshot/);
+assert.match(source, /syncProjectReferences/);
+assert.match(source, /main-process migration lock/);
+assert.match(source, /migration started during persistence/);
+assert.match(source, /recoverInterruptedProjectMigrations/);
+assert.match(source, /requireGlobalBlobs: !0/);
+assert.match(source, /cancelForcedArchiveMigration/);
+assert.match(source, /getForcedArchiveMigrationStatus/);
+assert.doesNotMatch(source, /migration-snapshot-v1-/);
 
 console.log("storage lab state policy guards passed");

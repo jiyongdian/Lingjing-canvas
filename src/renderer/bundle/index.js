@@ -16627,6 +16627,18 @@ wan2.7-videoedit-1080P`,
 	            }),
 	          edges: savedEdges.filter((edge) => edge.id !== `ghost-edge`),
 	        };
+      if (globalThis.__wanjuanProjectMigrationLocks?.has(currentProjectId)) {
+        console.warn(`Canvas save skipped while project migration is active`, currentProjectId);
+        return;
+      }
+      let mainMigrationLock = await window.wanjuanDesktop?.isProjectMigrationLocked?.({
+        projectId: currentProjectId,
+        directory: ``,
+      });
+      if (mainMigrationLock?.locked) {
+        console.warn(`Canvas save skipped by main-process migration lock`, currentProjectId);
+        return;
+      }
       try {
 	        (canvasState = await globalThis.prepareProjectMediaStateForPersistence(
 	          canvasState,
@@ -16656,7 +16668,22 @@ wan2.7-videoedit-1080P`,
 	            return;
 	          }
 	        }
+          mainMigrationLock = await window.wanjuanDesktop?.isProjectMigrationLocked?.({
+            projectId: currentProjectId,
+            directory: ``,
+          });
+          if (mainMigrationLock?.locked) {
+            console.warn(`Canvas save cancelled because migration started during persistence`, currentProjectId);
+            return;
+          }
 	        await X.default.setItem(storageKey, canvasState),
+          window.wanjuanDesktop?.syncProjectReferences &&
+          (await window.wanjuanDesktop.syncProjectReferences({
+            projectId: currentProjectId,
+            directory: ``,
+            references: [...globalThis.collectProjectFileReferences(canvasState)],
+            complete: !0,
+          })),
           typeof chrome < `u` &&
           chrome.storage &&
 	          chrome.storage.local &&
@@ -39140,6 +39167,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                           kind: `binary`,
                           directory: context.directory,
                           forceArchiveExistingFile: !0,
+                          migrationId: context.migrationId,
                         });
                         if (archivedAsset?.ok && archivedAsset.localPath)
                           return buildProjectMediaFileUrl(archivedAsset.localPath);
@@ -39198,6 +39226,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                                     assetId: binding.assetId,
                                     directory: n,
                                     forceArchiveExistingFile: !0,
+                                    migrationId: options.migrationId,
                                   });
                                 if (!archivedAsset?.ok || !archivedAsset.localPath)
                                   throw Error(archivedAsset?.error || `Project media archive failed`);
@@ -39285,6 +39314,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                                 kind: getProjectMediaBindingKind(bindingKey, node),
                                 assetId: binding.assetId,
                                 directory: n,
+                                migrationId: options.migrationId,
                               }),
                               fileBacked = persistedAsset?.localPath &&
                                 isProjectMediaFileBackedBinding(persistedAsset, bindingKey, kind);
@@ -39333,6 +39363,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                             projectId: projectId,
                             nodeId: node.id,
                             directory: n,
+                            migrationId: options.migrationId,
                           }));
                         return {
                           ...node,
@@ -39345,6 +39376,145 @@ ${String(l || ``).slice(0, 5e4)}`;
                     );
                     return clonedState;
                   }),
+                  collectProjectFileReferences = (value, references = new Set()) => {
+                    if (typeof value == `string` && value.startsWith(`file://`)) {
+                      try {
+                        references.add(decodeURIComponent(new URL(value).pathname));
+                      } catch {}
+                      return references;
+                    }
+                    if (Array.isArray(value)) {
+                      value.forEach((item) => collectProjectFileReferences(item, references));
+                      return references;
+                    }
+                    if (value && typeof value == `object`)
+                      Object.values(value).forEach((item) => collectProjectFileReferences(item, references));
+                    return references;
+                  },
+                  exposeProjectFileReferenceCollector =
+                  (globalThis.collectProjectFileReferences = collectProjectFileReferences),
+                  projectMigrationLocks = (globalThis.__wanjuanProjectMigrationLocks ||= new Set()),
+                  activeProjectMigrations = (globalThis.__wanjuanActiveProjectMigrations ||= new Map()),
+                  getForcedArchiveMigrationStatus =
+                  (globalThis.getForcedArchiveMigrationStatus = async (projectId) => {
+                    let migrationId = activeProjectMigrations.get(projectId);
+                    return migrationId ?
+                      window.wanjuanDesktop?.getProjectMigration?.({
+                        migrationId: migrationId
+                      }) :
+                      {
+                        ok: !1,
+                        error: `MIGRATION_NOT_FOUND`
+                      };
+                  }),
+                  cancelForcedArchiveMigration =
+                  (globalThis.cancelForcedArchiveMigration = async (projectId) => {
+                    let migrationId = activeProjectMigrations.get(projectId);
+                    return migrationId ?
+                      window.wanjuanDesktop?.cancelProjectMigration?.({
+                        migrationId: migrationId
+                      }) :
+                      {
+                        ok: !1,
+                        error: `MIGRATION_NOT_FOUND`
+                      };
+                  }),
+                  runForcedArchiveMigration =
+                  (globalThis.runForcedArchiveMigration = async (projectId, directory, options = {}) => {
+                    if (!X.default || !window.wanjuanDesktop?.beginProjectMigration)
+                      throw Error(`Migration API unavailable`);
+                    if (options.currentProjectId === projectId)
+                      throw Error(`CURRENT_PROJECT_MUST_BE_CLOSED`);
+                    if (projectMigrationLocks.has(projectId))
+                      throw Error(`PROJECT_MIGRATION_LOCKED`);
+                    let storageKey = getProjectCanvasStorageKey(projectId),
+                      originalState = await X.default.getItem(storageKey);
+                    if (!originalState) throw Error(`PROJECT_STATE_NOT_FOUND`);
+                    let begin = await window.wanjuanDesktop.beginProjectMigration({
+                      projectId: projectId,
+                      directory: directory,
+                      total: Array.isArray(originalState.nodes) ? originalState.nodes.length : 0,
+                    });
+                    if (!begin?.ok) throw Error(begin?.error || `Migration begin failed`);
+                    let migrationId = begin.migrationId;
+                    projectMigrationLocks.add(projectId);
+                    activeProjectMigrations.set(projectId, migrationId);
+                    let snapshot = await window.wanjuanDesktop.saveProjectMigrationSnapshot({
+                      migrationId: migrationId,
+                      projectId: projectId,
+                      state: originalState,
+                    });
+                    if (!snapshot?.ok) throw Error(snapshot?.error || `Migration snapshot failed`);
+                    try {
+                      let migratedState = await globalThis.prepareProjectMediaStateForPersistence(
+                        originalState,
+                        projectId,
+                        directory,
+                        {
+                          forceRehomeExistingFiles: !0,
+                          migrationId: migrationId,
+                        },
+                      );
+                      let references = [...collectProjectFileReferences(migratedState)];
+                      let check = await window.wanjuanDesktop.checkProjectAssets(references);
+                      let missing = (check?.assets || []).filter((asset) => !asset.exists);
+                      if (missing.length) throw Error(`MIGRATION_REFERENCE_MISSING:${missing.length}`);
+                      await X.default.setItem(storageKey, migratedState);
+                      let committed = await window.wanjuanDesktop.commitProjectMigration({
+                        migrationId: migrationId,
+                        references: references,
+                        requireGlobalBlobs: !0,
+                      });
+                      if (!committed?.ok) throw Error(committed?.error || `Migration commit failed`);
+                      return {
+                        ok: !0,
+                        migrationId: migrationId,
+                        state: migratedState,
+                        references: references,
+                        session: committed.session,
+                      };
+                    } catch (error) {
+                      await X.default.setItem(storageKey, originalState);
+                      await window.wanjuanDesktop.rollbackProjectMigration({
+                        migrationId: migrationId,
+                        error: String(error?.message || error),
+                      });
+                      throw error;
+                    } finally {
+                      projectMigrationLocks.delete(projectId);
+                      activeProjectMigrations.delete(projectId);
+                    }
+                  }),
+                  recoverInterruptedProjectMigrations =
+                  (globalThis.recoverInterruptedProjectMigrations = async (directory = ``) => {
+                    if (!X.default || !window.wanjuanDesktop?.listIncompleteMigrations) return [];
+                    let result = await window.wanjuanDesktop.listIncompleteMigrations({
+                        directory: directory
+                      }),
+                      recovered = [];
+                    for (let session of result?.migrations || []) {
+                      try {
+                        let snapshot = await window.wanjuanDesktop.loadProjectMigrationSnapshot({
+                          migrationId: session.id,
+                          directory: directory,
+                        });
+                        if (!snapshot?.ok) throw Error(snapshot?.error || `Migration snapshot unavailable`);
+                        await X.default.setItem(getProjectCanvasStorageKey(session.projectId), snapshot.state);
+                        await window.wanjuanDesktop.rollbackProjectMigration({
+                          migrationId: session.id,
+                          directory: directory,
+                          error: `Recovered after interrupted migration`,
+                        });
+                        recovered.push(session.projectId);
+                      } catch (error) {
+                        console.error(`Interrupted project migration recovery failed`, session.projectId, error);
+                      }
+                    }
+                    return recovered;
+                  }),
+                  scheduleInterruptedMigrationRecovery = setTimeout(() => {
+                    globalThis.recoverInterruptedProjectMigrations?.(``).catch(console.error);
+                  }, 1500),
                   buildProjectLocalforagePayload = (e, projectIds = []) => {
                     let canvasStates = {},
                       assetRefs = new Set(),

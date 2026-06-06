@@ -5,6 +5,10 @@ const { sha256Buffer, sha256File } = require("../utils/crypto.cjs");
 
 const pendingWrites = new Map();
 
+function globalContentRoot(mediaRoot) {
+  return path.join(mediaRoot, "_blobs");
+}
+
 function contentAddressedPath(projectRoot, buffer, extension = "") {
   const sha256 = sha256Buffer(buffer);
   const normalizedExtension = String(extension || "").startsWith(".") ? extension : extension ? `.${extension}` : "";
@@ -148,6 +152,7 @@ function diagnoseContentStore(root) {
 
 module.exports = {
   contentAddressedPath,
+  globalContentRoot,
   writeContentAddressedFile,
   writeContentAddressedFileFromPath,
   diagnoseContentStore
