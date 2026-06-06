@@ -26,6 +26,7 @@ const { extractKnowledgeFileText } = require("./knowledge.cjs");
 const { normalizeImagePayload, bufferFromDownloadPayload, bufferFromMediaPayload } = require("./media/payload.cjs");
 const {
   persistProjectAsset,
+  diagnoseProjectAssets,
   checkProjectAssets,
   findProjectAssetsInFolder,
   removeProjectAssets,
@@ -35,6 +36,28 @@ const {
   copyExternalProjectAssetFiles,
   injectExternalAssetBundleSummary,
 } = require("./assets/project-assets.cjs");
+const {
+  beginProjectMigration,
+  getProjectMigration,
+  listIncompleteMigrations,
+  saveProjectMigrationSnapshot,
+  loadProjectMigrationSnapshot,
+  cancelProjectMigration,
+  commitProjectMigration,
+  rollbackProjectMigration,
+  syncProjectReferences,
+  cleanupUnreferencedBlobs,
+  isProjectMigrationLocked,
+} = require("./assets/migration-manager.cjs");
+const {
+  rebuildReferenceIndex,
+  scanReclaimable,
+  moveUnreferencedToTrash,
+  listTrash,
+  restoreTrash,
+  purgeTrash,
+  getStorageOptimizationStatus,
+} = require("./assets/storage-optimization.cjs");
 const {
   getQwenTtsToolStatus,
   installQwenTtsTool,
@@ -531,6 +554,79 @@ function registerDesktopIpc() {
     }
   });
 
+  ipcMain.handle("wanjuan:begin-project-migration", async (event, payload) => {
+    const blocked = rejectUntrustedIpc(event, "wanjuan:begin-project-migration");
+    return blocked || beginProjectMigration(payload || {});
+  });
+  ipcMain.handle("wanjuan:get-project-migration", async (event, payload) => {
+    const blocked = rejectUntrustedIpc(event, "wanjuan:get-project-migration");
+    return blocked || getProjectMigration(payload || {});
+  });
+  ipcMain.handle("wanjuan:list-incomplete-migrations", async (event, payload) => {
+    const blocked = rejectUntrustedIpc(event, "wanjuan:list-incomplete-migrations");
+    return blocked || listIncompleteMigrations(payload || {});
+  });
+  ipcMain.handle("wanjuan:save-project-migration-snapshot", async (event, payload) => {
+    const blocked = rejectUntrustedIpc(event, "wanjuan:save-project-migration-snapshot");
+    return blocked || saveProjectMigrationSnapshot(payload || {});
+  });
+  ipcMain.handle("wanjuan:load-project-migration-snapshot", async (event, payload) => {
+    const blocked = rejectUntrustedIpc(event, "wanjuan:load-project-migration-snapshot");
+    return blocked || loadProjectMigrationSnapshot(payload || {});
+  });
+  ipcMain.handle("wanjuan:cancel-project-migration", async (event, payload) => {
+    const blocked = rejectUntrustedIpc(event, "wanjuan:cancel-project-migration");
+    return blocked || cancelProjectMigration(payload || {});
+  });
+  ipcMain.handle("wanjuan:commit-project-migration", async (event, payload) => {
+    const blocked = rejectUntrustedIpc(event, "wanjuan:commit-project-migration");
+    return blocked || commitProjectMigration(payload || {});
+  });
+  ipcMain.handle("wanjuan:rollback-project-migration", async (event, payload) => {
+    const blocked = rejectUntrustedIpc(event, "wanjuan:rollback-project-migration");
+    return blocked || rollbackProjectMigration(payload || {});
+  });
+  ipcMain.handle("wanjuan:cleanup-unreferenced-blobs", async (event, payload) => {
+    const blocked = rejectUntrustedIpc(event, "wanjuan:cleanup-unreferenced-blobs");
+    return blocked || cleanupUnreferencedBlobs(payload || {});
+  });
+  ipcMain.handle("wanjuan:sync-project-references", async (event, payload) => {
+    const blocked = rejectUntrustedIpc(event, "wanjuan:sync-project-references");
+    return blocked || syncProjectReferences(payload || {});
+  });
+  ipcMain.handle("wanjuan:is-project-migration-locked", async (event, payload) => {
+    const blocked = rejectUntrustedIpc(event, "wanjuan:is-project-migration-locked");
+    return blocked || { ok: true, locked: isProjectMigrationLocked(payload || {}) };
+  });
+  ipcMain.handle("wanjuan:storage-optimization-status", async (event, payload) => {
+    const blocked = rejectUntrustedIpc(event, "wanjuan:storage-optimization-status");
+    return blocked || getStorageOptimizationStatus(payload || {});
+  });
+  ipcMain.handle("wanjuan:rebuild-storage-reference-index", async (event, payload) => {
+    const blocked = rejectUntrustedIpc(event, "wanjuan:rebuild-storage-reference-index");
+    return blocked || rebuildReferenceIndex(payload || {});
+  });
+  ipcMain.handle("wanjuan:scan-storage-reclaimable", async (event, payload) => {
+    const blocked = rejectUntrustedIpc(event, "wanjuan:scan-storage-reclaimable");
+    return blocked || scanReclaimable(payload || {});
+  });
+  ipcMain.handle("wanjuan:move-unreferenced-media-to-trash", async (event, payload) => {
+    const blocked = rejectUntrustedIpc(event, "wanjuan:move-unreferenced-media-to-trash");
+    return blocked || moveUnreferencedToTrash(payload || {});
+  });
+  ipcMain.handle("wanjuan:list-storage-trash", async (event, payload) => {
+    const blocked = rejectUntrustedIpc(event, "wanjuan:list-storage-trash");
+    return blocked || listTrash(payload || {});
+  });
+  ipcMain.handle("wanjuan:restore-storage-trash", async (event, payload) => {
+    const blocked = rejectUntrustedIpc(event, "wanjuan:restore-storage-trash");
+    return blocked || restoreTrash(payload || {});
+  });
+  ipcMain.handle("wanjuan:purge-storage-trash", async (event, payload) => {
+    const blocked = rejectUntrustedIpc(event, "wanjuan:purge-storage-trash");
+    return blocked || purgeTrash(payload || {});
+  });
+
   ipcMain.handle("wanjuan:check-project-assets", async (event, payload) => {
     const blocked = rejectUntrustedIpc(event, "wanjuan:check-project-assets");
     if (blocked) return blocked;
@@ -539,6 +635,17 @@ function registerDesktopIpc() {
     } catch (error) {
       console.error("check-project-assets failed", error);
       return { ok: false, error: formatErrorMessage(error), assets: [] };
+    }
+  });
+
+  ipcMain.handle("wanjuan:diagnose-project-assets", async (event, payload) => {
+    const blocked = rejectUntrustedIpc(event, "wanjuan:diagnose-project-assets");
+    if (blocked) return blocked;
+    try {
+      return diagnoseProjectAssets(payload || {});
+    } catch (error) {
+      console.error("diagnose-project-assets failed", error);
+      return { ok: false, error: formatErrorMessage(error) };
     }
   });
 

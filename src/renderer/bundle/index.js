@@ -16602,6 +16602,7 @@ wan2.7-videoedit-1080P`,
     desktopCanvasMirrorPrefix = `desktop-canvas-state-v1-`,
 	    saveCanvasState = useCallback(async () => {
 	      if (!shouldFitViewRef.current) return;
+	      globalThis.__wanjuanLastCanvasActivityAt = Date.now();
 	      try {
 	        globalThis.__wanjuanProjectSafetyRetryCanvasSave = saveCanvasState;
 	      } catch {}
@@ -16627,6 +16628,22 @@ wan2.7-videoedit-1080P`,
 	            }),
 	          edges: savedEdges.filter((edge) => edge.id !== `ghost-edge`),
 	        };
+      if (globalThis.__wanjuanProjectMigrationLocks?.has(currentProjectId)) {
+        console.warn(`Canvas save skipped while project migration is active`, currentProjectId);
+        return;
+      }
+      if (globalThis.__wanjuanStorageMaintenanceRunning) {
+        console.warn(`Canvas save skipped while storage maintenance is active`, currentProjectId);
+        return;
+      }
+      let mainMigrationLock = await window.wanjuanDesktop?.isProjectMigrationLocked?.({
+        projectId: currentProjectId,
+        directory: ``,
+      });
+      if (mainMigrationLock?.locked) {
+        console.warn(`Canvas save skipped by main-process migration lock`, currentProjectId);
+        return;
+      }
       try {
 	        (canvasState = await globalThis.prepareProjectMediaStateForPersistence(
 	          canvasState,
@@ -16656,7 +16673,26 @@ wan2.7-videoedit-1080P`,
 	            return;
 	          }
 	        }
+          mainMigrationLock = await window.wanjuanDesktop?.isProjectMigrationLocked?.({
+            projectId: currentProjectId,
+            directory: ``,
+          });
+          if (mainMigrationLock?.locked) {
+            console.warn(`Canvas save cancelled because migration started during persistence`, currentProjectId);
+            return;
+          }
+          if (globalThis.__wanjuanStorageMaintenanceRunning) {
+            console.warn(`Canvas save cancelled because storage maintenance started during persistence`, currentProjectId);
+            return;
+          }
 	        await X.default.setItem(storageKey, canvasState),
+          window.wanjuanDesktop?.syncProjectReferences &&
+          (await window.wanjuanDesktop.syncProjectReferences({
+            projectId: currentProjectId,
+            directory: ``,
+            references: [...globalThis.collectProjectFileReferences(canvasState)],
+            complete: !0,
+          })),
           typeof chrome < `u` &&
           chrome.storage &&
 	          chrome.storage.local &&
@@ -16939,7 +16975,7 @@ wan2.7-videoedit-1080P`,
     relinkMissingProjectAssetsFromFolder = useCallback(async () => {
       let missingMediaEntries = globalThis.getMissingProjectMediaEntries(nodesRef.current);
       if (!missingMediaEntries.length) {
-        window.alert(`当前项目没有检测到需要批量重连的外部上传素材`);
+        window.alert(`当前项目没有检测到需要批量重连的本地媒体素材`);
         return;
       }
       if (
@@ -17474,7 +17510,7 @@ wan2.7-videoedit-1080P`,
 		          document.body.appendChild(bannerEl));
 		      (bannerEl.querySelector(`[data-relink-label]`) ||
 		        (bannerEl.innerHTML = `<span data-relink-label style="display:block;padding-right:28px;"></span><div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;"><button data-relink-folder style="appearance:none;border:1px solid rgba(255,255,255,0.32);background:rgba(255,255,255,0.18);color:#fff;border-radius:8px;padding:6px 9px;font-size:12px;font-weight:700;cursor:pointer;">立即链接丢失文件</button><button data-relink-single style="appearance:none;border:1px solid rgba(255,255,255,0.22);background:rgba(0,0,0,0.12);color:#fff;border-radius:8px;padding:6px 9px;font-size:12px;font-weight:700;cursor:pointer;">逐个选择</button><button data-relink-never style="appearance:none;border:1px solid rgba(255,255,255,0.18);background:rgba(0,0,0,0.18);color:#ffe8e8;border-radius:8px;padding:6px 9px;font-size:12px;font-weight:700;cursor:pointer;">关闭提示不再询问</button></div><span data-relink-close title="关闭" aria-label="关闭" style="position:absolute;right:10px;top:10px;display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:999px;font-size:20px;line-height:22px;color:#fff;background:rgba(255,255,255,0.16);border:1px solid rgba(255,255,255,0.28);flex:0 0 auto;">&times;</span>`));
-		      ((bannerEl.querySelector(`[data-relink-label]`).textContent = `检测到 ${missingCount} 个外部上传素材丢失`),
+		      ((bannerEl.querySelector(`[data-relink-label]`).textContent = `检测到 ${missingCount} 个本地媒体素材丢失`),
 		        (bannerEl.onclick = (event) => {
 		          if (event?.target?.closest?.(`[data-relink-close]`)) {
 		            globalThis.__wanjuanAssetRelinkBannerDismissedCount = missingCount;
@@ -29262,6 +29298,11 @@ Suno 音乐生成`,
   [themeMode, setThemeMode] = useState(`graphite`),
   [appLanguage, setAppLanguage] = useState(`zh-CN`),
   [downloadDirectory, setDownloadDirectory] = useState(``),
+  [storageOptimizationEnabled, setStorageOptimizationEnabled] = useState(!1),
+  [storageOptimizationPaused, setStorageOptimizationPaused] = useState(!1),
+  [storageOptimizationStatus, setStorageOptimizationStatus] = useState(null),
+  [storageOptimizationBusy, setStorageOptimizationBusy] = useState(!1),
+  [storageOptimizationLastResult, setStorageOptimizationLastResult] = useState(``),
   [videoResolutions, setVideoResolutions] = useState(`1280x720
 		720x1280
 		1080x720
@@ -29900,6 +29941,8 @@ time=1h`,
             appLanguage: appLanguage,
             uiLanguage: appLanguage,
             downloadDirectory: downloadDirectory,
+            storageOptimizationEnabled: storageOptimizationEnabled,
+            storageOptimizationPaused: storageOptimizationPaused,
             presetPrompts: presetPrompts,
             layeredRunConcurrencyOptions: layeredRunConcurrencyOptions,
             layeredRunMaxConcurrency: layeredRunMaxConcurrency,
@@ -33347,6 +33390,8 @@ ${docText}`;
                   `appLanguage`,
                   `uiLanguage`,
                   `downloadDirectory`,
+                  `storageOptimizationEnabled`,
+                  `storageOptimizationPaused`,
                   `backupExportSelection`,
                   `backupImportSelection`,
                   `audioModel`,
@@ -33557,6 +33602,10 @@ ${docText}`;
                     setAppLanguage(settings.appLanguage || settings.uiLanguage),
                     settings.downloadDirectory &&
                     setDownloadDirectory(settings.downloadDirectory),
+                    settings.storageOptimizationEnabled === !0 &&
+                    setStorageOptimizationEnabled(!0),
+                    settings.storageOptimizationPaused === !0 &&
+                    setStorageOptimizationPaused(!0),
                     Array.isArray(settings.backupExportSelection) &&
                     settings.backupExportSelection.length > 0 &&
                     setBackupExportSelection(settings.backupExportSelection),
@@ -33664,6 +33713,8 @@ ${docText}`;
       themeMode,
       appLanguage,
       downloadDirectory,
+      storageOptimizationEnabled,
+      storageOptimizationPaused,
       presetPrompts,
       layeredRunConcurrencyOptions,
       layeredRunMaxConcurrency,
@@ -33672,6 +33723,30 @@ ${docText}`;
       selectedAgentId,
       agentConversations,
     ]),
+    useEffect(() => {
+      globalThis.__wanjuanLastCanvasActivityAt = Date.now();
+    }, [activeProjectId]),
+    useEffect(() => {
+      if (!storageOptimizationEnabled || storageOptimizationPaused) return;
+      let timer = setInterval(() => {
+        let hasActiveTask = globalTasks.some((task) => task?.status === `running` || task?.status === `pending`);
+        if (hasActiveTask || Date.now() - Number(globalThis.__wanjuanLastCanvasActivityAt || 0) < 3e4) return;
+        globalThis.__wanjuanRunNextStorageMigration?.(!0);
+      }, 15e3);
+      return () => clearInterval(timer);
+    }, [storageOptimizationEnabled, storageOptimizationPaused, globalTasks, activeProjectId]),
+    useEffect(() => {
+      activeSettingsTab === `data` && window.wanjuanDesktop?.getStorageOptimizationStatus?.({
+        directory: downloadDirectory
+      }).then((result) => result?.ok && setStorageOptimizationStatus(result)).catch(console.error);
+    }, [activeSettingsTab, downloadDirectory]),
+    useEffect(() => {
+      if (!storageOptimizationEnabled) return;
+      let previous = globalThis.__wanjuanStorageOptimizationDirectory;
+      if (previous !== void 0 && previous !== downloadDirectory)
+        setStorageOptimizationLastResult(`下载目录已更改。新结果写入新媒体库，旧媒体库保持只读可用；如需集中存放，请手动搬迁。`);
+      globalThis.__wanjuanStorageOptimizationDirectory = downloadDirectory;
+    }, [storageOptimizationEnabled, downloadDirectory]),
     useEffect(() => () => {
       nonModelSettingsSaveTimerRef.current &&
         clearTimeout(nonModelSettingsSaveTimerRef.current);
@@ -34664,6 +34739,343 @@ ${docText}`;
               showToast2(`项目已删除`));
           }
         },
+        storageStatusLabels = {
+          unoptimized: `未优化`,
+          queued: `等待迁移`,
+          migrating: `迁移中`,
+          optimized: `已优化`,
+          authorization: `需要授权`,
+          failed: `迁移失败`,
+        },
+        formatStorageBytes = (value) => {
+          let bytes = Number(value || 0);
+          if (bytes < 1024) return `${bytes} B`;
+          if (bytes < 1048576) return `${(bytes / 1024).toFixed(1)} KB`;
+          if (bytes < 1073741824) return `${(bytes / 1048576).toFixed(1)} MB`;
+          return `${(bytes / 1073741824).toFixed(2)} GB`;
+        },
+        persistProjectsWithStorageState = (projectId, storageStatus, storageDetail = ``) => {
+          let updatedProjects = projects.map((project) => project.id === projectId ? {
+            ...project,
+            storageStatus: storageStatus,
+            storageDetail: storageDetail,
+            storageUpdatedAt: Date.now(),
+          } : project);
+          (setProjects(updatedProjects),
+            _ && chrome.storage.local.set({
+              projects: updatedProjects
+            }));
+          return updatedProjects;
+        },
+        refreshStorageOptimizationStatus = async () => {
+          let result = await window.wanjuanDesktop?.getStorageOptimizationStatus?.({
+            directory: downloadDirectory
+          });
+          result?.ok && setStorageOptimizationStatus(result);
+          return result;
+        },
+        buildCompleteStorageReferenceIndex = async () => {
+          let indexedProjects = [];
+          for (let project of projects) {
+            let state = await X.default?.getItem(getProjectCanvasStorageKey(project.id));
+            indexedProjects.push({
+              projectId: project.id,
+              complete: !!state,
+              references: state ? [...globalThis.collectProjectFileReferences(state)] : [],
+            });
+          }
+          let result = await window.wanjuanDesktop?.rebuildStorageReferenceIndex?.({
+            directory: downloadDirectory,
+            projects: indexedProjects,
+          });
+          result?.ok && (await refreshStorageOptimizationStatus());
+          return result;
+        },
+        runStorageMigrationForProject = async (projectId, automatic = !1) => {
+          if (!storageOptimizationEnabled) {
+            automatic || showToast2(`请先启用存储优化`);
+            return {
+              ok: !1,
+              error: `STORAGE_OPTIMIZATION_DISABLED`
+            };
+          }
+          if (projectId === activeProjectId) {
+            persistProjectsWithStorageState(projectId, `queued`, `切换到其他项目后将在空闲时迁移`);
+            automatic || showToast2(`当前项目已加入优先队列，切换项目后执行`);
+            return {
+              ok: !1,
+              error: `CURRENT_PROJECT_MUST_BE_CLOSED`
+            };
+          }
+          if (globalThis.__wanjuanStorageMigrationRunning) return {
+            ok: !1,
+            error: `STORAGE_MIGRATION_BUSY`
+          };
+          globalThis.__wanjuanStorageMigrationRunning = !0;
+          persistProjectsWithStorageState(projectId, `migrating`, ``);
+          try {
+            let result = await globalThis.runForcedArchiveMigration(projectId, downloadDirectory, {
+              currentProjectId: activeProjectId
+            });
+            persistProjectsWithStorageState(projectId, `optimized`, `迁移完成`);
+            setStorageOptimizationLastResult(`项目迁移完成：${projects.find((project) => project.id === projectId)?.name || projectId}`);
+            await refreshStorageOptimizationStatus();
+            return result;
+          } catch (error) {
+            let message = String(error?.message || error),
+              status = /permission|access|EACCES|EPERM/i.test(message) ? `authorization` : `failed`;
+            persistProjectsWithStorageState(projectId, status, message);
+            setStorageOptimizationLastResult(`项目迁移失败并已恢复：${message}`);
+            automatic || showToast2(`迁移失败，原项目已恢复`);
+            return {
+              ok: !1,
+              error: message
+            };
+          } finally {
+            globalThis.__wanjuanStorageMigrationRunning = !1;
+          }
+        },
+        runNextStorageMigration =
+        (globalThis.__wanjuanRunNextStorageMigration = async (automatic = !1) => {
+          if (!storageOptimizationEnabled || storageOptimizationPaused || globalThis.__wanjuanStorageMigrationRunning) return;
+          let candidate = projects.find((project) => project.id !== activeProjectId && [`queued`, `unoptimized`, void 0].includes(project.storageStatus));
+          if (!candidate) {
+            if (automatic && Date.now() - Number(globalThis.__wanjuanLastTrashPurgeAt || 0) > 864e5) {
+              globalThis.__wanjuanLastTrashPurgeAt = Date.now();
+              await window.wanjuanDesktop?.purgeStorageTrash?.({
+                directory: downloadDirectory,
+                olderThanDays: 30,
+                confirm: !0,
+              });
+            }
+            return;
+          }
+          return runStorageMigrationForProject(candidate.id, automatic);
+        }),
+        enableStorageOptimization = async () => {
+          let status = await refreshStorageOptimizationStatus();
+          if (!status?.ok) {
+            showToast2(`无法检查媒体库状态`);
+            return;
+          }
+          if (!status.writable) {
+            setStorageOptimizationLastResult(`媒体库不可写：${status.accessError || `需要文件访问授权`}`);
+            showToast2(`媒体库不可写，请先在生成设置中选择可访问的下载目录`);
+            return;
+          }
+          if (!confirm(`启用后，新生成结果会写入全局媒体池，旧项目仅在空闲且未打开时逐个迁移。\n\n媒体库：${status.libraryPath}\n可用空间：${status.freeBytes == null ? `未知` : formatStorageBytes(status.freeBytes)}\n\n是否启用？`)) return;
+          let updatedProjects = projects.map((project) => ({
+            ...project,
+            storageStatus: project.storageStatus === `optimized` ? `optimized` : `queued`,
+            storageDetail: project.id === activeProjectId ? `切换项目后迁移` : `等待空闲迁移`,
+          }));
+          (setStorageOptimizationEnabled(!0),
+            setStorageOptimizationPaused(!1),
+            setProjects(updatedProjects),
+            chrome.storage.local.set({
+              storageOptimizationEnabled: !0,
+              storageOptimizationPaused: !1,
+              projects: updatedProjects,
+            }),
+            setStorageOptimizationLastResult(`已启用，等待应用空闲后迁移旧项目`));
+        },
+        scanStorageOptimization = async () => {
+          setStorageOptimizationBusy(!0);
+          globalThis.__wanjuanStorageMaintenanceRunning = !0;
+          try {
+            await new Promise((resolve) => setTimeout(resolve, 300));
+            let index = await buildCompleteStorageReferenceIndex();
+            if (!index?.ok || !index.index?.complete) {
+              setStorageOptimizationLastResult(`扫描未通过：存在未建立画布状态或缺失引用的项目`);
+              showToast2(`引用索引不完整，已拒绝清理`);
+              return;
+            }
+            let scan = await window.wanjuanDesktop.scanStorageReclaimable({
+              directory: downloadDirectory
+            });
+            setStorageOptimizationLastResult(scan?.ok ? `扫描完成：${scan.candidateCount} 个文件，可释放 ${formatStorageBytes(scan.candidateBytes)}` : `扫描失败：${scan?.error || `未知错误`}`);
+            await refreshStorageOptimizationStatus();
+          } finally {
+            globalThis.__wanjuanStorageMaintenanceRunning = !1;
+            setStorageOptimizationBusy(!1);
+          }
+        },
+        cleanStorageOptimization = async () => {
+          setStorageOptimizationBusy(!0);
+          globalThis.__wanjuanStorageMaintenanceRunning = !0;
+          try {
+            await new Promise((resolve) => setTimeout(resolve, 300));
+            let index = await buildCompleteStorageReferenceIndex();
+            if (!index?.ok || !index.index?.complete) {
+              showToast2(`引用索引不完整，已拒绝清理`);
+              return;
+            }
+            let scan = await window.wanjuanDesktop.scanStorageReclaimable({
+              directory: downloadDirectory
+            });
+            if (!scan?.ok || !scan.candidateCount) {
+              showToast2(`没有可清理的未引用媒体`);
+              return;
+            }
+            if (!confirm(`将 ${scan.candidateCount} 个未引用文件（${formatStorageBytes(scan.candidateBytes)}）移入 30 天回收区？`)) return;
+            let result = await window.wanjuanDesktop.moveUnreferencedMediaToTrash({
+              directory: downloadDirectory,
+              confirm: !0,
+            });
+            setStorageOptimizationLastResult(result?.ok ? `已移入回收区：${result.movedCount} 个文件` : `清理失败：${result?.error || `未知错误`}`);
+            await refreshStorageOptimizationStatus();
+          } finally {
+            globalThis.__wanjuanStorageMaintenanceRunning = !1;
+            setStorageOptimizationBusy(!1);
+          }
+        },
+        restoreStorageOptimizationTrash = async () => {
+          let result = await window.wanjuanDesktop?.restoreStorageTrash?.({
+            directory: downloadDirectory
+          });
+          setStorageOptimizationLastResult(result?.ok ? `已恢复 ${result.restoredCount} 个回收区文件` : `恢复失败`);
+          await refreshStorageOptimizationStatus();
+        },
+        purgeStorageOptimizationTrash = async () => {
+          if (!confirm(`永久删除回收区内超过 30 天的文件？此操作无法撤销。`)) return;
+          let result = await window.wanjuanDesktop?.purgeStorageTrash?.({
+            directory: downloadDirectory,
+            olderThanDays: 30,
+            confirm: !0,
+          });
+          setStorageOptimizationLastResult(result?.ok ? `已永久删除 ${result.purgedFiles} 个过期文件` : `永久删除失败`);
+          await refreshStorageOptimizationStatus();
+        },
+        showStorageOptimizationDetails = () => {
+          let lines = projects.map((project) => `${project.name}：${projectStorageLabel(project)}${project.storageDetail ? ` · ${project.storageDetail}` : ``}`);
+          alert(`存储优化详细记录\n\n${lines.join(`\n`) || `暂无项目记录`}\n\n最近结果：${storageOptimizationLastResult || `暂无`}`);
+        },
+        manageStorageOptimizationTrash = async () => {
+          let result = await window.wanjuanDesktop?.listStorageTrash?.({
+            directory: downloadDirectory
+          });
+          alert(result?.ok ? `回收区共有 ${result.totalFiles} 个文件，占用 ${formatStorageBytes(result.totalBytes)}。\n\n可使用“恢复回收区”恢复全部文件，或永久删除超过 30 天的文件。` : `无法读取回收区：${result?.error || `未知错误`}`);
+        },
+        renderStorageOptimizationPanel = () =>
+        jsxs(`div`, {
+          className: `mx-4 mt-4 rounded-xl border border-[#3a414c] bg-[#171a1f] p-4 space-y-4 wanjuan-settings-subcard`,
+          children: [
+            jsxs(`div`, {
+              className: `flex items-start justify-between gap-4`,
+              children: [
+                jsxs(`div`, {
+                  children: [
+                    jsx(`div`, {
+                      className: `text-sm font-bold text-gray-100`,
+                      children: `存储优化`,
+                    }),
+                    jsx(`div`, {
+                      className: `mt-1 text-xs text-gray-500`,
+                      children: storageOptimizationEnabled ? storageOptimizationPaused ? `已暂停自动迁移` : globalThis.__wanjuanStorageMigrationRunning ? `正在迁移项目` : `已启用，等待空闲迁移` : `未启用，现有存储行为保持不变`,
+                    }),
+                  ],
+                }),
+                !storageOptimizationEnabled ?
+                jsx(`button`, {
+                  onClick: enableStorageOptimization,
+                  className: `rounded-lg border border-blue-500/50 bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-500`,
+                  children: `启用存储优化`,
+                }) :
+                jsx(`button`, {
+                  onClick: () => {
+                    let next = !storageOptimizationPaused;
+                    (setStorageOptimizationPaused(next),
+                      chrome.storage.local.set({
+                        storageOptimizationPaused: next
+                      }),
+                      setStorageOptimizationLastResult(next ? `已暂停自动迁移` : `已继续自动迁移`));
+                  },
+                  className: `rounded-lg border border-[#444] bg-[#252a31] px-3 py-2 text-xs text-gray-200 hover:border-blue-500`,
+                  children: storageOptimizationPaused ? `继续自动迁移` : `暂停自动迁移`,
+                }),
+              ],
+            }),
+            jsxs(`div`, {
+              className: `grid grid-cols-2 md:grid-cols-4 gap-2`,
+              children: [
+                [`媒体池占用`, formatStorageBytes(storageOptimizationStatus?.blobBytes)],
+                [`媒体文件`, `${storageOptimizationStatus?.blobCount || 0} 个`],
+                [`回收区`, formatStorageBytes(storageOptimizationStatus?.trashBytes)],
+                [`已优化项目`, `${projects.filter((project) => project.storageStatus === `optimized`).length}/${projects.length}`],
+              ].map((item) => jsxs(`div`, {
+                className: `rounded-lg border border-[#303640] bg-[#20242a] p-3`,
+                children: [
+                  jsx(`div`, {
+                    className: `text-[10px] text-gray-500`,
+                    children: item[0],
+                  }),
+                  jsx(`div`, {
+                    className: `mt-1 text-xs font-semibold text-gray-200`,
+                    children: item[1],
+                  }),
+                ],
+              }, item[0])),
+            }),
+            jsx(`div`, {
+              className: `truncate text-[11px] text-gray-500`,
+              title: storageOptimizationStatus?.libraryPath || downloadDirectory,
+              children: `媒体库：${storageOptimizationStatus?.libraryPath || downloadDirectory || `默认下载目录`}`,
+            }),
+            jsx(`div`, {
+              className: `text-[11px] text-gray-400`,
+              children: storageOptimizationLastResult || `尚无迁移、扫描或恢复记录`,
+            }),
+            jsxs(`div`, {
+              className: `flex flex-wrap gap-2`,
+              children: [
+                jsx(`button`, {
+                  onClick: () => runNextStorageMigration(!1),
+                  disabled: !storageOptimizationEnabled || storageOptimizationBusy,
+                  className: `rounded-lg border border-[#444] px-3 py-1.5 text-xs text-gray-200 hover:border-blue-500 disabled:opacity-40`,
+                  children: `立即处理下一个项目`,
+                }),
+                jsx(`button`, {
+                  onClick: scanStorageOptimization,
+                  disabled: storageOptimizationBusy,
+                  className: `rounded-lg border border-[#444] px-3 py-1.5 text-xs text-gray-200 hover:border-blue-500 disabled:opacity-40`,
+                  children: `扫描可释放空间`,
+                }),
+                jsx(`button`, {
+                  onClick: cleanStorageOptimization,
+                  disabled: !storageOptimizationEnabled || storageOptimizationBusy,
+                  className: `rounded-lg border border-amber-500/40 px-3 py-1.5 text-xs text-amber-200 hover:bg-amber-500/10 disabled:opacity-40`,
+                  children: `清理未引用媒体`,
+                }),
+                jsx(`button`, {
+                  onClick: manageStorageOptimizationTrash,
+                  className: `rounded-lg border border-[#444] px-3 py-1.5 text-xs text-gray-200 hover:border-green-500`,
+                  children: `管理回收区`,
+                }),
+                jsx(`button`, {
+                  onClick: restoreStorageOptimizationTrash,
+                  className: `rounded-lg border border-[#444] px-3 py-1.5 text-xs text-gray-200 hover:border-green-500`,
+                  children: `恢复回收区`,
+                }),
+                jsx(`button`, {
+                  onClick: purgeStorageOptimizationTrash,
+                  className: `rounded-lg border border-red-500/40 px-3 py-1.5 text-xs text-red-300 hover:bg-red-500/10`,
+                  children: `永久删除过期文件`,
+                }),
+                jsx(`button`, {
+                  onClick: refreshStorageOptimizationStatus,
+                  className: `rounded-lg border border-[#444] px-3 py-1.5 text-xs text-gray-400 hover:text-white`,
+                  children: `刷新状态`,
+                }),
+                jsx(`button`, {
+                  onClick: showStorageOptimizationDetails,
+                  className: `rounded-lg border border-[#444] px-3 py-1.5 text-xs text-gray-400 hover:text-white`,
+                  children: `查看详细记录`,
+                }),
+              ],
+            }),
+          ],
+        }),
+        projectStorageLabel = (project) => storageStatusLabels[project?.storageStatus || `unoptimized`] || `未优化`,
         projectGroupList = normalizeProjectGroups(projectGroups),
         projectGroupIds = new Set(projectGroupList.map((group) => group.id)),
         projectGroupSearchText = String(projectGroupSearch || ``).trim().toLowerCase(),
@@ -38920,21 +39332,24 @@ ${String(l || ``).slice(0, 5e4)}`;
                   if (origin === `media` && hasExternalUploadLikeFileName(binding, data)) return !0;
                   return !1;
                 },
-                isProjectMediaLargeBinaryBinding = (binding, t, fallbackKind) => {
+                isProjectMediaFileBackedBinding = (binding, t, fallbackKind) => {
                   let mime = String(binding?.mime || ``).toLowerCase(),
                     kind = String(binding?.kind || fallbackKind || ``).toLowerCase();
                   return (
+                    kind === `image` ||
                     kind === `video` ||
                     kind === `audio` ||
+                    /^image\//i.test(mime) ||
                     /^video\//i.test(mime) ||
                     /^audio\//i.test(mime) ||
+                    t === `imageUrl` ||
                     t === `videoUrl` ||
                     t === `audioUrl`
                   );
                 },
                 stripLargeProjectMediaPortablePayload = (binding, bindingKey, data) => {
                   if (!binding || typeof binding != `object`) return binding;
-                  if (!binding.localPath || !isProjectMediaLargeBinaryBinding(binding, bindingKey, data)) return binding;
+                  if (!binding.localPath || !isProjectMediaFileBackedBinding(binding, bindingKey, data)) return binding;
                   let {
                     value,
                     portableData,
@@ -39047,9 +39462,12 @@ ${String(l || ``).slice(0, 5e4)}`;
 	                          missing: strippedBinding?.localPath ? !fileExists : !1,
 	                          lastCheckedAt: new Date().toISOString(),
 	                        };
-                      (nextBindings[bindingKey] = resolvedBinding), resolvedBinding.missing && isExternalUploadedProjectAssetBinding(resolvedBinding, bindingKey, data) && missingAssets.push(bindingKey);
+                      (nextBindings[bindingKey] = resolvedBinding),
+                        resolvedBinding.missing &&
+                        isProjectMediaFileBackedBinding(resolvedBinding, bindingKey, resolvedBinding.kind) &&
+                        missingAssets.push(bindingKey);
                       let revivedValue = reviveProjectMediaBindingValue(resolvedBinding);
-                      if (resolvedBinding.localPath && isProjectMediaLargeBinaryBinding(resolvedBinding, bindingKey, resolvedBinding.kind)) {
+                      if (resolvedBinding.localPath && isProjectMediaFileBackedBinding(resolvedBinding, bindingKey, resolvedBinding.kind)) {
                         let fileUrl = buildProjectMediaFileUrl(resolvedBinding.localPath);
                         fileUrl &&
                           (bindingKey === `audioUrl` ||
@@ -39081,7 +39499,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                         let bindings = node?.data?.projectAssetBindings || {};
                         Object.entries(bindings).forEach(([bindingKey, binding]) => {
                           binding?.missing &&
-                            isExternalUploadedProjectAssetBinding(binding, bindingKey, node?.data || {}) &&
+                            isProjectMediaFileBackedBinding(binding, bindingKey, binding?.kind) &&
                             missingEntries.push({
                               nodeId: node.id,
                               nodeType: node.type,
@@ -39123,8 +39541,41 @@ ${String(l || ``).slice(0, 5e4)}`;
                       extensions: [`*`]
                     },
                   ],
+                  forceRehomeProjectDataFileReferences = async (value, context, pathParts = []) => {
+                    if (typeof value == `string` && value.startsWith(`file://`)) {
+                      try {
+                        let archivedAsset = await window.wanjuanDesktop.persistProjectAsset({
+                          url: value,
+                          projectId: context.projectId,
+                          nodeId: context.nodeId,
+                          field: pathParts.join(`.`) || `file`,
+                          kind: `binary`,
+                          directory: context.directory,
+                          forceArchiveExistingFile: !0,
+                          migrationId: context.migrationId,
+                        });
+                        if (archivedAsset?.ok && archivedAsset.localPath)
+                          return buildProjectMediaFileUrl(archivedAsset.localPath);
+                      } catch (error) {
+                        console.warn(`Nested project file force archive skipped`, error);
+                      }
+                      return value;
+                    }
+                    if (Array.isArray(value))
+                      return Promise.all(value.map((item, index) => forceRehomeProjectDataFileReferences(item, context, [...pathParts, String(index)])));
+                    if (!value || typeof value != `object`) return value;
+                    let result = {};
+                    for (let [key, item] of Object.entries(value)) {
+                      if (key === `projectAssetBindings`) {
+                        result[key] = item;
+                        continue;
+                      }
+                      result[key] = await forceRehomeProjectDataFileReferences(item, context, [...pathParts, key]);
+                    }
+                    return result;
+                  },
                   prepareProjectMediaStateForPersistence =
-                  (globalThis.prepareProjectMediaStateForPersistence = async (canvasState, projectId, n) => {
+                  (globalThis.prepareProjectMediaStateForPersistence = async (canvasState, projectId, n, options = {}) => {
                     if (!window.wanjuanDesktop?.persistProjectAsset || !X.default) return canvasState;
                     let clonedState = cloneBackupValue(canvasState || {});
                     if (!Array.isArray(clonedState.nodes) || !clonedState.nodes.length) return clonedState;
@@ -39142,10 +39593,56 @@ ${String(l || ``).slice(0, 5e4)}`;
                             binding = bindings[bindingKey] || {},
                             kind = binding.kind || getProjectMediaBindingKind(bindingKey, node),
                             strippedBinding = stripLargeProjectMediaPortablePayload(binding, bindingKey, kind);
+                          if (options.forceRehomeExistingFiles) {
+                            let existingFileValue =
+                              binding.localPath ||
+                              (typeof fieldValue == `string` && fieldValue.startsWith(`file://`) ? fieldValue : ``);
+                            if (existingFileValue) {
+                              try {
+                                let archivedAsset = await window.wanjuanDesktop.persistProjectAsset({
+                                    localPath: binding.localPath,
+                                    url: binding.localPath ? `` : existingFileValue,
+                                    mime: binding.mime,
+                                    filename: binding.filename || binding.originalName,
+                                    projectId: projectId,
+                                    nodeId: node.id,
+                                    field: bindingKey,
+                                    kind: kind,
+                                    assetId: binding.assetId,
+                                    directory: n,
+                                    forceArchiveExistingFile: !0,
+                                    migrationId: options.migrationId,
+                                  });
+                                if (!archivedAsset?.ok || !archivedAsset.localPath)
+                                  throw Error(archivedAsset?.error || `Project media archive failed`);
+                                let archivedFileUrl = buildProjectMediaFileUrl(archivedAsset.localPath);
+                                archivedFileUrl && (data[bindingKey] = archivedFileUrl);
+                                try {
+                                  binding.portableDataRef && (await X.default.removeItem(binding.portableDataRef));
+                                } catch {}
+                                bindings[bindingKey] = {
+                                  ...binding,
+                                  ...archivedAsset,
+                                  field: bindingKey,
+                                  portableDataRef: void 0,
+                                  portableData: void 0,
+                                  value: archivedFileUrl,
+                                  sourceSignature: archivedFileUrl,
+                                  valueFormat: archivedAsset.valueFormat || binding.valueFormat,
+                                  missing: !1,
+                                };
+                                continue;
+                              } catch (error) {
+                                console.warn(`Project media force archive skipped`, error);
+                              }
+                            }
+                          }
                           if (strippedBinding !== binding) {
                             try {
                               binding.portableDataRef && (await X.default.removeItem(binding.portableDataRef));
                             } catch {}
+                            let localFileUrl = buildProjectMediaFileUrl(strippedBinding.localPath);
+                            localFileUrl && (data[bindingKey] = localFileUrl);
                             ((bindings[bindingKey] = {
                                 ...strippedBinding,
                                 field: bindingKey,
@@ -39194,31 +39691,49 @@ ${String(l || ``).slice(0, 5e4)}`;
                             binding.portableDataRef ||
                             buildProjectAssetStorageKey(projectId, node.id || `node`, `media-${bindingKey}-portable`);
                           try {
-                            ((await X.default.setItem(storageKey, payload.portableValue)),
-                              (bindings[bindingKey] = {
-                                ...binding,
-                                ...(await window.wanjuanDesktop.persistProjectAsset({
-                                  ...payload.persistPayload,
-                                  projectId: projectId,
-                                  nodeId: node.id,
-                                  field: bindingKey,
-                                  kind: getProjectMediaBindingKind(bindingKey, node),
-                                  assetId: binding.assetId,
-                                  directory: n,
-                                })),
+                            let persistedAsset = await window.wanjuanDesktop.persistProjectAsset({
+                                ...payload.persistPayload,
+                                projectId: projectId,
+                                nodeId: node.id,
                                 field: bindingKey,
-                                portableDataRef: storageKey,
-                                sourceSignature: sourceSignature,
-                                valueFormat: payload.valueFormat,
+                                kind: getProjectMediaBindingKind(bindingKey, node),
+                                assetId: binding.assetId,
+                                directory: n,
+                                migrationId: options.migrationId,
+                              }),
+                              fileBacked = persistedAsset?.localPath &&
+                                isProjectMediaFileBackedBinding(persistedAsset, bindingKey, kind);
+                            if (!persistedAsset?.ok) throw Error(persistedAsset?.error || `Project media persist failed`);
+                            if (fileBacked) {
+                              try {
+                                await X.default.removeItem(storageKey);
+                              } catch {}
+                              let localFileUrl = buildProjectMediaFileUrl(persistedAsset.localPath);
+                              localFileUrl && (data[bindingKey] = localFileUrl);
+                            } else {
+                              await X.default.setItem(storageKey, payload.portableValue);
+                            }
+                            (bindings[bindingKey] = {
+                                ...binding,
+                                ...persistedAsset,
+                                field: bindingKey,
+                                portableDataRef: fileBacked ? void 0 : storageKey,
+                                sourceSignature: fileBacked ?
+                                  buildProjectMediaFileUrl(persistedAsset.localPath) :
+                                  sourceSignature,
+                                valueFormat: fileBacked ? `file-url` : payload.valueFormat,
                                 sourceOrigin: binding.sourceOrigin ||
                                   data.sourceOrigin ||
                                   data.mediaSourceOrigin ||
                                   (bindingKey === `text` || bindingKey === `resultData` ? `generated-text` : `media`),
                                 originalName: binding.originalName || data.originalName || data.label || data.name || ``,
                                 missing: !1,
-                              }));
+                              });
                           } catch (error) {
                             console.warn(`Project media persist skipped`, error);
+                            try {
+                              await X.default.setItem(storageKey, payload.portableValue);
+                            } catch {}
                             bindings[bindingKey] = {
                               ...binding,
                               field: bindingKey,
@@ -39228,6 +39743,13 @@ ${String(l || ``).slice(0, 5e4)}`;
                             };
                           }
                         }
+                        options.forceRehomeExistingFiles &&
+                          (data = await forceRehomeProjectDataFileReferences(data, {
+                            projectId: projectId,
+                            nodeId: node.id,
+                            directory: n,
+                            migrationId: options.migrationId,
+                          }));
                         return {
                           ...node,
                           data: {
@@ -39239,6 +39761,149 @@ ${String(l || ``).slice(0, 5e4)}`;
                     );
                     return clonedState;
                   }),
+                  collectProjectFileReferences = (value, references = new Set()) => {
+                    if (typeof value == `string` && value.startsWith(`file://`)) {
+                      try {
+                        references.add(decodeURIComponent(new URL(value).pathname));
+                      } catch {}
+                      return references;
+                    }
+                    if (Array.isArray(value)) {
+                      value.forEach((item) => collectProjectFileReferences(item, references));
+                      return references;
+                    }
+                    if (value && typeof value == `object`)
+                      Object.values(value).forEach((item) => collectProjectFileReferences(item, references));
+                    return references;
+                  },
+                  exposeProjectFileReferenceCollector =
+                  (globalThis.collectProjectFileReferences = collectProjectFileReferences),
+                  projectMigrationLocks = (globalThis.__wanjuanProjectMigrationLocks ||= new Set()),
+                  activeProjectMigrations = (globalThis.__wanjuanActiveProjectMigrations ||= new Map()),
+                  getForcedArchiveMigrationStatus =
+                  (globalThis.getForcedArchiveMigrationStatus = async (projectId) => {
+                    let migrationId = activeProjectMigrations.get(projectId);
+                    return migrationId ?
+                      window.wanjuanDesktop?.getProjectMigration?.({
+                        migrationId: migrationId
+                      }) :
+                      {
+                        ok: !1,
+                        error: `MIGRATION_NOT_FOUND`
+                      };
+                  }),
+                  cancelForcedArchiveMigration =
+                  (globalThis.cancelForcedArchiveMigration = async (projectId) => {
+                    let migrationId = activeProjectMigrations.get(projectId);
+                    return migrationId ?
+                      window.wanjuanDesktop?.cancelProjectMigration?.({
+                        migrationId: migrationId
+                      }) :
+                      {
+                        ok: !1,
+                        error: `MIGRATION_NOT_FOUND`
+                      };
+                  }),
+                  runForcedArchiveMigration =
+                  (globalThis.runForcedArchiveMigration = async (projectId, directory, options = {}) => {
+                    if (!X.default || !window.wanjuanDesktop?.beginProjectMigration)
+                      throw Error(`Migration API unavailable`);
+                    if (options.currentProjectId === projectId)
+                      throw Error(`CURRENT_PROJECT_MUST_BE_CLOSED`);
+                    if (projectMigrationLocks.has(projectId))
+                      throw Error(`PROJECT_MIGRATION_LOCKED`);
+                    let storageKey = getProjectCanvasStorageKey(projectId),
+                      originalState = await X.default.getItem(storageKey);
+                    if (!originalState) throw Error(`PROJECT_STATE_NOT_FOUND`);
+                    let originalReferences = [...collectProjectFileReferences(originalState)],
+                      originalReferenceCheck = await window.wanjuanDesktop.checkProjectAssets(originalReferences),
+                      requiredBytes = (originalReferenceCheck?.assets || []).reduce((sum, asset) => sum + Number(asset?.size || 0), JSON.stringify(originalState).length);
+                    let begin = await window.wanjuanDesktop.beginProjectMigration({
+                      projectId: projectId,
+                      directory: directory,
+                      total: Array.isArray(originalState.nodes) ? originalState.nodes.length : 0,
+                      requiredBytes: requiredBytes,
+                    });
+                    if (!begin?.ok) throw Error(begin?.error || `Migration begin failed`);
+                    let migrationId = begin.migrationId;
+                    projectMigrationLocks.add(projectId);
+                    activeProjectMigrations.set(projectId, migrationId);
+                    let snapshot = await window.wanjuanDesktop.saveProjectMigrationSnapshot({
+                      migrationId: migrationId,
+                      projectId: projectId,
+                      state: originalState,
+                    });
+                    if (!snapshot?.ok) throw Error(snapshot?.error || `Migration snapshot failed`);
+                    try {
+                      let migratedState = await globalThis.prepareProjectMediaStateForPersistence(
+                        originalState,
+                        projectId,
+                        directory,
+                        {
+                          forceRehomeExistingFiles: !0,
+                          migrationId: migrationId,
+                        },
+                      );
+                      let references = [...collectProjectFileReferences(migratedState)];
+                      let check = await window.wanjuanDesktop.checkProjectAssets(references);
+                      let missing = (check?.assets || []).filter((asset) => !asset.exists);
+                      if (missing.length) throw Error(`MIGRATION_REFERENCE_MISSING:${missing.length}`);
+                      await X.default.setItem(storageKey, migratedState);
+                      let committed = await window.wanjuanDesktop.commitProjectMigration({
+                        migrationId: migrationId,
+                        references: references,
+                        requireGlobalBlobs: !0,
+                      });
+                      if (!committed?.ok) throw Error(committed?.error || `Migration commit failed`);
+                      return {
+                        ok: !0,
+                        migrationId: migrationId,
+                        state: migratedState,
+                        references: references,
+                        session: committed.session,
+                      };
+                    } catch (error) {
+                      await X.default.setItem(storageKey, originalState);
+                      await window.wanjuanDesktop.rollbackProjectMigration({
+                        migrationId: migrationId,
+                        error: String(error?.message || error),
+                      });
+                      throw error;
+                    } finally {
+                      projectMigrationLocks.delete(projectId);
+                      activeProjectMigrations.delete(projectId);
+                    }
+                  }),
+                  recoverInterruptedProjectMigrations =
+                  (globalThis.recoverInterruptedProjectMigrations = async (directory = ``) => {
+                    if (!X.default || !window.wanjuanDesktop?.listIncompleteMigrations) return [];
+                    let result = await window.wanjuanDesktop.listIncompleteMigrations({
+                        directory: directory
+                      }),
+                      recovered = [];
+                    for (let session of result?.migrations || []) {
+                      try {
+                        let snapshot = await window.wanjuanDesktop.loadProjectMigrationSnapshot({
+                          migrationId: session.id,
+                          directory: directory,
+                        });
+                        if (!snapshot?.ok) throw Error(snapshot?.error || `Migration snapshot unavailable`);
+                        await X.default.setItem(getProjectCanvasStorageKey(session.projectId), snapshot.state);
+                        await window.wanjuanDesktop.rollbackProjectMigration({
+                          migrationId: session.id,
+                          directory: directory,
+                          error: `Recovered after interrupted migration`,
+                        });
+                        recovered.push(session.projectId);
+                      } catch (error) {
+                        console.error(`Interrupted project migration recovery failed`, session.projectId, error);
+                      }
+                    }
+                    return recovered;
+                  }),
+                  scheduleInterruptedMigrationRecovery = setTimeout(() => {
+                    globalThis.recoverInterruptedProjectMigrations?.(``).catch(console.error);
+                  }, 1500),
                   buildProjectLocalforagePayload = (e, projectIds = []) => {
                     let canvasStates = {},
                       assetRefs = new Set(),
@@ -40945,7 +41610,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                                 jsx(
                                   `option`, {
                                     value: option.id,
-                                    children: option.name
+                                    children: `${option.name} · ${projectStorageLabel(option)}`
                                   },
                                   option.id,
                                 ),
@@ -40960,7 +41625,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                                   jsx(
                                     `option`, {
                                       value: project.id,
-                                      children: project.name
+                                      children: `${project.name} · ${projectStorageLabel(project)}`
                                     },
                                     project.id,
                                   ),
@@ -40974,6 +41639,12 @@ ${String(l || ``).slice(0, 5e4)}`;
                           className: `bg-[#2a2a2a] text-gray-300 text-xs rounded px-2 py-1 border border-[#333] hover:border-blue-500 hover:text-blue-300`,
                           title: `项目分组管理`,
                           children: `分组`,
+                        }),
+                        jsx(`button`, {
+                          onClick: () => runStorageMigrationForProject(activeProjectId, !1),
+                          className: `bg-[#2a2a2a] text-gray-300 text-[10px] rounded px-2 py-1 border border-[#333] hover:border-blue-500 hover:text-blue-300`,
+                          title: projects.find((project) => project.id === activeProjectId)?.storageDetail || `优先优化此项目`,
+                          children: projectStorageLabel(projects.find((project) => project.id === activeProjectId)),
                         }),
                         jsx(`button`, {
                           onClick: () => setProjectMenuOpen(!0),
@@ -47817,6 +48488,7 @@ doubao-seedance-2-0-fast-260128`,
                                 ],
                               }),
                             }),
+                            renderStorageOptimizationPanel(),
                             jsxs(`div`, {
                               className: `px-4 pt-4 pb-2 wanjuan-settings-card-body`,
                               children: [

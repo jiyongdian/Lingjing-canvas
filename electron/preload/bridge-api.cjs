@@ -183,6 +183,12 @@ exposeGlobal("wanjuanDesktop", {
   },
 	  persistProjectAsset: async (payload = {}) => {
 	    let nextPayload = { ...payload };
+	    if (nextPayload.storageOptimizationEnabled === undefined) {
+	      try {
+	        const store = await getDesktopStorageItems(["storageOptimizationEnabled"]);
+	        nextPayload.storageOptimizationEnabled = store?.storageOptimizationEnabled === true;
+	      } catch {}
+	    }
 	    if (typeof nextPayload.url === "string" && /^file:\/\//i.test(nextPayload.url)) {
 	      try {
 	        nextPayload = {
@@ -206,6 +212,49 @@ exposeGlobal("wanjuanDesktop", {
   },
   checkProjectAssets: async (paths = []) =>
     ipcRenderer.invoke("wanjuan:check-project-assets", { paths }),
+  diagnoseProjectAssets: async (payload = {}) =>
+    ipcRenderer.invoke("wanjuan:diagnose-project-assets", payload),
+  beginProjectMigration: async (payload = {}) =>
+    ipcRenderer.invoke("wanjuan:begin-project-migration", payload),
+  getProjectMigration: async (payload = {}) =>
+    ipcRenderer.invoke("wanjuan:get-project-migration", payload),
+  listIncompleteMigrations: async (payload = {}) =>
+    ipcRenderer.invoke("wanjuan:list-incomplete-migrations", payload),
+  saveProjectMigrationSnapshot: async (payload = {}) =>
+    ipcRenderer.invoke("wanjuan:save-project-migration-snapshot", payload),
+  loadProjectMigrationSnapshot: async (payload = {}) =>
+    ipcRenderer.invoke("wanjuan:load-project-migration-snapshot", payload),
+  cancelProjectMigration: async (payload = {}) =>
+    ipcRenderer.invoke("wanjuan:cancel-project-migration", payload),
+  commitProjectMigration: async (payload = {}) =>
+    ipcRenderer.invoke("wanjuan:commit-project-migration", payload),
+  rollbackProjectMigration: async (payload = {}) =>
+    ipcRenderer.invoke("wanjuan:rollback-project-migration", payload),
+  cleanupUnreferencedBlobs: async (payload = {}) =>
+    ipcRenderer.invoke("wanjuan:cleanup-unreferenced-blobs", payload),
+  syncProjectReferences: async (payload = {}) => {
+    try {
+      const store = await getDesktopStorageItems(["storageOptimizationEnabled"]);
+      if (store?.storageOptimizationEnabled !== true) return { ok: true, skipped: true, reason: "STORAGE_OPTIMIZATION_DISABLED" };
+    } catch {}
+    return ipcRenderer.invoke("wanjuan:sync-project-references", payload);
+  },
+  isProjectMigrationLocked: async (payload = {}) =>
+    ipcRenderer.invoke("wanjuan:is-project-migration-locked", typeof payload === "string" ? { projectId: payload } : payload),
+  getStorageOptimizationStatus: async (payload = {}) =>
+    ipcRenderer.invoke("wanjuan:storage-optimization-status", payload),
+  rebuildStorageReferenceIndex: async (payload = {}) =>
+    ipcRenderer.invoke("wanjuan:rebuild-storage-reference-index", payload),
+  scanStorageReclaimable: async (payload = {}) =>
+    ipcRenderer.invoke("wanjuan:scan-storage-reclaimable", payload),
+  moveUnreferencedMediaToTrash: async (payload = {}) =>
+    ipcRenderer.invoke("wanjuan:move-unreferenced-media-to-trash", payload),
+  listStorageTrash: async (payload = {}) =>
+    ipcRenderer.invoke("wanjuan:list-storage-trash", payload),
+  restoreStorageTrash: async (payload = {}) =>
+    ipcRenderer.invoke("wanjuan:restore-storage-trash", payload),
+  purgeStorageTrash: async (payload = {}) =>
+    ipcRenderer.invoke("wanjuan:purge-storage-trash", payload),
   findProjectAssetsInFolder: async (payload = {}) =>
     ipcRenderer.invoke("wanjuan:find-project-assets-in-folder", payload),
 	  removeProjectAssets: async (payload = {}) =>
