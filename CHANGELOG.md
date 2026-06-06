@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.9 - 2026-06-06
+
+- Improved large-canvas rendering responsiveness with lighter visible-node rendering, canvas interaction load shedding, media lazy handling, and throttled progress updates.
+- Improved the asset picker UI with clearer selected filter states, roomier layout, default-collapsed mini preview behavior, and better video/audio resource previews.
+- Fixed generated video and face-blur video download handling so completed media follows the same save path as other generated results.
+- Polished project and settings details: removed storage-status suffixes from project names, added spacing around Backup Center, and kept Backup Center mounted natively in the settings surface.
+- Restored the Jimeng node menu icon to the same blue sparkle visual used by the node title.
+
 ## 1.2.8 - 2026-06-03
 
 - Added working Simplified Chinese, Traditional Chinese, and English language packs for the core app shell, Personalization settings, and the Assets panel.

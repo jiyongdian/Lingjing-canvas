@@ -16,7 +16,18 @@
 export function wanjuanResourceKind(resource: any): `text` | `audio` | `video` | `image` {
   let typeString = String(resource?.type || resource?.mediaKind || ``).toLowerCase(),
     urlString = String(
-      resource?.url || resource?.localPath || resource?.path || resource?.thumbnailUrl || ``,
+      resource?.url ||
+        resource?.videoUrl ||
+        resource?.resultVideoUrl ||
+        resource?.audioUrl ||
+        resource?.resultAudioUrl ||
+        resource?.imageUrl ||
+        resource?.mediaUrl ||
+        resource?.resultUrl ||
+        resource?.localPath ||
+        resource?.path ||
+        resource?.thumbnailUrl ||
+        ``,
     ).toLowerCase();
   return typeString === `text` || typeString.startsWith(`text/`)
     ? `text`

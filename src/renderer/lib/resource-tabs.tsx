@@ -44,6 +44,7 @@ export function wanjuanRenderResourceFilterTabs(
   onSelectKind: (kind: string) => void,
   setPage: (page: number) => void,
 ) {
+  const selectedKind = activeKind || "all";
   return (
     [
       ["all", "全部"],
@@ -52,11 +53,22 @@ export function wanjuanRenderResourceFilterTabs(
       ["audio", "音频"],
       ["text", "文本"],
     ] as const
-  ).map(([kind, label]) =>
-    jsx(
+  ).map(([kind, label]) => {
+    const isActive = selectedKind === kind;
+    return jsx(
       "button",
       {
-        className: `px-2 py-0.5 rounded-[4px] text-[10px] ${activeKind === kind ? "bg-[#333] text-white" : "text-gray-500 hover:text-gray-300"}`,
+        "aria-pressed": isActive,
+        "data-active": isActive ? "true" : undefined,
+        className: `wanjuan-resource-filter-tab h-7 flex-1 min-w-0 rounded-md text-[11px] font-medium transition-colors whitespace-nowrap ${isActive ? "wanjuan-resource-filter-tab-active" : "text-gray-400 hover:text-gray-200 hover:bg-white/5"}`,
+        style: isActive
+          ? {
+              backgroundColor: "#8ab4f8",
+              color: "#0f172a",
+              WebkitTextFillColor: "#0f172a",
+              boxShadow: "inset 0 0 0 1px rgba(219,234,254,0.72), 0 6px 14px rgba(96,165,250,0.24)",
+            }
+          : undefined,
         onClick: () => {
           onSelectKind(kind);
           setPage(1);
@@ -64,8 +76,8 @@ export function wanjuanRenderResourceFilterTabs(
         children: label,
       },
       kind,
-    ),
-  );
+    );
+  });
 }
 
 /**
@@ -86,22 +98,34 @@ export function wanjuanRenderResourceSourceTabs(
   setPage: (page: number) => void,
   withTopMargin = false,
 ) {
+  const selectedSource = activeSource || "all";
   return jsxs("div", {
-    className: `${withTopMargin ? "mt-1 " : ""}flex items-center gap-1 wanjuan-resource-source-filter`,
+    className: `${withTopMargin ? "mt-2 " : ""}flex items-center gap-2 wanjuan-resource-source-filter`,
     children: [
       jsxs("div", {
-        className: "flex bg-[#111] rounded p-0.5",
+        className: "flex flex-1 min-w-0 bg-[#151a22] border border-[#343b46] rounded-lg p-0.5",
         children: (
           [
             ["all", "全部来源"],
             ["generated", "AI生成"],
             ["external", "外部素材"],
           ] as const
-        ).map(([source, label]) =>
-          jsx(
+        ).map(([source, label]) => {
+          const isActive = selectedSource === source;
+          return jsx(
             "button",
             {
-              className: `px-2 py-0.5 rounded-[4px] text-[10px] ${activeSource === source ? "bg-[#333] text-white" : "text-gray-500 hover:text-gray-300"}`,
+              "aria-pressed": isActive,
+              "data-active": isActive ? "true" : undefined,
+              className: `wanjuan-resource-filter-tab h-7 flex-1 min-w-0 rounded-md text-[11px] font-medium transition-colors whitespace-nowrap ${isActive ? "wanjuan-resource-filter-tab-active" : "text-gray-400 hover:text-gray-200 hover:bg-white/5"}`,
+              style: isActive
+                ? {
+                    backgroundColor: "#8ab4f8",
+                    color: "#0f172a",
+                    WebkitTextFillColor: "#0f172a",
+                    boxShadow: "inset 0 0 0 1px rgba(219,234,254,0.72), 0 6px 14px rgba(96,165,250,0.24)",
+                  }
+                : undefined,
               onClick: () => {
                 onSelectSource(source);
                 setPage(1);
@@ -109,11 +133,11 @@ export function wanjuanRenderResourceSourceTabs(
               children: label,
             },
             source,
-          ),
-        ),
+          );
+        }),
       }),
       jsx("button", {
-        className: `w-6 h-6 inline-flex items-center justify-center rounded-[4px] border ${favoriteOnly ? "border-yellow-400/60 text-yellow-300 bg-yellow-400/10" : "border-[#333] text-gray-500 hover:text-yellow-300 hover:border-yellow-400/40"}`,
+        className: `w-8 h-8 inline-flex items-center justify-center rounded-lg border transition-colors ${favoriteOnly ? "border-yellow-400/60 text-yellow-300 bg-yellow-400/10" : "border-[#343b46] text-gray-500 hover:text-yellow-300 hover:border-yellow-400/40 hover:bg-yellow-400/5"}`,
         title: favoriteOnly ? "显示全部收藏筛选" : "只看收藏",
         onClick: () => {
           setFavoriteOnly(!favoriteOnly);

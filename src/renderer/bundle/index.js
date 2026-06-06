@@ -1609,40 +1609,22 @@ var TongyiWanxiangLogo = ({
                           }),
                           g &&
                           jsxs(`div`, {
-	                            className: `wanjuan-mention-picker absolute top-full left-0 mt-1 w-72 bg-[#222] border border-[#444] rounded-lg shadow-2xl z-[100] flex flex-col overflow-hidden nopan`,
+                            className: `wanjuan-mention-picker absolute top-full left-0 mt-1 w-[380px] bg-[#22272f] border border-[#3a4250] rounded-lg shadow-2xl z-[100] flex flex-col overflow-hidden nopan`,
                             onWheel: (event) => event.stopPropagation(),
                             onClick: (event) => event.stopPropagation(),
                             children: [
-                              jsxs(`div`, {
-                                className: `flex items-center justify-between p-2 border-b border-[#333] bg-[#1a1a1a] wanjuan-mention-picker-header`,
-                                children: [
-	                                  jsxs(`div`, {
-	                                    className: `text-xs text-gray-300 font-bold flex flex-col gap-1`,
-	                                    children: [
-	                                      jsxs(`div`, {
-	                                        className: `flex items-center gap-2`,
-	                                        children: [
-	                                          jsx(`span`, {
-	                                            children: `选择素材`,
-	                                          }),
-	                                          jsxs(`div`, {
-			                                        className: `flex bg-[#111] rounded p-0.5 wanjuan-mention-picker-tabs`,
-			                                        children: wanjuanRenderResourceFilterTabs(typeFilter, setTypeFilter, setPage),
-	                                          }),
-	                                        ],
-	                                      }),
-	                                      wanjuanRenderResourceSourceTabs(resourceSourceFilter, setResourceSourceFilter, resourceFavoriteOnly, setResourceFavoriteOnly, setPage),
-	                                    ],
-	                                  }),
-                                  jsx(`button`, {
-                                    className: `text-gray-500 hover:text-white`,
-                                    onClick: () => _(!1),
-                                    children: `×`,
-                                  }),
-                                ],
+                              wanjuanRenderResourcePickerHeader({
+                                activeKind: typeFilter,
+                                onSelectKind: setTypeFilter,
+                                activeSource: resourceSourceFilter,
+                                onSelectSource: setResourceSourceFilter,
+                                favoriteOnly: resourceFavoriteOnly,
+                                setFavoriteOnly: setResourceFavoriteOnly,
+                                setPage,
+                                onClose: () => _(!1),
                               }),
                               jsx(`div`, {
-                                className: `p-2 h-48 overflow-y-auto custom-scrollbar wanjuan-node-scroll-area wanjuan-mention-picker-list`,
+	                                className: `p-2 h-48 overflow-y-auto custom-scrollbar wanjuan-node-scroll-area wanjuan-mention-picker-list`,
                                 children: (() => {
 		                                  let filteredResources = resources.filter((resource) => wanjuanResourceMatchesFilter(resource, typeFilter, resourceSourceFilter, resourceFavoriteOnly));
                                   return filteredResources.length === 0 ?
@@ -1651,17 +1633,17 @@ var TongyiWanxiangLogo = ({
                                       children: `暂无素材`,
                                     }) :
                                     jsx(`div`, {
-                                      className: `grid grid-cols-4 gap-1.5`,
+	                                      className: `grid grid-cols-4 gap-2`,
                                       children: filteredResources
                                         .slice((page - 1) * 16, page * 16)
                                         .map((resource) =>
                                           jsxs(
                                             `div`, {
-                                              className: `aspect-square bg-[#111] rounded border border-[#333] hover:border-blue-500 cursor-pointer overflow-hidden relative group wanjuan-mention-picker-item`,
+	                                              className: `aspect-square bg-[#111827] rounded-lg border border-[#333b46] hover:border-blue-500 cursor-pointer overflow-hidden relative group wanjuan-mention-picker-item`,
 	                                              onClick: (event) => {
 	                                                let mentionRange = wanjuanMentionRangeFromPicker(event.currentTarget, prompt),
 	                                                  updatedPrompt = wanjuanReplaceMentionToken(prompt, mentionRange);
-	                                                if (resource.type === `text`) {
+		                                                if (wanjuanResourceKind(resource) === `text`) {
 	                                                  let updatedPrompt2 = wanjuanReplaceMentionToken(prompt, mentionRange, resource.url || ``);
 	                                                  (setPrompt(updatedPrompt2),
 	                                                    updateNodeData(nodeId, {
@@ -1681,23 +1663,7 @@ var TongyiWanxiangLogo = ({
                                                 (_(!1), wanjuanClearMentionPickerPosition(event.currentTarget));
                                               },
                                               children: [
-	                                                resource.type.startsWith(`image`) ?
-	                                                jsx(`img`, {
-	                                                  src: resource.thumbnailUrl || resource.url,
-	                                                  className: `w-full h-full object-cover`,
-	                                                  onError: wanjuanUseBrokenResourceImage,
-	                                                }) :
-                                                resource.type.startsWith(
-                                                  `video`,
-                                                ) ?
-                                                jsx(`video`, {
-                                                  src: resource.url,
-                                                  className: `w-full h-full object-cover`,
-                                                }) :
-                                                jsx(`div`, {
-                                                  className: `p-1 text-[8px] text-gray-400 break-all overflow-hidden h-full`,
-                                                  children: resource.url,
-                                                }),
+		                                                wanjuanRenderResourcePreview(resource),
                                                 jsx(`div`, {
                                                   className: `absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity`,
                                                   children: jsx(
@@ -1721,13 +1687,13 @@ var TongyiWanxiangLogo = ({
                                 return totalPages <= 1 ?
                                   null :
                                   jsxs(`div`, {
-                                    className: `flex items-center justify-between p-1.5 border-t border-[#333] bg-[#1a1a1a]`,
+	                                    className: `flex items-center justify-between p-2 border-t border-[#333b46] bg-[#20252c]`,
                                     children: [
                                       jsx(`button`, {
                                         disabled: page === 1,
                                         onClick: () =>
                                           setPage((prevPage) => Math.max(1, prevPage - 1)),
-                                        className: `text-[10px] px-2 py-0.5 bg-[#333] rounded disabled:opacity-30`,
+	                                        className: `text-[10px] px-2.5 py-1 bg-[#2b313a] rounded-md disabled:opacity-30 text-gray-300 hover:bg-[#343b46]`,
                                         children: `上一页`,
                                       }),
                                       jsxs(`span`, {
@@ -1738,7 +1704,7 @@ var TongyiWanxiangLogo = ({
                                         disabled: page === totalPages,
                                         onClick: () =>
                                           setPage((prevPage) => Math.min(totalPages, prevPage + 1)),
-                                        className: `text-[10px] px-2 py-0.5 bg-[#333] rounded disabled:opacity-30`,
+	                                        className: `text-[10px] px-2.5 py-1 bg-[#2b313a] rounded-md disabled:opacity-30 text-gray-300 hover:bg-[#343b46]`,
                                         children: `下一页`,
                                       }),
                                     ],
@@ -2643,36 +2609,18 @@ var TongyiWanxiangLogo = ({
                           }),
                           isMentionPickerOpen &&
                           jsxs(`div`, {
-	                            className: `wanjuan-mention-picker absolute top-full left-0 mt-1 w-72 bg-[#222] border border-[#444] rounded-lg shadow-2xl z-[100] flex flex-col overflow-hidden`,
+			                            className: `wanjuan-mention-picker absolute top-full left-0 mt-1 w-[380px] bg-[#22272f] border border-[#3a4250] rounded-lg shadow-2xl z-[100] flex flex-col overflow-hidden`,
                             onClick: (event) => event.stopPropagation(),
                             children: [
-                              jsxs(`div`, {
-                                className: `flex items-center justify-between p-2 border-b border-[#333] bg-[#1a1a1a] wanjuan-mention-picker-header`,
-                                children: [
-	                                  jsxs(`div`, {
-	                                    className: `text-xs text-gray-300 font-bold flex flex-col gap-1`,
-	                                    children: [
-	                                      jsxs(`div`, {
-	                                        className: `flex items-center gap-2`,
-	                                        children: [
-	                                          jsx(`span`, {
-	                                            children: `选择素材`,
-	                                          }),
-	                                          jsxs(`div`, {
-			                                        className: `flex bg-[#111] rounded p-0.5 wanjuan-mention-picker-tabs`,
-			                                        children: wanjuanRenderResourceFilterTabs(resourceTypeFilter, te, setCurrentPage),
-	                                          }),
-	                                        ],
-	                                      }),
-	                                      wanjuanRenderResourceSourceTabs(resourceSourceFilter, setResourceSourceFilter, resourceFavoriteOnly, setResourceFavoriteOnly, setCurrentPage),
-	                                    ],
-	                                  }),
-                                  jsx(`button`, {
-                                    className: `text-gray-500 hover:text-white`,
-                                    onClick: () => setIsMentionPickerOpen(!1),
-                                    children: `×`,
-                                  }),
-                                ],
+                              wanjuanRenderResourcePickerHeader({
+                                activeKind: resourceTypeFilter,
+                                onSelectKind: te,
+                                activeSource: resourceSourceFilter,
+                                onSelectSource: setResourceSourceFilter,
+                                favoriteOnly: resourceFavoriteOnly,
+                                setFavoriteOnly: setResourceFavoriteOnly,
+                                setPage: setCurrentPage,
+                                onClose: () => setIsMentionPickerOpen(!1),
                               }),
                               jsx(`div`, {
                                 className: `p-2 h-48 overflow-y-auto custom-scrollbar wanjuan-node-scroll-area wanjuan-mention-picker-list`,
@@ -2684,17 +2632,17 @@ var TongyiWanxiangLogo = ({
                                       children: `暂无素材`,
                                     }) :
                                     jsx(`div`, {
-                                      className: `grid grid-cols-4 gap-1.5`,
+	                                      className: `grid grid-cols-4 gap-2`,
                                       children: filteredResources
                                         .slice((currentPage - 1) * 16, currentPage * 16)
                                         .map((resource) =>
                                           jsxs(
                                             `div`, {
-                                              className: `aspect-square bg-[#111] rounded border border-[#333] hover:border-blue-500 cursor-pointer overflow-hidden relative group wanjuan-mention-picker-item`,
+	                                              className: `aspect-square bg-[#111827] rounded-lg border border-[#333b46] hover:border-blue-500 cursor-pointer overflow-hidden relative group wanjuan-mention-picker-item`,
 	                                              onClick: (event) => {
 	                                                let mentionRange = wanjuanMentionRangeFromPicker(event.currentTarget, prompt),
 	                                                  updatedPrompt = wanjuanReplaceMentionToken(prompt, mentionRange);
-	                                                if (resource.type === `text`) {
+		                                                if (wanjuanResourceKind(resource) === `text`) {
 	                                                  let updatedPrompt2 = wanjuanReplaceMentionToken(prompt, mentionRange, resource.url || ``);
 	                                                  (setPrompt(updatedPrompt2),
 	                                                    updateNodeData(nodeId, {
@@ -2714,23 +2662,7 @@ var TongyiWanxiangLogo = ({
                                                 (setIsMentionPickerOpen(!1), wanjuanClearMentionPickerPosition(event.currentTarget));
                                               },
                                               children: [
-	                                                resource.type.startsWith(`image`) ?
-	                                                jsx(`img`, {
-	                                                  src: resource.thumbnailUrl || resource.url,
-	                                                  className: `w-full h-full object-cover`,
-	                                                  onError: wanjuanUseBrokenResourceImage,
-	                                                }) :
-                                                resource.type.startsWith(
-                                                  `video`,
-                                                ) ?
-                                                jsx(`video`, {
-                                                  src: resource.url,
-                                                  className: `w-full h-full object-cover`,
-                                                }) :
-                                                jsx(`div`, {
-                                                  className: `p-1 text-[8px] text-gray-400 break-all overflow-hidden h-full`,
-                                                  children: resource.url,
-                                                }),
+		                                                wanjuanRenderResourcePreview(resource),
                                                 jsx(`div`, {
                                                   className: `absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity`,
                                                   children: jsx(
@@ -2754,13 +2686,13 @@ var TongyiWanxiangLogo = ({
                                 return totalPages <= 1 ?
                                   null :
                                   jsxs(`div`, {
-                                    className: `flex items-center justify-between p-1.5 border-t border-[#333] bg-[#1a1a1a]`,
+	                                    className: `flex items-center justify-between p-2 border-t border-[#333b46] bg-[#20252c]`,
                                     children: [
                                       jsx(`button`, {
                                         disabled: currentPage === 1,
                                         onClick: () =>
                                           setCurrentPage((prev) => Math.max(1, prev - 1)),
-                                        className: `text-[10px] px-2 py-0.5 bg-[#333] rounded disabled:opacity-30`,
+	                                        className: `text-[10px] px-2.5 py-1 bg-[#2b313a] rounded-md disabled:opacity-30 text-gray-300 hover:bg-[#343b46]`,
                                         children: `上一页`,
                                       }),
                                       jsxs(`span`, {
@@ -2771,7 +2703,7 @@ var TongyiWanxiangLogo = ({
                                         disabled: currentPage === totalPages,
                                         onClick: () =>
                                           setCurrentPage((prev) => Math.min(totalPages, prev + 1)),
-                                        className: `text-[10px] px-2 py-0.5 bg-[#333] rounded disabled:opacity-30`,
+	                                        className: `text-[10px] px-2.5 py-1 bg-[#2b313a] rounded-md disabled:opacity-30 text-gray-300 hover:bg-[#343b46]`,
                                         children: `下一页`,
                                       }),
                                     ],
@@ -5255,39 +5187,20 @@ var Le = reactMemo(({
                           }),
                           isMentionPickerOpen &&
                           jsxs(`div`, {
-	                            className: `wanjuan-mention-picker absolute top-full left-0 mt-1 w-72 bg-[#222] border border-[#444] rounded-lg shadow-2xl z-[100] flex flex-col overflow-hidden h-[300px] nopan`,
+			                            className: `wanjuan-mention-picker absolute top-full left-0 mt-1 w-[380px] bg-[#22272f] border border-[#3a4250] rounded-lg shadow-2xl z-[100] flex flex-col overflow-hidden h-[320px] nopan`,
                             onWheel: (event) => event.stopPropagation(),
                             onClick: (event) => event.stopPropagation(),
                             children: [
-                              jsxs(`div`, {
-                                className: `flex items-center justify-between p-2 border-b border-[#333] bg-[#1a1a1a] wanjuan-mention-picker-header`,
-                                children: [
-	                                  jsxs(`div`, {
-	                                    className: `text-xs text-gray-300 font-bold flex flex-col gap-1`,
-	                                    children: [
-	                                      jsxs(`div`, {
-	                                        className: `flex items-center gap-2`,
-	                                        children: [
-	                                          jsx(`span`, {
-	                                            children: `选择素材`,
-	                                          }),
-	                                          jsxs(`div`, {
-			                                        className: `flex bg-[#111] rounded p-0.5 wanjuan-mention-picker-tabs`,
-			                                        children: wanjuanRenderResourceFilterTabs(resourceTypeFilter, setResourceTypeFilter, setCurrentPage),
-	                                          }),
-	                                        ],
-	                                      }),
-	                                      wanjuanRenderResourceSourceTabs(resourceSourceFilter, setResourceSourceFilter, resourceFavoriteOnly, setResourceFavoriteOnly, setCurrentPage),
-	                                    ],
-	                                  }),
-                                  jsx(`button`, {
-                                    onClick: () => setIsMentionPickerOpen(!1),
-                                    className: `text-gray-500 hover:text-white p-1`,
-                                    children: jsx(F, {
-                                      size: 12
-                                    }),
-                                  }),
-                                ],
+                              wanjuanRenderResourcePickerHeader({
+                                activeKind: resourceTypeFilter,
+                                onSelectKind: setResourceTypeFilter,
+                                activeSource: resourceSourceFilter,
+                                onSelectSource: setResourceSourceFilter,
+                                favoriteOnly: resourceFavoriteOnly,
+                                setFavoriteOnly: setResourceFavoriteOnly,
+                                setPage: setCurrentPage,
+                                onClose: () => setIsMentionPickerOpen(!1),
+                                closeContent: jsx(F, { size: 12 }),
                               }),
                               jsx(`div`, {
                                 className: `p-2 flex-1 overflow-y-auto wanjuan-node-scroll-area wanjuan-mention-picker-list`,
@@ -5299,13 +5212,13 @@ var Le = reactMemo(({
                                       children: `暂无素材`,
                                     }) :
                                     jsx(`div`, {
-                                      className: `grid grid-cols-4 gap-1.5`,
+	                                      className: `grid grid-cols-4 gap-2`,
                                       children: filteredResources
                                         .slice((currentPage - 1) * 16, currentPage * 16)
                                         .map((resource) =>
                                           jsxs(
                                             `div`, {
-                                              className: `aspect-square bg-[#111] rounded border border-[#333] hover:border-blue-500 cursor-pointer overflow-hidden relative group wanjuan-mention-picker-item`,
+	                                              className: `aspect-square bg-[#111827] rounded-lg border border-[#333b46] hover:border-blue-500 cursor-pointer overflow-hidden relative group wanjuan-mention-picker-item`,
                                               onMouseDown: (event) =>
                                                 event.preventDefault(),
 	                                              onClick: (event) => {
@@ -5314,7 +5227,7 @@ var Le = reactMemo(({
 		                                                  suffix = mentionRange ? prompt.substring(mentionRange.end) : ``,
 		                                                  replacedPrompt = wanjuanReplaceMentionToken(prompt, mentionRange);
 	                                                wanjuanClearMentionPickerPosition(event.currentTarget);
-			                                                if (isSeedanceOrWanxiang && resource.type !== `text`) {
+				                                                if (isSeedanceOrWanxiang && wanjuanResourceKind(resource) !== `text`) {
 			                                                  let seedanceKind = wanjuanResourceKind(resource),
 			                                                    seedanceMentionLabel = resource.mention || `${seedanceKind === `video` ? `视频` : seedanceKind === `audio` ? `音频` : `图片`}${selectedContextResources.filter((resource2) => wanjuanResourceKind(resource2) === seedanceKind).length + 1}`,
 			                                                    mentionToken = wanjuanFormatMentionToken(seedanceMentionLabel),
@@ -5343,7 +5256,7 @@ var Le = reactMemo(({
                                                     setIsMentionPickerOpen(!1));
                                                   return;
 	                                                }
-	                                                if (resource.type === `text`) {
+		                                                if (wanjuanResourceKind(resource) === `text`) {
 	                                                  let newPrompt = wanjuanReplaceMentionToken(prompt, mentionRange, resource.url || ``);
                                                   (setPrompt(newPrompt),
                                                     updateNodeData(nodeId, {
@@ -5363,28 +5276,7 @@ var Le = reactMemo(({
                                                 setIsMentionPickerOpen(!1);
                                               },
                                               children: [
-	                                                resource.type.startsWith(`image`) ?
-	                                                jsx(`img`, {
-	                                                  src: resource.thumbnailUrl || resource.url,
-	                                                  className: `w-full h-full object-cover`,
-	                                                  onError: wanjuanUseBrokenResourceImage,
-	                                                }) :
-                                                resource.type.startsWith(
-                                                  `video`,
-                                                ) ?
-                                                jsx(`video`, {
-                                                  src: resource.url,
-                                                  className: `w-full h-full object-cover`,
-                                                }) :
-                                                jsx(`div`, {
-                                                  className: `p-1 text-[8px] text-gray-400 break-all overflow-hidden h-full flex items-center justify-center`,
-                                                  children: resource.type.startsWith(
-                                                      `audio`,
-                                                    ) ||
-                                                    resource.type === `audio` ?
-                                                    `音频` :
-                                                    resource.url,
-                                                }),
+		                                                wanjuanRenderResourcePreview(resource),
                                                 isSeedanceOrWanxiang &&
                                                 resource.mention &&
                                                 jsx(`div`, {
@@ -5414,13 +5306,13 @@ var Le = reactMemo(({
                                 return totalPages <= 1 ?
                                   null :
                                   jsxs(`div`, {
-                                    className: `flex items-center justify-between p-1.5 border-t border-[#333] bg-[#1a1a1a]`,
+	                                    className: `flex items-center justify-between p-2 border-t border-[#333b46] bg-[#20252c]`,
                                     children: [
                                       jsx(`button`, {
                                         disabled: currentPage === 1,
                                         onClick: () =>
                                           setCurrentPage((prevPage) => Math.max(1, prevPage - 1)),
-                                        className: `text-[10px] px-2 py-0.5 bg-[#333] rounded disabled:opacity-30`,
+	                                        className: `text-[10px] px-2.5 py-1 bg-[#2b313a] rounded-md disabled:opacity-30 text-gray-300 hover:bg-[#343b46]`,
                                         children: `上一页`,
                                       }),
                                       jsxs(`span`, {
@@ -5431,7 +5323,7 @@ var Le = reactMemo(({
                                         disabled: currentPage === totalPages,
                                         onClick: () =>
                                           setCurrentPage((prevPage) => Math.min(totalPages, prevPage + 1)),
-                                        className: `text-[10px] px-2 py-0.5 bg-[#333] rounded disabled:opacity-30`,
+	                                        className: `text-[10px] px-2.5 py-1 bg-[#2b313a] rounded-md disabled:opacity-30 text-gray-300 hover:bg-[#343b46]`,
                                         children: `下一页`,
                                       }),
                                     ],
@@ -14153,7 +14045,7 @@ function wanjuanVideoTaskCanAttachToNode(task, node, projectId) {
 }
 function wanjuanResourceKind(mediaItem) {
   let mediaType = String(mediaItem?.type || mediaItem?.mediaKind || ``).toLowerCase(),
-    mediaUrl = String(mediaItem?.url || mediaItem?.localPath || mediaItem?.path || mediaItem?.thumbnailUrl || ``).toLowerCase();
+    mediaUrl = String(mediaItem?.url || mediaItem?.videoUrl || mediaItem?.resultVideoUrl || mediaItem?.audioUrl || mediaItem?.resultAudioUrl || mediaItem?.imageUrl || mediaItem?.mediaUrl || mediaItem?.resultUrl || mediaItem?.localPath || mediaItem?.path || mediaItem?.thumbnailUrl || ``).toLowerCase();
   return mediaType === `text` || mediaType.startsWith(`text/`) ? `text` :
     mediaType === `audio` || mediaType.startsWith(`audio/`) || /^data:audio\//.test(mediaUrl) || /\.(mp3|wav|m4a|aac|ogg|flac)(?:$|[?#])/i.test(mediaUrl) ? `audio` :
     mediaType === `video` || mediaType.startsWith(`video/`) || /^data:video\//.test(mediaUrl) || /\.(mp4|webm|mov|m4v|mpeg|mpg|avi|mkv)(?:$|[?#])/i.test(mediaUrl) ? `video` :
@@ -14359,7 +14251,112 @@ function wanjuanResourceMatchesFilter(resource, kind, sourceKind = `all`, favori
     matchesFavorite = !requireFavorite || resource?.isFavorite === !0;
   return matchesKind && matchesSource && matchesFavorite;
 }
+function wanjuanResourceMediaUrl(resource) {
+  let resourceKind = wanjuanResourceKind(resource);
+  return String(
+    resourceKind === `video` ?
+      resource?.videoUrl || resource?.resultVideoUrl || resource?.url || resource?.mediaUrl || resource?.resultUrl || resource?.localPath || resource?.path || resource?.previewUrl || resource?.thumbnailUrl :
+      resourceKind === `audio` ?
+      resource?.audioUrl || resource?.resultAudioUrl || resource?.url || resource?.mediaUrl || resource?.resultUrl || resource?.localPath || resource?.path :
+      resource?.url || resource?.imageUrl || resource?.mediaUrl || resource?.resultUrl || resource?.localPath || resource?.path || resource?.previewUrl || resource?.thumbnailUrl || ``
+  );
+}
+function wanjuanResourcePosterUrl(resource) {
+  return String(resource?.thumbnailUrl || resource?.posterUrl || resource?.coverUrl || resource?.coverImageUrl || resource?.imageUrl || resource?.previewImageUrl || ``);
+}
+function wanjuanResourceLooksLikeImageUrl(value) {
+  return /^data:image\//i.test(String(value || ``)) || /\.(png|jpe?g|webp|gif|svg|bmp|heic|avif)(?:$|[?#])/i.test(String(value || ``));
+}
+function wanjuanResourceLooksLikeVideoUrl(value) {
+  return /^data:video\//i.test(String(value || ``)) || /\.(mp4|webm|mov|m4v|mpeg|mpg|avi|mkv)(?:$|[?#])/i.test(String(value || ``));
+}
+function wanjuanCanFallbackImageToVideo(resource, mediaUrl, posterUrl) {
+  if (!mediaUrl || wanjuanResourceLooksLikeImageUrl(mediaUrl) || wanjuanResourceLooksLikeImageUrl(posterUrl)) return !1;
+  if (wanjuanResourceLooksLikeVideoUrl(mediaUrl) || resource?.videoUrl || resource?.resultVideoUrl) return !0;
+  return wanjuanResourceSourceKind(resource) === `generated` && !/^data:image\//i.test(mediaUrl);
+}
+function wanjuanUseVideoResourceFallback(event, mediaUrl, posterUrl) {
+  let imageElement = event.currentTarget;
+  imageElement.onerror = null;
+  let videoElement = document.createElement(`video`);
+  videoElement.src = mediaUrl;
+  if (posterUrl && posterUrl !== mediaUrl) videoElement.poster = posterUrl;
+  videoElement.muted = !0;
+  videoElement.playsInline = !0;
+  videoElement.preload = `metadata`;
+  videoElement.className = `w-full h-full object-cover bg-black`;
+  videoElement.title = `视频素材`;
+  let badge = document.createElement(`div`);
+  badge.className = `absolute left-1.5 bottom-1.5 rounded bg-black/65 px-1.5 py-0.5 text-[9px] leading-none text-white/90 pointer-events-none`;
+  badge.textContent = `视频`;
+  videoElement.onerror = () => {
+    let brokenImage = document.createElement(`img`);
+    brokenImage.src = wanjuanBrokenResourceImage;
+    brokenImage.className = `w-full h-full object-cover bg-black wanjuan-resource-image-broken`;
+    brokenImage.title = `素材无法加载，可能是链接已失效或本地文件不可访问`;
+    badge.remove();
+    videoElement.replaceWith(brokenImage);
+  };
+  imageElement.replaceWith(videoElement);
+  videoElement.parentElement?.appendChild(badge);
+}
+function wanjuanRenderResourcePreview(resource, options = {}) {
+  let resourceKind = wanjuanResourceKind(resource),
+    mediaUrl = wanjuanResourceMediaUrl(resource),
+    posterUrl = wanjuanResourcePosterUrl(resource),
+    title = String(resource?.pageTitle || resource?.title || resource?.name || resource?.label || `素材`);
+  if (resourceKind === `video`)
+    return jsxs(`div`, {
+      className: `relative w-full h-full bg-black overflow-hidden`,
+      children: [
+        jsx(`video`, {
+          src: mediaUrl,
+          poster: posterUrl && posterUrl !== mediaUrl ? posterUrl : void 0,
+          className: `w-full h-full object-cover`,
+          muted: !0,
+          playsInline: !0,
+          preload: `metadata`,
+        }),
+        jsx(`div`, {
+          className: `absolute left-1.5 bottom-1.5 rounded bg-black/65 px-1.5 py-0.5 text-[9px] leading-none text-white/90`,
+          children: `视频`,
+        }),
+      ],
+    });
+  if (resourceKind === `audio`)
+    return jsxs(`div`, {
+      className: `w-full h-full bg-[#111827] flex flex-col items-center justify-center gap-1.5 p-2 text-center`,
+      children: [
+        jsx(`div`, {
+          className: `h-7 w-7 rounded-full border border-blue-400/35 bg-blue-400/10 text-blue-300 flex items-center justify-center text-sm`,
+          children: `♪`,
+        }),
+        jsx(`div`, {
+          className: `max-w-full truncate text-[9px] text-gray-400`,
+          title,
+          children: title || `音频素材`,
+        }),
+      ],
+    });
+  if (resourceKind === `text`)
+    return jsx(`div`, {
+      className: `p-1.5 text-[9px] leading-snug text-gray-400 break-all overflow-hidden h-full bg-[#171b22]`,
+      children: mediaUrl,
+    });
+  return jsx(`img`, {
+    src: posterUrl || mediaUrl,
+    className: `w-full h-full object-cover bg-black`,
+    onError: (event) => {
+      wanjuanCanFallbackImageToVideo(resource, mediaUrl, posterUrl) ?
+        wanjuanUseVideoResourceFallback(event, mediaUrl, posterUrl) :
+        wanjuanUseBrokenResourceImage(event);
+    },
+    draggable: options.draggable === !0 ? `true` : void 0,
+    onDragStart: options.onDragStart,
+  });
+}
 function wanjuanRenderResourceFilterTabs(selectedValue, onSelect, setPage) {
+  let activeValue = selectedValue || `all`;
   return [
     [`all`, `全部`],
     [`image`, `图片`],
@@ -14368,7 +14365,15 @@ function wanjuanRenderResourceFilterTabs(selectedValue, onSelect, setPage) {
     [`text`, `文本`],
   ].map(([optionValue, optionLabel]) =>
     jsx(`button`, {
-      className: `px-2 py-0.5 rounded-[4px] text-[10px] ${selectedValue === optionValue ? `bg-[#333] text-white` : `text-gray-500 hover:text-gray-300`}`,
+      "aria-pressed": activeValue === optionValue,
+      "data-active": activeValue === optionValue ? `true` : void 0,
+      className: `wanjuan-resource-filter-tab h-7 flex-1 min-w-0 rounded-md text-[11px] font-medium transition-colors whitespace-nowrap ${activeValue === optionValue ? `wanjuan-resource-filter-tab-active` : `text-gray-400 hover:text-gray-200 hover:bg-white/5`}`,
+      style: activeValue === optionValue ? {
+        backgroundColor: `#8ab4f8`,
+        color: `#0f172a`,
+        WebkitTextFillColor: `#0f172a`,
+        boxShadow: `inset 0 0 0 1px rgba(219,234,254,0.72), 0 6px 14px rgba(96,165,250,0.24)`
+      } : void 0,
       onClick: () => {
         (onSelect(optionValue), setPage(1));
       },
@@ -14377,18 +14382,27 @@ function wanjuanRenderResourceFilterTabs(selectedValue, onSelect, setPage) {
 	  );
 }
 function wanjuanRenderResourceSourceTabs(selectedValue, onSelect, favoriteActive, onToggle, setPage, a = !1) {
+  let activeValue = selectedValue || `all`;
   return jsxs(`div`, {
-    className: `${a ? `mt-1 ` : ``}flex items-center gap-1 wanjuan-resource-source-filter`,
+    className: `${a ? `mt-2 ` : ``}flex items-center gap-2 wanjuan-resource-source-filter`,
     children: [
       jsxs(`div`, {
-        className: `flex bg-[#111] rounded p-0.5`,
+        className: `flex flex-1 min-w-0 bg-[#151a22] border border-[#343b46] rounded-lg p-0.5`,
         children: [
           [`all`, `全部来源`],
           [`generated`, `AI生成`],
           [`external`, `外部素材`],
         ].map(([optionValue, optionLabel]) =>
           jsx(`button`, {
-            className: `px-2 py-0.5 rounded-[4px] text-[10px] ${selectedValue === optionValue ? `bg-[#333] text-white` : `text-gray-500 hover:text-gray-300`}`,
+            "aria-pressed": activeValue === optionValue,
+            "data-active": activeValue === optionValue ? `true` : void 0,
+            className: `wanjuan-resource-filter-tab h-7 flex-1 min-w-0 rounded-md text-[11px] font-medium transition-colors whitespace-nowrap ${activeValue === optionValue ? `wanjuan-resource-filter-tab-active` : `text-gray-400 hover:text-gray-200 hover:bg-white/5`}`,
+            style: activeValue === optionValue ? {
+              backgroundColor: `#8ab4f8`,
+              color: `#0f172a`,
+              WebkitTextFillColor: `#0f172a`,
+              boxShadow: `inset 0 0 0 1px rgba(219,234,254,0.72), 0 6px 14px rgba(96,165,250,0.24)`
+            } : void 0,
             onClick: () => {
               (onSelect(optionValue), setPage(1));
             },
@@ -14397,13 +14411,50 @@ function wanjuanRenderResourceSourceTabs(selectedValue, onSelect, favoriteActive
         ),
       }),
       jsx(`button`, {
-        className: `w-6 h-6 inline-flex items-center justify-center rounded-[4px] border ${favoriteActive ? `border-yellow-400/60 text-yellow-300 bg-yellow-400/10` : `border-[#333] text-gray-500 hover:text-yellow-300 hover:border-yellow-400/40`}`,
+        className: `w-8 h-8 inline-flex items-center justify-center rounded-lg border transition-colors ${favoriteActive ? `border-yellow-400/60 text-yellow-300 bg-yellow-400/10` : `border-[#343b46] text-gray-500 hover:text-yellow-300 hover:border-yellow-400/40 hover:bg-yellow-400/5`}`,
         title: favoriteActive ? `显示全部收藏筛选` : `只看收藏`,
         onClick: () => {
           (onToggle(!favoriteActive), setPage(1));
         },
         children: favoriteActive ? `★` : `☆`,
       }),
+    ],
+  });
+}
+function wanjuanRenderResourcePickerHeader({
+  title = `选择素材`,
+  activeKind,
+  onSelectKind,
+  activeSource,
+  onSelectSource,
+  favoriteOnly,
+  setFavoriteOnly,
+  setPage,
+  onClose,
+  closeContent = `×`,
+}) {
+  return jsxs(`div`, {
+    className: `p-3 border-b border-[#333b46] bg-[#20252c] wanjuan-mention-picker-header`,
+    children: [
+      jsxs(`div`, {
+        className: `flex items-center justify-between gap-3 mb-3`,
+        children: [
+          jsx(`div`, {
+            className: `text-[13px] font-semibold text-gray-100 tracking-normal whitespace-nowrap`,
+            children: title,
+          }),
+          jsx(`button`, {
+            className: `h-7 w-7 rounded-lg text-gray-500 hover:text-white hover:bg-white/5 flex items-center justify-center flex-shrink-0`,
+            onClick: onClose,
+            children: closeContent,
+          }),
+        ],
+      }),
+      jsxs(`div`, {
+        className: `w-full flex bg-[#151a22] border border-[#343b46] rounded-lg p-1 wanjuan-mention-picker-tabs`,
+        children: wanjuanRenderResourceFilterTabs(activeKind, onSelectKind, setPage),
+      }),
+      wanjuanRenderResourceSourceTabs(activeSource, onSelectSource, favoriteOnly, setFavoriteOnly, setPage, !0),
     ],
   });
 }
@@ -14420,40 +14471,22 @@ function rt({
 		  filteredResources = resources.filter((resource) => wanjuanResourceMatchesFilter(resource, typeFilter, resourceSourceFilter, resourceFavoriteOnly)),
     totalPages = Math.ceil(filteredResources.length / 16),
     pageItems = filteredResources.slice((page - 1) * 16, page * 16);
-  return jsxs(`div`, {
-    className: `wanjuan-material-picker w-72 bg-[#222] border border-[#444] rounded-lg z-[100] flex flex-col overflow-hidden`,
+	  return jsxs(`div`, {
+	    className: `wanjuan-material-picker w-[380px] bg-[#22272f] border border-[#3a4250] rounded-lg z-[100] flex flex-col overflow-hidden`,
     style: {
       boxShadow: `18px 18px 36px -22px rgba(0,0,0,0.72), 0 8px 18px -14px rgba(0,0,0,0.5)`
     },
     onClick: (event) => event.stopPropagation(),
     children: [
-      jsxs(`div`, {
-        className: `flex items-center justify-between p-2 border-b border-[#333] bg-[#1a1a1a]`,
-        children: [
-	          jsxs(`div`, {
-	            className: `text-xs text-gray-300 font-bold flex flex-col gap-1`,
-	            children: [
-	              jsxs(`div`, {
-	                className: `flex items-center gap-2`,
-	                children: [
-	                  jsx(`span`, {
-	                    children: `选择素材`
-	                  }),
-	                  jsxs(`div`, {
-		                    className: `flex bg-[#111] rounded p-0.5`,
-		                    children: wanjuanRenderResourceFilterTabs(typeFilter, setTypeFilter, setPage),
-	                  }),
-	                ],
-	              }),
-	              wanjuanRenderResourceSourceTabs(resourceSourceFilter, setResourceSourceFilter, resourceFavoriteOnly, setResourceFavoriteOnly, setPage),
-	            ],
-	          }),
-          jsx(`button`, {
-            className: `text-gray-500 hover:text-white`,
-            onClick: onClose,
-            children: `×`,
-          }),
-        ],
+      wanjuanRenderResourcePickerHeader({
+        activeKind: typeFilter,
+        onSelectKind: setTypeFilter,
+        activeSource: resourceSourceFilter,
+        onSelectSource: setResourceSourceFilter,
+        favoriteOnly: resourceFavoriteOnly,
+        setFavoriteOnly: setResourceFavoriteOnly,
+        setPage,
+        onClose,
       }),
       jsx(`div`, {
         className: `p-2 h-48 overflow-y-auto custom-scrollbar`,
@@ -14463,37 +14496,15 @@ function rt({
             children: `暂无素材`,
           }) :
           jsx(`div`, {
-            className: `grid grid-cols-4 gap-1.5`,
+	            className: `grid grid-cols-4 gap-2`,
             children: pageItems.map((resource) =>
               jsxs(
                 `div`, {
-                  className: `aspect-square bg-[#111] rounded border border-[#333] hover:border-blue-500 cursor-pointer overflow-hidden relative group`,
+	                  className: `aspect-square bg-[#111827] rounded-lg border border-[#333b46] hover:border-blue-500 cursor-pointer overflow-hidden relative group`,
                   onClick: () => onSelect(resource),
                   title: resource.pageTitle || `素材`,
                   children: [
-                    resource.type === `text` ?
-                    jsx(`div`, {
-                      className: `p-1 text-[8px] text-gray-400 break-all overflow-hidden h-full bg-[#1a1a1a]`,
-                      children: resource.url,
-                    }) :
-                    resource.type.startsWith(`video/`) ?
-                    jsx(`video`, {
-                      src: resource.url,
-                      className: `w-full h-full object-cover bg-black`,
-                    }) :
-                    resource.type.startsWith(`audio/`) ?
-                    jsx(`div`, {
-                      className: `w-full h-full bg-black flex items-center justify-center`,
-                      children: jsx(`span`, {
-                        className: `text-[10px] text-blue-500`,
-                        children: `音频`,
-                      }),
-                    }) :
-                    jsx(`img`, {
-                      src: resource.thumbnailUrl || resource.url,
-                      className: `w-full h-full object-cover bg-black`,
-                      onError: wanjuanUseBrokenResourceImage,
-                    }),
+	                    wanjuanRenderResourcePreview(resource),
                     jsx(`div`, {
                       className: `absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity`,
                       children: jsx(`span`, {
@@ -14510,12 +14521,12 @@ function rt({
       }),
       totalPages > 1 &&
       jsxs(`div`, {
-        className: `flex items-center justify-between p-1.5 border-t border-[#333] bg-[#1a1a1a]`,
+	        className: `flex items-center justify-between p-2 border-t border-[#333b46] bg-[#20252c]`,
         children: [
           jsx(`button`, {
             disabled: page === 1,
             onClick: () => setPage((prev) => Math.max(1, prev - 1)),
-            className: `text-[10px] px-2 py-0.5 bg-[#333] rounded disabled:opacity-30 text-gray-300`,
+	            className: `text-[10px] px-2.5 py-1 bg-[#2b313a] rounded-md disabled:opacity-30 text-gray-300 hover:bg-[#343b46]`,
             children: `上一页`,
           }),
           jsxs(`span`, {
@@ -14525,7 +14536,7 @@ function rt({
           jsx(`button`, {
             disabled: page === totalPages,
             onClick: () => setPage((prev) => Math.min(totalPages, prev + 1)),
-            className: `text-[10px] px-2 py-0.5 bg-[#333] rounded disabled:opacity-30 text-gray-300`,
+	            className: `text-[10px] px-2.5 py-1 bg-[#2b313a] rounded-md disabled:opacity-30 text-gray-300 hover:bg-[#343b46]`,
             children: `下一页`,
           }),
         ],
@@ -16738,7 +16749,7 @@ wan2.7-videoedit-1080P`,
         return () => clearTimeout(_t);
       }
     }, [shouldFitView, fitView]));
-  let [isVisible, setIsVisible] = useState(!0),
+  let [isVisible, setIsVisible] = useState(!1),
   [history, setHistory] = useState([]),
   [historyIndex, setHistoryIndex] = useState(-1),
   isRestoringRef = useRef(!1),
@@ -26975,45 +26986,49 @@ ${combinedPrompt}`,
             hideAttribution: !0
           },
           children: [
-            jsxs(I, {
-              position: `top-right`,
-              className: `flex items-center gap-3 mt-2 mr-2`,
-              children: [
-                jsxs(`div`, {
-                  className: `flex items-center bg-[#2a2a2a] border border-[#333] rounded-lg p-1 shadow-lg`,
-                  children: [
-                    jsx(`button`, {
-                      onClick: autoLayout,
-                      className: `p-1.5 rounded flex items-center justify-center transition-colors text-gray-300 hover:text-white hover:bg-[#444]`,
-                      title: `一键自动排版`,
-                      children: jsx(Ae, {
-                        size: 16
-                      }),
-                    }),
-                    jsx(`div`, {
-                      className: `w-[1px] h-4 bg-[#444] mx-1`,
-                    }),
-                    jsx(`button`, {
-                      onClick: $e,
-                      disabled: historyIndex <= 0,
-                      className: `p-1.5 rounded flex items-center justify-center transition-colors ${historyIndex <= 0 ? `text-gray-600 cursor-not-allowed` : `text-gray-300 hover:text-white hover:bg-[#444]`}`,
-                      title: `撤销 (Ctrl+Z)`,
-                      children: jsx(L, {
-                        size: 16
-                      }),
-                    }),
-                    jsx(`div`, {
-                      className: `w-[1px] h-4 bg-[#444] mx-1`,
-                    }),
-                    jsx(`button`, {
-                      onClick: redo,
-                      disabled: historyIndex >= history.length - 1,
-                      className: `p-1.5 rounded flex items-center justify-center transition-colors ${historyIndex >= history.length - 1 ? `text-gray-600 cursor-not-allowed` : `text-gray-300 hover:text-white hover:bg-[#444]`}`,
-                      title: `重做 (Ctrl+Y)`,
-                      children: jsx(i, {
-                        size: 16
-                      }),
-                    }),
+	            jsxs(I, {
+	              position: `top-right`,
+	              className: `wanjuan-canvas-top-tools flex items-center gap-3 mt-2 mr-2`,
+	              style: {
+	                transform: `scale(0.8)`,
+	                transformOrigin: `top right`
+	              },
+	              children: [
+	                jsxs(`div`, {
+	                  className: `flex items-center bg-[#2a2a2a] border border-[#333] rounded-lg p-1 shadow-lg`,
+	                  children: [
+	                    jsx(`button`, {
+	                      onClick: autoLayout,
+	                      className: `p-1.5 rounded flex items-center justify-center transition-colors text-gray-300 hover:text-white hover:bg-[#444]`,
+	                      title: `一键自动排版`,
+	                      children: jsx(Ae, {
+	                        size: 16
+	                      }),
+	                    }),
+	                    jsx(`div`, {
+	                      className: `w-[1px] h-4 bg-[#444] mx-1`,
+	                    }),
+	                    jsx(`button`, {
+	                      onClick: $e,
+	                      disabled: historyIndex <= 0,
+	                      className: `p-1.5 rounded flex items-center justify-center transition-colors ${historyIndex <= 0 ? `text-gray-600 cursor-not-allowed` : `text-gray-300 hover:text-white hover:bg-[#444]`}`,
+	                      title: `撤销 (Ctrl+Z)`,
+	                      children: jsx(L, {
+	                        size: 16
+	                      }),
+	                    }),
+	                    jsx(`div`, {
+	                      className: `w-[1px] h-4 bg-[#444] mx-1`,
+	                    }),
+	                    jsx(`button`, {
+	                      onClick: redo,
+	                      disabled: historyIndex >= history.length - 1,
+	                      className: `p-1.5 rounded flex items-center justify-center transition-colors ${historyIndex >= history.length - 1 ? `text-gray-600 cursor-not-allowed` : `text-gray-300 hover:text-white hover:bg-[#444]`}`,
+	                      title: `重做 (Ctrl+Y)`,
+	                      children: jsx(i, {
+	                        size: 16
+	                      }),
+	                    }),
                   ],
                 }),
                 jsxs(`div`, {
@@ -27538,9 +27553,16 @@ ${combinedPrompt}`,
                           menuPosition.connection,
                         ),
                       children: [
-                        jsx(h, {
-                          size: 16,
-                          className: `text-cyan-400`,
+                        jsx(`svg`, {
+                          xmlns: `http://www.w3.org/2000/svg`,
+                          width: `16`,
+                          height: `16`,
+                          viewBox: `0 0 24 24`,
+                          fill: `currentColor`,
+                          className: `text-blue-400 flex-shrink-0`,
+                          children: jsx(`path`, {
+                            d: `M12 2.8l2.75 6.45L21.2 12l-6.45 2.75L12 21.2l-2.75-6.45L2.8 12l6.45-2.75L12 2.8z`,
+                          }),
                         }),
 	                        jsx(`span`, {
 	                          children: `即梦节点`,
@@ -30222,7 +30244,7 @@ time=1h`,
         "当前已启用全局统一API配置": "目前已啟用全域統一 API 配置",
         "切换石墨灰、曜石黑、晴空蓝、暖砂白、樱雾粉、薄荷绿或跟随系统外观，不改变现有布局结构": "切換石墨灰、曜石黑、晴空藍、暖砂白、櫻霧粉、薄荷綠或跟隨系統外觀，不改變現有布局結構",
         "选择界面语言偏好，后续多语言文案将按此设置展示": "選擇介面語言偏好，介面文案會依此設定顯示",
-        "1.2.8：落实语言包与资源页清理；修复视频剪辑台导出副本按钮点击被拖拽区域拦截的问题；修复即梦/天玑参考上传模式会回弹到全局默认且生成时不按节点选择上传的问题。": "1.2.8：落實語言包與資源頁清理；修復影片剪輯台匯出副本按鈕點擊被拖曳區域攔截的問題；修復即夢/天璣參考上傳模式會回彈到全域預設且生成時不按節點選擇上傳的問題。",
+        "1.2.9：优化大画布渲染流畅度；改进选择素材弹窗布局、筛选选中态和音视频素材预览；修复部分生成视频下载路径不一致；整理项目、备份中心和即梦节点菜单图标等界面细节。": "1.2.9：優化大畫布渲染流暢度；改進選擇素材彈窗布局、篩選選中態和音影片素材預覽；修復部分生成影片下載路徑不一致；整理專案、備份中心和即夢節點選單圖示等介面細節。",
         "曜石黑": "曜石黑",
         "晴空蓝": "晴空藍",
         "暖砂白": "暖砂白",
@@ -30278,7 +30300,7 @@ time=1h`,
         "当前已启用全局统一API配置": "Global unified API config is enabled",
         "切换石墨灰、曜石黑、晴空蓝、暖砂白、樱雾粉、薄荷绿或跟随系统外观，不改变现有布局结构": "Switch the visual theme without changing the current layout.",
         "选择界面语言偏好，后续多语言文案将按此设置展示": "Choose the interface language. Supported interface text follows this setting.",
-        "1.2.8：落实语言包与资源页清理；修复视频剪辑台导出副本按钮点击被拖拽区域拦截的问题；修复即梦/天玑参考上传模式会回弹到全局默认且生成时不按节点选择上传的问题。": "1.2.8: Added language packs and asset cleanup; fixed video editor duplicate export toolbar clicks being intercepted by drag areas; fixed Seedance/Tianji reference upload mode snapping back to the global default and generation ignoring the selected node upload channel.",
+        "1.2.9：优化大画布渲染流畅度；改进选择素材弹窗布局、筛选选中态和音视频素材预览；修复部分生成视频下载路径不一致；整理项目、备份中心和即梦节点菜单图标等界面细节。": "1.2.9: Improved large-canvas rendering responsiveness; polished the asset picker layout, selected filter state, and audio/video previews; fixed inconsistent save paths for some generated videos; refined project, Backup Center, and Jimeng node menu icon details.",
         "曜石黑": "Obsidian",
         "晴空蓝": "Sky Blue",
         "暖砂白": "Warm Sand",
@@ -40972,7 +40994,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                           [],
                         ),
                         buildBackupPayload = async (e, t, n, r = {}) => ({
-	                            version: `1.2.8`,
+	                            version: `1.2.9`,
                             backupFormat: `4`,
                             exportedAt: new Date().toISOString(),
                             modules: await buildBackupModules(e, t, n, r),
@@ -41557,7 +41579,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                 }),
                 jsx(`span`, {
                   className: `absolute bottom-1 right-2 text-[8px] text-gray-600 font-normal`,
-		                  children: `v1.2.8`,
+		                  children: `v1.2.9`,
                 }),
                 updateInfo?.hasUpdate &&
                 jsx(`span`, {
@@ -42021,7 +42043,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                                 jsx(
                                   `option`, {
                                     value: option.id,
-                                    children: `${option.name} · ${projectStorageLabel(option)}`
+                                    children: option.name
                                   },
                                   option.id,
                                 ),
@@ -42036,7 +42058,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                                   jsx(
                                     `option`, {
                                       value: project.id,
-                                      children: `${project.name} · ${projectStorageLabel(project)}`
+                                      children: project.name
                                     },
                                     project.id,
                                   ),
@@ -45426,7 +45448,7 @@ ${String(l || ``).slice(0, 5e4)}`;
 	                                        }),
 	                                        jsx(`div`, {
 	                                          className: `pt-2 border-t border-[#262626] text-[11px] text-gray-500`,
-	                                          children: wanjuanT(`1.2.8：落实语言包与资源页清理；修复视频剪辑台导出副本按钮点击被拖拽区域拦截的问题；修复即梦/天玑参考上传模式会回弹到全局默认且生成时不按节点选择上传的问题。`),
+	                                          children: wanjuanT(`1.2.9：优化大画布渲染流畅度；改进选择素材弹窗布局、筛选选中态和音视频素材预览；修复部分生成视频下载路径不一致；整理项目、备份中心和即梦节点菜单图标等界面细节。`),
 	                                        }),
 	                                      ],
 	                                    }),
@@ -45443,7 +45465,7 @@ ${String(l || ``).slice(0, 5e4)}`;
 	                                      children: [
 	                                        jsx(`span`, {
 	                                          className: `text-sm font-semibold text-gray-100`,
-	                                          children: `1.2.8`,
+	                                          children: `1.2.9`,
 	                                        }),
 	                                        jsx(`span`, {
 	                                          className: `text-[10px] text-gray-500`,
@@ -49113,6 +49135,7 @@ doubao-seedance-2-0-fast-260128`,
 		                                  id: `wanjuan-project-safety-center`,
 		                                  className: `overflow-hidden`,
 		                                  style: {
+		                                    marginTop: 28,
 		                                    minHeight: 360
 		                                  },
 		                                  children: jsxs(`div`, {
