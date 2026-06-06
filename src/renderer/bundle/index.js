@@ -16450,6 +16450,15 @@ function ut(props) {
         [data-wanjuan-render-mode="lite"] {
           display: contents;
         }
+        .wanjuan-settings-sidebar-group {
+          color: color-mix(in srgb,var(--wj-muted,#6b7280) 82%,transparent);
+          letter-spacing: .06em;
+        }
+        .wanjuan-settings-sidebar-group:not(:first-of-type) {
+          border-top: 1px solid color-mix(in srgb,var(--wj-border,#333) 54%,transparent);
+          margin-top: 6px;
+          padding-top: 10px;
+        }
         html.wanjuan-canvas-dragging .react-flow__node:not(.selected):not([aria-selected="true"]) {
           filter: none !important;
         }
@@ -45024,13 +45033,21 @@ ${String(l || ``).slice(0, 5e4)}`;
                       className: `text-[10px] text-gray-500 font-bold px-3 py-2 mb-1 uppercase tracking-wider wanjuan-settings-sidebar-title`,
 	                      children: wanjuanT(`设置菜单`),
                     }),
+                    jsx(`div`, {
+                      className: `text-[10px] text-gray-600 font-semibold px-3 pt-1 pb-1 uppercase tracking-wider wanjuan-settings-sidebar-group`,
+                      children: `基础`,
+                    }),
                     jsxs(`button`, {
                       onClick: () => setActiveSettingsTab(`basic`),
                       className: `text-left px-3 py-2.5 rounded-lg text-sm transition-colors mb-1.5 flex items-center gap-2 wanjuan-settings-nav-item ${activeSettingsTab === `basic` ? `wanjuan-settings-nav-item-active bg-[#252525] text-blue-400 font-bold border border-[#333] shadow-sm` : `text-gray-300 hover:bg-[#222] hover:text-gray-100 border border-transparent`}`,
                       children: [jsx(`span`, {
                         className: `wanjuan-skeuo-icon wanjuan-skeuo-icon-basic`,
                         children: `🪄`,
-	                      }), ` ${wanjuanT(`个性设置`)}`],
+	                      }), ` 外观与通用`],
+                    }),
+                    jsx(`div`, {
+                      className: `text-[10px] text-gray-600 font-semibold px-3 pt-3 pb-1 uppercase tracking-wider wanjuan-settings-sidebar-group`,
+                      children: `模型服务`,
                     }),
                     jsxs(`button`, {
                       onClick: () => setActiveSettingsTab(`models`),
@@ -45040,7 +45057,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                           className: `wanjuan-skeuo-icon wanjuan-skeuo-icon-models`,
                           children: `🧠`,
                         }),
-	                        ` ${wanjuanT(`模型配置`)}`,
+	                        ` 模型与 API`,
                       ],
                     }),
                     jsxs(`button`, {
@@ -45049,15 +45066,19 @@ ${String(l || ``).slice(0, 5e4)}`;
                       children: [jsx(`span`, {
                         className: `wanjuan-skeuo-icon wanjuan-skeuo-icon-cloud`,
                         children: `☁️`
-	                      }), ` ${wanjuanT(`云盘设置`)}`],
+	                      }), ` 上传与直链`],
                     }),
+	                    jsx(`div`, {
+	                      className: `text-[10px] text-gray-600 font-semibold px-3 pt-3 pb-1 uppercase tracking-wider wanjuan-settings-sidebar-group`,
+	                      children: `运行`,
+	                    }),
 	                    jsxs(`button`, {
 	                      onClick: () => setActiveSettingsTab(`generation`),
 	                      className: `text-left px-3 py-2.5 rounded-lg text-sm transition-colors mb-1.5 flex items-center gap-2 wanjuan-settings-nav-item ${activeSettingsTab === `generation` ? `wanjuan-settings-nav-item-active bg-[#252525] text-green-400 font-bold border border-[#333] shadow-sm` : `text-gray-300 hover:bg-[#222] hover:text-gray-100 border border-transparent`}`,
 	                      children: [jsx(`span`, {
 	                        className: `wanjuan-skeuo-icon wanjuan-skeuo-icon-generation`,
 	                        children: `✨`
-		                      }), ` ${wanjuanT(`生成设置`)}`],
+		                      }), ` 生成与下载`],
 	                    }),
 	                    jsxs(`button`, {
 	                      onClick: () => setActiveSettingsTab(`extensions`),
@@ -45065,7 +45086,11 @@ ${String(l || ``).slice(0, 5e4)}`;
 	                      children: [jsx(`span`, {
 	                        className: `wanjuan-skeuo-icon wanjuan-skeuo-icon-extensions`,
 	                        children: `🧩`
-		                      }), ` ${wanjuanT(`拓展功能`)}`],
+		                      }), ` 本地工具`],
+	                    }),
+	                    jsx(`div`, {
+	                      className: `text-[10px] text-gray-600 font-semibold px-3 pt-3 pb-1 uppercase tracking-wider wanjuan-settings-sidebar-group`,
+	                      children: `数据`,
 	                    }),
 	                    jsxs(`button`, {
 	                      onClick: () => setActiveSettingsTab(`data`),
@@ -45073,7 +45098,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                       children: [jsx(`span`, {
                         className: `wanjuan-skeuo-icon wanjuan-skeuo-icon-data`,
                         children: `🗄️`,
-	                      }), ` ${wanjuanT(`数据管理`)}`],
+	                      }), ` 项目与备份`],
                     }),
                   ],
                 }),
@@ -45598,14 +45623,22 @@ ${String(l || ``).slice(0, 5e4)}`;
                             children: [
                               jsx(`div`, {
                                 className: `flex justify-between items-center p-4 border-b border-[#222] wanjuan-settings-card-header`,
-                                children: jsxs(`h2`, {
-                                  className: `font-bold text-gray-200 text-sm flex items-center gap-2 wanjuan-settings-card-title`,
+                                children: jsxs(`div`, {
                                   children: [
-                                    jsx(`span`, {
-                                      className: `text-cyan-400`,
-                                      children: `☁`,
+                                    jsxs(`h2`, {
+                                      className: `font-bold text-gray-200 text-sm flex items-center gap-2 wanjuan-settings-card-title`,
+                                      children: [
+                                        jsx(`span`, {
+                                          className: `text-cyan-400`,
+                                          children: `☁`,
+                                        }),
+                                        ` 上传与直链`,
+                                      ],
                                     }),
-                                    ` 云盘设置`,
+                                    jsx(`p`, {
+                                      className: `text-[11px] text-gray-500 mt-1 wanjuan-settings-help`,
+                                      children: `管理参考图、视频、音频上传到公网 URL 的通道，不是项目备份或文件下载目录。`,
+                                    }),
                                   ],
                                 }),
                               }),
@@ -45987,14 +46020,22 @@ ${String(l || ``).slice(0, 5e4)}`;
                             children: [
                               jsx(`div`, {
                                 className: `flex justify-between items-center p-4 border-b border-[#222] wanjuan-settings-card-header`,
-                                children: jsxs(`h2`, {
-                                  className: `font-bold text-gray-200 text-sm flex items-center gap-2 wanjuan-settings-card-title`,
+                                children: jsxs(`div`, {
                                   children: [
-                                    jsx(`span`, {
-                                      className: `text-green-400`,
-                                      children: `▶`,
+                                    jsxs(`h2`, {
+                                      className: `font-bold text-gray-200 text-sm flex items-center gap-2 wanjuan-settings-card-title`,
+                                      children: [
+                                        jsx(`span`, {
+                                          className: `text-green-400`,
+                                          children: `▶`,
+                                        }),
+                                        ` 生成与下载`,
+                                      ],
                                     }),
-                                    ` 生成设置`,
+                                    jsx(`p`, {
+                                      className: `text-[11px] text-gray-500 mt-1 wanjuan-settings-help`,
+                                      children: `管理异步轮询、任务并发和生成结果下载位置。`,
+                                    }),
                                   ],
                                 }),
                               }),
@@ -46351,23 +46392,31 @@ ${String(l || ``).slice(0, 5e4)}`;
 	                            children: [
 	                              jsx(`div`, {
 	                                className: `flex justify-between items-center p-4 border-b border-[#222] wanjuan-settings-card-header`,
-	                                children: jsxs(`h2`, {
-	                                  className: `font-bold text-gray-200 text-sm flex items-center gap-2 wanjuan-settings-card-title`,
+	                                children: jsxs(`div`, {
 	                                  children: [
-	                                    jsx(`span`, {
-	                                      className: `text-rose-300`,
-	                                      children: `🧩`,
-	                                    }),
-		                                    ` 拓展功能`,
-		                                  ],
-		                                }),
+	                                    jsxs(`h2`, {
+	                                      className: `font-bold text-gray-200 text-sm flex items-center gap-2 wanjuan-settings-card-title`,
+	                                      children: [
+	                                        jsx(`span`, {
+	                                          className: `text-rose-300`,
+	                                          children: `🧩`,
+	                                        }),
+		                                      ` 本地工具`,
+		                                    ],
+		                                  }),
+		                                  jsx(`p`, {
+		                                    className: `text-[11px] text-gray-500 mt-1 wanjuan-settings-help`,
+		                                    children: `管理需要安装在本机的媒体处理能力，例如打码、声音克隆和视频超分。`,
+		                                  }),
+		                                ],
+		                              }),
 		                              }),
 		                              jsxs(`div`, {
 	                                className: `px-4 pt-4 space-y-4 wanjuan-settings-card-body`,
 	                                children: [
 	                                  jsx(`p`, {
 	                                    className: `text-xs text-gray-500 leading-6 wanjuan-settings-help`,
-	                                    children: `这里管理本地外部项目工具。软件默认不会安装这些项目；只有点击安装后，才会从对应开源项目拉取并安装到当前用户环境。`,
+	                                    children: `软件默认不会安装这些项目；只有点击安装后，才会从对应开源项目拉取并安装到当前用户环境。`,
 	                                  }),
 	                                  jsxs(`div`, {
 	                                    className: `rounded-xl border border-[#333] bg-[#121212] p-4 flex flex-col gap-4`,
@@ -46674,14 +46723,22 @@ ${String(l || ``).slice(0, 5e4)}`;
                             children: [
                               jsx(`div`, {
                                 className: `flex justify-between items-center p-4 select-none border-b border-[#222]`,
-                                children: jsxs(`h2`, {
-                                  className: `font-bold text-gray-200 text-sm flex items-center gap-2 wanjuan-settings-card-title`,
+                                children: jsxs(`div`, {
                                   children: [
-                                    jsx(`span`, {
-                                      className: `wanjuan-skeuo-icon wanjuan-skeuo-icon-api`,
-                                      children: `🔐`,
+                                    jsxs(`h2`, {
+                                      className: `font-bold text-gray-200 text-sm flex items-center gap-2 wanjuan-settings-card-title`,
+                                      children: [
+                                        jsx(`span`, {
+                                          className: `wanjuan-skeuo-icon wanjuan-skeuo-icon-api`,
+                                          children: `🔐`,
+                                        }),
+                                        ` 统一 API 配置`,
+                                      ],
                                     }),
-                                    ` 统一 API 配置`,
+                                    jsx(`p`, {
+                                      className: `text-[11px] text-gray-500 mt-1 wanjuan-settings-help`,
+                                      children: `先维护供应商 Base URL 和 Key，再在下方按模型类型绑定具体调用方式。`,
+                                    }),
                                   ],
                                 }),
                               }),
@@ -48661,7 +48718,7 @@ doubao-seedance-2-0-fast-260128`,
 		                                          children: [
 		                                            jsx(`div`, {
 		                                              className: `text-sm font-semibold text-gray-100`,
-		                                              children: `模型界面`,
+	                            children: `模型分类`,
 		                                            }),
 		                                            jsx(`div`, {
 		                                              className: `text-[11px] text-gray-500`,
@@ -48879,14 +48936,22 @@ doubao-seedance-2-0-fast-260128`,
                           children: [
                             jsx(`div`, {
                               className: `flex justify-between items-center p-4 border-b border-[#222] wanjuan-settings-card-header`,
-                              children: jsxs(`h2`, {
-                                className: `font-bold text-gray-200 text-sm flex items-center gap-2 wanjuan-settings-card-title`,
+                              children: jsxs(`div`, {
                                 children: [
-                                  jsx(`span`, {
-                                    className: `text-orange-500`,
-                                    children: `📦`,
+                                  jsxs(`h2`, {
+                                    className: `font-bold text-gray-200 text-sm flex items-center gap-2 wanjuan-settings-card-title`,
+                                    children: [
+                                      jsx(`span`, {
+                                        className: `text-orange-500`,
+                                        children: `📦`,
+                                      }),
+                                      ` 项目与备份`,
+                                    ],
                                   }),
-                                  ` 数据管理`,
+                                  jsx(`p`, {
+                                    className: `text-[11px] text-gray-500 mt-1 wanjuan-settings-help`,
+                                    children: `管理项目存储优化、备份导入导出和跨设备迁移。`,
+                                  }),
                                 ],
                               }),
                             }),
