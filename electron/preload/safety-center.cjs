@@ -501,9 +501,26 @@ function findSmallestElementContainingText(text) {
     .sort((a, b) => (a.textContent || "").length - (b.textContent || "").length)[0] || null;
 }
 
+const PROJECT_DATA_SETTINGS_TITLES = ["项目与备份", "数据管理"];
+
+function textIncludesAny(text, values) {
+  return values.some((value) => text.includes(value));
+}
+
+function findSmallestElementContainingAnyText(values) {
+  return values
+    .map((value) => findSmallestElementContainingText(value))
+    .filter((element) => element instanceof HTMLElement)
+    .sort((a, b) => (a.textContent || "").length - (b.textContent || "").length)[0] || null;
+}
+
 function findDataManagementContentPanel() {
-  const dataTitle = findSmallestElementContainingText("数据管理");
+  const dataTitle = findSmallestElementContainingAnyText(PROJECT_DATA_SETTINGS_TITLES);
+  const nativePlaceholder = document.getElementById("wanjuan-project-safety-center");
   const candidates = [
+    nativePlaceholder?.closest("section"),
+    nativePlaceholder?.closest("article"),
+    nativePlaceholder?.closest("div"),
     dataTitle?.closest("section"),
     dataTitle?.closest("article"),
     dataTitle?.closest("div"),
@@ -516,7 +533,7 @@ function findDataManagementContentPanel() {
   return candidates
     .filter((element) => {
       const text = element.innerText || element.textContent || "";
-      return text.includes("数据管理") && text.includes("导入备份");
+      return textIncludesAny(text, PROJECT_DATA_SETTINGS_TITLES) && text.includes("导入备份");
     })
     .sort((a, b) => {
       const rectA = a.getBoundingClientRect();
@@ -577,8 +594,10 @@ function findProjectSafetyBackupCenterInsertion() {
 }
 
 function findDataManagementSettingsCard() {
-  const dataTitle = findSmallestElementContainingText("数据管理");
+  const dataTitle = findSmallestElementContainingAnyText(PROJECT_DATA_SETTINGS_TITLES);
+  const nativePlaceholder = document.getElementById("wanjuan-project-safety-center");
   const candidates = [
+    nativePlaceholder?.closest(".wanjuan-settings-card"),
     dataTitle?.closest(".wanjuan-settings-card"),
     findSmallestElementContainingText("导出勾选项")?.closest(".wanjuan-settings-card"),
     findSmallestElementContainingText("导入备份")?.closest(".wanjuan-settings-card"),
@@ -586,7 +605,7 @@ function findDataManagementSettingsCard() {
   ].filter((element) => element instanceof HTMLElement);
   return candidates.find((element) => {
     const text = element.innerText || element.textContent || "";
-    return text.includes("数据管理") && text.includes("导入备份");
+    return textIncludesAny(text, PROJECT_DATA_SETTINGS_TITLES) && text.includes("导入备份");
   }) || null;
 }
 
@@ -634,25 +653,25 @@ function isProjectSafetyCenterAlreadyPlaced(panel, insertion) {
 }
 
 function installProjectSafetyBackupCenter() {
-  const dataCard = findDataManagementSettingsCard();
-  if (!(dataCard instanceof HTMLElement)) return;
-
   const nativePlaceholder = document.getElementById("wanjuan-project-safety-center");
-  if (nativePlaceholder instanceof HTMLElement && dataCard.contains(nativePlaceholder)) {
-    nativePlaceholder.id = "wanjuan-project-safety-center-native-placeholder";
-    nativePlaceholder.dataset.supersededByIndependent = "true";
-    nativePlaceholder.style.display = "none";
+  let panel = nativePlaceholder instanceof HTMLElement ? nativePlaceholder : null;
+
+  if (!panel) {
+    const dataCard = findDataManagementSettingsCard();
+    if (!(dataCard instanceof HTMLElement)) return;
+
+    const existing = document.getElementById("wanjuan-project-safety-center");
+    panel = existing instanceof HTMLElement ? existing : document.createElement("div");
+    panel.id = "wanjuan-project-safety-center";
+
+    if (panel.parentElement !== dataCard.parentElement || panel.previousElementSibling !== dataCard) {
+      dataCard.insertAdjacentElement("afterend", panel);
+    }
   }
 
-  let existing = document.getElementById("wanjuan-project-safety-center");
-  const panel = existing instanceof HTMLElement ? existing : document.createElement("div");
-  panel.id = "wanjuan-project-safety-center";
   panel.classList.add("wanjuan-project-safety-center-module");
   panel.dataset.nativeHost = "true";
-
-  if (panel.parentElement !== dataCard.parentElement || panel.previousElementSibling !== dataCard) {
-    dataCard.insertAdjacentElement("afterend", panel);
-  }
+  panel.style.display = "";
 
   if (panel.dataset.boundByPreload !== "true") {
     panel.dataset.boundByPreload = "true";
