@@ -12,7 +12,7 @@ const fs = require("fs");
 const path = require("path");
 
 const { app, BrowserWindow } = require("./electron-refs.cjs");
-const { TEST_BUILD_NAME, TEST_USER_DATA_DIR } = require("./config.cjs");
+const { TEST_BUILD_NAME, TEST_USER_DATA_DIR, TEST_USER_DATA_PATH } = require("./config.cjs");
 const { isBenignEpipeError, appendDesktopLog } = require("./logging.cjs");
 const { setDesktopBaseUrl } = require("./runtime-state.cjs");
 const { createStaticServer } = require("./net/static-server.cjs");
@@ -22,7 +22,7 @@ const { createMainWindow } = require("./window.cjs");
 // 应用标识与用户数据目录（保持与原 app 一致，沿用同一 userData，迁移用户无感）。
 try {
   app.setName(TEST_BUILD_NAME);
-  app.setPath("userData", path.join(app.getPath("appData"), TEST_USER_DATA_DIR));
+  app.setPath("userData", TEST_USER_DATA_PATH || path.join(app.getPath("appData"), TEST_USER_DATA_DIR));
 } catch {}
 
 // stdout/stderr 的 EPIPE 容错：管道提前关闭不应导致进程崩溃。

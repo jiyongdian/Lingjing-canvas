@@ -1,6 +1,6 @@
 {
   "name": "wanjuan-lingjing",
-  "version": "1.2.8",
+  "version": "1.2.9",
   "private": true,
   "description": "万卷灵境 - macOS AI 创作画布桌面应用",
   "author": "",
@@ -12,7 +12,14 @@
     "debug": "cross-env WANJUAN_DEBUG=1 electron .",
     "build": "vite build --config vite.config.mjs && electron-builder",
     "typecheck": "tsc --noEmit",
-    "test:lib": "node scripts/test-lib.mjs"
+    "test:lib": "node scripts/test-lib.mjs",
+    "test:storage": "node scripts/test-storage-lab.mjs",
+    "test:storage:electron": "electron scripts/test-storage-electron.cjs",
+    "test:storage:state": "node scripts/test-storage-state-policy.mjs",
+    "scan:storage-preview": "node scripts/scan-storage-migration-preview.mjs",
+    "test:migrate-project": "node scripts/migrate-project-media-test.mjs",
+    "test:migrated-project:electron": "electron scripts/test-migrated-project-electron.cjs",
+    "test:storage:real-project": "electron scripts/test-real-project-transaction.cjs"
   },
   "dependencies": {
     "@xyflow/react": "^12.10.2",
@@ -37,7 +44,7 @@
   "build": {
     "appId": "com.wanjuan.lingjing",
     "productName": "万卷灵境",
-    "artifactName": "万卷灵境-1.2.8-${arch}.${ext}",
+    "artifactName": "万卷灵境-1.2.9-${arch}.${ext}",
     "directories": {
       "output": "release"
     },
@@ -49,8 +56,8 @@
       "category": "public.app-category.productivity",
       "icon": "build/icon.icns",
       "extendInfo": {
-        "CFBundleShortVersionString": "1.2.8",
-        "CFBundleVersion": "1.2.8"
+        "CFBundleShortVersionString": "1.2.9",
+        "CFBundleVersion": "1.2.9"
       }
     }
   }

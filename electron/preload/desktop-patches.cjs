@@ -848,7 +848,7 @@ function installDesktopPatches() {
   };
 
   const shouldAutoDownloadMedia = (element, node, url) => {
-    if (!url || url.startsWith("chrome-extension:") || url.startsWith("file:")) return false;
+    if (!url || url.startsWith("chrome-extension:")) return false;
     if (url.startsWith("data:image/svg")) return false;
     if (!node || node.dataset.wanjuanWasGenerating !== "true") return false;
     if (element instanceof HTMLImageElement && element.naturalWidth > 0 && element.naturalHeight > 0) {
@@ -869,12 +869,20 @@ function installDesktopPatches() {
       mime = converted.mime || mime;
     }
 
-    const result = await ipcRenderer.invoke("wanjuan:save-download", {
-      url: nextUrl,
+    const payload = {
       mime,
       filename: generatedResultFilename(element, mime),
       directory: store.downloadDirectory || ""
-    });
+    };
+    if (typeof nextUrl === "string" && /^file:\/\//i.test(nextUrl)) {
+      try {
+        payload.localPath = decodeURIComponent(new URL(nextUrl).pathname);
+      } catch {
+        payload.url = nextUrl;
+      }
+    } else payload.url = nextUrl;
+
+    const result = await ipcRenderer.invoke("wanjuan:save-download", payload);
     if (!result?.ok) throw new Error(result?.error || "自动下载失败");
   };
 
@@ -893,11 +901,12 @@ function installDesktopPatches() {
       if (!url) continue;
       const key = `${node?.getAttribute("data-id") || ""}|${element.tagName}|${url.length}|${url.slice(0, 96)}|${url.slice(-96)}`;
       if (autoDownloadSeenResults.has(key)) continue;
-      autoDownloadSeenResults.add(key);
-      if (autoDownloadSeenResults.size > 2000) autoDownloadSeenResults.clear();
       if (!autoDownloadBaselineReady || !autoDownloadEnabled) continue;
       if (!shouldAutoDownloadMedia(element, node, url)) continue;
+      autoDownloadSeenResults.add(key);
+      if (autoDownloadSeenResults.size > 2000) autoDownloadSeenResults.clear();
       autoDownloadGeneratedResult(element, url).catch((error) => {
+        autoDownloadSeenResults.delete(key);
         console.warn("auto download generated result skipped", error);
       });
     }
@@ -1003,6 +1012,13 @@ function installDesktopPatches() {
     const root = document.documentElement;
     if (root.dataset.wanjuanMediaPerfInstalled === "true") return;
     root.dataset.wanjuanMediaPerfInstalled = "true";
+    const perfStats = {
+      managedVideos: 0,
+      unloadedVideos: 0,
+      restoredVideos: 0,
+      lastRefreshAt: 0
+    };
+    try { window.__wanjuanCanvasMediaPerfStats = perfStats; } catch {}
 
     const getCanvasVideos = () =>
       Array.from(document.querySelectorAll(".react-flow__node video"))
@@ -1026,6 +1042,7 @@ function installDesktopPatches() {
       const storedSrc = video.dataset.wanjuanMediaSrc;
       if (storedSrc && !video.getAttribute("src")) {
         video.setAttribute("src", storedSrc);
+        perfStats.restoredVideos++;
         try {
           video.load();
         } catch {}
@@ -1041,6 +1058,7 @@ function installDesktopPatches() {
       if (!src) return;
       video.dataset.wanjuanMediaSrc = src;
       video.removeAttribute("src");
+      perfStats.unloadedVideos++;
       try {
         video.load();
       } catch {}
@@ -1060,6 +1078,7 @@ function installDesktopPatches() {
     const manageVideo = (video) => {
       if (!(video instanceof HTMLVideoElement) || video.dataset.wanjuanMediaManaged === "true") return;
       video.dataset.wanjuanMediaManaged = "true";
+      perfStats.managedVideos++;
       video.preload = "metadata";
       video.playsInline = true;
       video.disableRemotePlayback = true;
@@ -1069,6 +1088,7 @@ function installDesktopPatches() {
     };
 
     const refreshVideos = () => {
+      perfStats.lastRefreshAt = Date.now();
       for (const video of getCanvasVideos()) manageVideo(video);
     };
 
@@ -1097,7 +1117,7 @@ function installDesktopPatches() {
     canvasInteractionTimer = window.setTimeout(() => {
       canvasInteractionTimer = 0;
       document.documentElement.classList.remove("wanjuan-canvas-dragging");
-    }, 180);
+    }, 260);
   };
 
   const isCanvasInteractionTarget = (target) => {

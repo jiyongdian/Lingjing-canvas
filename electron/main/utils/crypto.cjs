@@ -7,7 +7,19 @@ function sha256Buffer(buffer) {
 }
 
 function sha256File(filePath) {
-  return sha256Buffer(fs.readFileSync(filePath));
+  const hash = crypto.createHash("sha256");
+  const fd = fs.openSync(filePath, "r");
+  const buffer = Buffer.allocUnsafe(1024 * 1024);
+  try {
+    for (;;) {
+      const bytes = fs.readSync(fd, buffer, 0, buffer.length, null);
+      if (!bytes) break;
+      hash.update(buffer.subarray(0, bytes));
+    }
+  } finally {
+    fs.closeSync(fd);
+  }
+  return hash.digest("hex");
 }
 
 function portableValueFromBuffer(buffer, mime) {

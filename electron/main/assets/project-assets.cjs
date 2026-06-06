@@ -19,8 +19,12 @@ const {
   bufferFromDataUrlValue
 } = require("../utils/paths.cjs");
 const { resolveAssetPayload, normalizeImagePayload, readLocalFilePayload } = require("../media/payload.cjs");
+const { writeContentAddressedFile, writeContentAddressedFileFromPath, diagnoseContentStore, globalContentRoot } = require("./content-store.cjs");
+const { assertActiveMigration, recordMigrationAsset, removeProjectReferences } = require("./migration-manager.cjs");
+const { assertStorageWriteAllowed } = require("./storage-optimization.cjs");
 
 async function persistProjectAsset(payload = {}) {
+  assertStorageWriteAllowed();
   const downloadRoot = payload?.directory || defaultDownloadDirectory();
   const projectId = sanitizePathSegment(payload?.projectId || "default", "default");
   const nodeId = sanitizePathSegment(payload?.nodeId || "node", "node");
@@ -30,10 +34,47 @@ async function persistProjectAsset(payload = {}) {
     payload?.assetId || `${kind}-${Date.now()}-${Math.random().toString(16).slice(2, 10)}`,
     `${kind}-${Date.now()}`
   );
-  const projectRoot = path.join(mediaLibraryRoot(downloadRoot), projectId);
-  const assetRoot = path.join(projectRoot, "assets", nodeId);
-  fs.mkdirSync(assetRoot, { recursive: true });
-
+  const useGlobalStore =
+    payload?.storageOptimizationEnabled === true ||
+    Boolean(payload?.migrationId) ||
+    payload?.forceArchiveExistingFile === true;
+  const projectRoot = useGlobalStore
+    ? globalContentRoot(mediaLibraryRoot(downloadRoot))
+    : path.join(mediaLibraryRoot(downloadRoot), projectId);
+  assertActiveMigration(payload?.migrationId, projectId);
+  const forceArchiveSource = payload?.forceArchiveExistingFile && payload?.localPath && fs.existsSync(payload.localPath)
+    ? path.resolve(payload.localPath)
+    : "";
+  if (forceArchiveSource) {
+    const filename = ensureExtname(sanitizeFilename(payload?.filename || path.basename(forceArchiveSource)), payload?.mime);
+    const finalMime = payload?.mime || guessMimeFromFilename(filename) || guessMimeFromFilename(forceArchiveSource);
+    const stored = await writeContentAddressedFileFromPath(
+      projectRoot,
+      forceArchiveSource,
+      extensionFromMime(finalMime) || path.extname(forceArchiveSource)
+    );
+    const stat = fs.statSync(stored.path);
+    const result = {
+      ok: true,
+      assetId,
+      kind,
+      mime: finalMime,
+      filename,
+      localPath: stored.path,
+      projectId,
+      nodeId,
+      field,
+      size: stat.size,
+      savedAt: new Date().toISOString(),
+      sha256: stored.sha256,
+      deduplicated: stored.deduplicated,
+      contentAddressed: useGlobalStore,
+      archivedFromExistingFile: true,
+      valueFormat: /^(image|video|audio)\//i.test(finalMime) ? "file-url" : undefined
+    };
+    recordMigrationAsset(payload?.migrationId, result);
+    return result;
+  }
   const resolved = await resolveAssetPayload(payload);
   const shouldNormalizeImage =
     /^image\//i.test(String(resolved.mime || "")) ||
@@ -47,18 +88,52 @@ async function persistProjectAsset(payload = {}) {
   const rawFilename = resolved.filename;
   const sourceName = sanitizeFilename(rawFilename || `${field}-${assetId}`);
   const filename = ensureExtname(sourceName, mime);
-  const targetPath = path.join(assetRoot, `${field}-${assetId}-${filename}`);
-  const finalMime = mime || guessMimeFromFilename(targetPath);
+  const finalMime = mime || guessMimeFromFilename(filename);
   if ((/^video\//i.test(finalMime) || /^audio\//i.test(finalMime)) && buffer.length < 1024) {
     throw new Error("Media asset is empty or too small to save");
   }
-  if (!fs.existsSync(targetPath)) fs.writeFileSync(targetPath, buffer);
+  if (!useGlobalStore) {
+    const assetRoot = path.join(projectRoot, "assets", nodeId);
+    fs.mkdirSync(assetRoot, { recursive: true });
+    const targetPath = path.join(assetRoot, `${field}-${assetId}-${filename}`);
+    if (!fs.existsSync(targetPath)) fs.writeFileSync(targetPath, buffer);
+    const stat = fs.statSync(targetPath);
+    const portableValue =
+      /^video\//i.test(finalMime) || /^audio\//i.test(finalMime)
+        ? { valueFormat: "file-url" }
+        : portableValueFromBuffer(buffer, finalMime);
+    return {
+      ok: true,
+      assetId,
+      kind,
+      mime: finalMime,
+      filename,
+      localPath: targetPath,
+      projectId,
+      nodeId,
+      field,
+      size: stat.size,
+      savedAt: new Date().toISOString(),
+      sha256: sha256Buffer(buffer),
+      contentAddressed: false,
+      ...portableValue
+    };
+  }
+  const stored = await writeContentAddressedFile(
+    projectRoot,
+    buffer,
+    extensionFromMime(finalMime) || path.extname(filename)
+  );
+  const targetPath = stored.path;
   const stat = fs.statSync(targetPath);
-  const portableValue =
-    /^video\//i.test(finalMime) || /^audio\//i.test(finalMime)
-      ? { valueFormat: "file-url" }
-      : portableValueFromBuffer(buffer, finalMime);
-  return {
+  const isBinaryMedia =
+    /^image\//i.test(finalMime) ||
+    /^video\//i.test(finalMime) ||
+    /^audio\//i.test(finalMime);
+  const portableValue = isBinaryMedia
+    ? { valueFormat: "file-url" }
+    : portableValueFromBuffer(buffer, finalMime);
+  const result = {
     ok: true,
     assetId,
     kind,
@@ -70,9 +145,19 @@ async function persistProjectAsset(payload = {}) {
     field,
     size: stat.size,
     savedAt: new Date().toISOString(),
-    sha256: sha256Buffer(buffer),
+    sha256: stored.sha256,
+    deduplicated: stored.deduplicated,
+    contentAddressed: useGlobalStore,
     ...portableValue
   };
+  recordMigrationAsset(payload?.migrationId, result);
+  return result;
+}
+
+function diagnoseProjectAssets(payload = {}) {
+  const downloadRoot = payload?.directory || defaultDownloadDirectory();
+  const root = mediaLibraryRoot(downloadRoot);
+  return diagnoseContentStore(root);
 }
 
 async function checkProjectAssets(payload = {}) {
@@ -521,8 +606,10 @@ function copyExternalProjectAssetFiles(targetJsonPath, assetFiles = [], requeste
     version: 2,
     exportedAt: new Date().toISOString(),
     total: entries.length,
+    physicalFileCount: 0,
     files: []
   };
+  const exportedByHash = new Map();
   for (const entry of entries) {
     const source = resolveAssetExportBuffer(entry);
     const preferredName =
@@ -531,10 +618,17 @@ function copyExternalProjectAssetFiles(targetJsonPath, assetFiles = [], requeste
       entry.filename ||
       (entry.path ? path.basename(entry.path) : "");
     const fallbackExt = extensionFromMime(source?.mime || entry.mime || "") || path.extname(preferredName) || ".bin";
-    const targetPath = uniqueAssetExportPath(folderPath, preferredName, `asset-${manifest.files.length + 1}${fallbackExt}`);
     try {
       if (!source) throw new Error(entry?.path ? "源素材文件不存在，且没有可恢复的内嵌素材数据" : "没有可导出的素材数据");
-      fs.writeFileSync(targetPath, source.buffer);
+      const contentHash = sha256Buffer(source.buffer);
+      const existingTargetPath = exportedByHash.get(contentHash);
+      const targetPath = existingTargetPath ||
+        uniqueAssetExportPath(folderPath, preferredName, `asset-${manifest.files.length + 1}${fallbackExt}`);
+      if (!existingTargetPath) {
+        fs.writeFileSync(targetPath, source.buffer);
+        exportedByHash.set(contentHash, targetPath);
+        manifest.physicalFileCount += 1;
+      }
       const stat = fs.statSync(targetPath);
       manifest.files.push({
         projectId: entry.projectId || "",
@@ -545,7 +639,8 @@ function copyExternalProjectAssetFiles(targetJsonPath, assetFiles = [], requeste
         originalName: entry.originalName || entry.filename || (entry.path ? path.basename(entry.path) : path.basename(targetPath)),
         filename: path.basename(targetPath),
         size: stat.size,
-        sha256: sha256Buffer(source.buffer),
+        sha256: contentHash,
+        deduplicated: Boolean(existingTargetPath),
         mime: source.mime || entry.mime || "",
         source: source.source || "file",
         sourceOrigin: entry.sourceOrigin || "",
@@ -587,6 +682,7 @@ function summarizeExternalAssetBundle(assetBundle) {
     manifestVersion: manifest.version || 2,
     folderName: assetBundle.folderName || "",
     fileCount: Array.isArray(manifest.files) ? manifest.files.length : 0,
+    physicalFileCount: Number(manifest.physicalFileCount || 0),
     copied: assetBundle.copied || 0,
     failed: assetBundle.failed || 0,
     assets: (manifest.files || []).map((entry) => ({
@@ -601,6 +697,7 @@ function summarizeExternalAssetBundle(assetBundle) {
       filename: entry.filename || "",
       originalName: entry.originalName || "",
       sourceOrigin: entry.sourceOrigin || "",
+      deduplicated: entry.deduplicated === true,
       error: entry.error || ""
     }))
   };
@@ -634,7 +731,8 @@ async function removeProjectAssets(payload = {}) {
     if (fs.existsSync(projectRoot)) {
       fs.rmSync(projectRoot, { recursive: true, force: true });
     }
-    return { ok: true, path: projectRoot, removed: true };
+    removeProjectReferences({ directory: downloadRoot, projectId });
+    return { ok: true, path: projectRoot, removed: true, sharedBlobsRetained: true };
   } catch (error) {
     return { ok: false, error: String(error?.message || error), path: projectRoot };
   }
@@ -642,6 +740,7 @@ async function removeProjectAssets(payload = {}) {
 
 module.exports = {
   persistProjectAsset,
+  diagnoseProjectAssets,
   checkProjectAssets,
   normalizeAssetMatchName,
   getAssetMatchNames,

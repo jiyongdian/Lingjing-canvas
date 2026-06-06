@@ -28,7 +28,7 @@ ws.addEventListener("message", (ev) => {
 await new Promise((r) => ws.addEventListener("open", r));
 await send("Runtime.enable");
 const res = await send("Runtime.evaluate", {
-  expression: `(function(){ try { return JSON.stringify(${expr}); } catch(e){ return 'ERR: '+e.message; } })()`,
+  expression: `(async function(){ try { return JSON.stringify(await (${expr})); } catch(e){ return 'ERR: '+e.message; } })()`,
   returnByValue: true,
   awaitPromise: true,
 });

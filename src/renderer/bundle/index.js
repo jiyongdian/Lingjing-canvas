@@ -211,8 +211,18 @@ if (typeof globalThis.hydrateProjectAssetContainer !== `function`) {
 }
 if (typeof globalThis.externalizeProjectCanvasState !== `function`) {
   globalThis.externalizeProjectCanvasState = async function externalizeProjectCanvasState(value) {
+    let cleanRuntimeFields = (item) => {
+      if (Array.isArray(item)) return item.map(cleanRuntimeFields);
+      if (!item || typeof item != `object`) return item;
+      let result = {};
+      for (let [key, value2] of Object.entries(item)) {
+        if (key === `wanjuanRenderMode` || key === `wanjuanRenderReason` || key === `wanjuanRenderRuntime`) continue;
+        result[key] = cleanRuntimeFields(value2);
+      }
+      return result;
+    };
     return value && typeof value == `object` ?
-      JSON.parse(JSON.stringify(value)) :
+      cleanRuntimeFields(JSON.parse(JSON.stringify(value))) :
       value;
   };
 }
@@ -259,6 +269,245 @@ var je = De(),
 const { useState, useEffect, useRef, useCallback, useMemo, memo: reactMemo, StrictMode } = q;
 const { jsx, jsxs, Fragment } = J;
 const { createRoot } = je;
+const WanJuanRenderRuntime = (() => {
+    let counters = {
+        nodeUpdates: [],
+        renderModeAt: Date.now()
+      },
+      mark = (key) => {
+        let now = Date.now();
+        counters[key] || (counters[key] = []);
+        counters[key].push(now);
+        counters[key] = counters[key].filter((time) => now - time <= 5000);
+      },
+      debugEnabled = () => {
+        try {
+          return localStorage.getItem(`wanjuan.renderDebug`) === `1` || document.documentElement.dataset.wanjuanDebug === `1`;
+        } catch {
+          return !1;
+        }
+      };
+    try {
+      globalThis.__wanjuanRenderRuntime = {
+        counters: counters,
+        mark: mark,
+        snapshot: () => ({
+          nodeUpdates5s: counters.nodeUpdates.length,
+          setNodes5s: counters.setNodes?.length || 0,
+          renderModeAt: counters.renderModeAt
+        })
+      };
+    } catch {}
+    return {
+      mark: mark,
+      debugEnabled: debugEnabled,
+      snapshot: () => globalThis.__wanjuanRenderRuntime?.snapshot?.() || {}
+    };
+  })(),
+  WanJuanRuntimeNodeDataKeys = new Set([`wanjuanRenderMode`, `wanjuanRenderReason`, `wanjuanRenderRuntime`]),
+  WanJuanStripRuntimeNodeData = (data) => {
+    if (!data || typeof data != `object`) return data;
+    let changed = !1,
+      nextData = {};
+    Object.entries(data).forEach(([key, value]) => {
+      WanJuanRuntimeNodeDataKeys.has(key) ? changed = !0 : nextData[key] = value;
+    });
+    return changed ? nextData : data;
+  },
+  WanJuanNodeTypeLabel = (type, data = {}) => {
+    if (type === `promptNode`) return `图像生成`;
+    if (type === `videoNode`) return `视频生成`;
+    if (type === `seedanceNode`) return `即梦视频`;
+    if (type === `tongyiWanxiangNode`) return `通义万相`;
+    if (type === `audioNode`) return `音频`;
+    if (type === `ttsMusicNode` || type === `musicNode`) return data.mode === `tts` ? `语音` : `音乐`;
+    if (type === `videoExtractNode`) return `视频抽帧`;
+    if (type === `videoFaceBlurNode`) return `人脸打码`;
+    if (type === `realEsrganVideoNode`) return `视频超分`;
+    if (type === `qwenTtsCloneNode`) return `声音克隆`;
+    if (type === `textNode`) return `文本`;
+    if (type === `imageNode`) {
+      if (data.mediaKind === `video`) return `视频素材`;
+      if (data.mediaKind === `audio`) return `音频素材`;
+      if (data.mediaKind === `text`) return `文本素材`;
+      return `图片素材`;
+    }
+    return data.label || `节点`;
+  },
+  WanJuanNodeStatusLabel = (data = {}) =>
+    data.loading ? (data.loadingText || `生成中`) :
+    data.errorMessage || data.errorMsg ? `失败` :
+    data.videoUrl || data.audioUrl || data.imageUrl || data.resultData ? `已生成` :
+    `就绪`,
+  WanJuanNodeStatusColor = (data = {}) =>
+    data.loading ? `#38bdf8` : data.errorMessage || data.errorMsg ? `#ef4444` : data.videoUrl || data.audioUrl || data.imageUrl || data.resultData ? `#22c55e` : `#64748b`,
+  WanJuanRenderShellNode = reactMemo(({
+    id: nodeId,
+    type: nodeType,
+    data: data = {},
+    selected: selected
+  }) => {
+    let label = data.label || data.audioName || data.videoName || data.title || WanJuanNodeTypeLabel(nodeType, data),
+      status = WanJuanNodeStatusLabel(data),
+      color = WanJuanNodeStatusColor(data);
+    return jsxs(`div`, {
+      className: `wanjuan-render-shell-node group/node ${selected ? `is-selected` : ``}`,
+      title: `${label}\n${status}\n点击节点可恢复完整视图`,
+      children: [
+        jsx(Y, {
+          type: `target`,
+          position: A.Left,
+          variant: `small`
+        }),
+        jsxs(`div`, {
+          className: `wanjuan-render-shell-frame`,
+          style: {
+            borderColor: selected ? `#3b82f6` : color,
+            "--wanjuan-shell-color": color
+          },
+          children: [
+            jsx(`span`, {
+              className: `wanjuan-render-shell-dot`,
+              style: {
+                background: color
+              }
+            }),
+            jsxs(`div`, {
+              className: `wanjuan-render-shell-copy`,
+              children: [
+                jsx(`strong`, {
+                  children: label
+                }),
+                jsx(`span`, {
+                  children: status
+                }),
+              ],
+            }),
+          ],
+        }),
+        jsx(Y, {
+          type: `source`,
+          position: A.Right,
+          variant: `small`
+        }),
+      ],
+    });
+  }),
+  WanJuanWithRenderMode = (Component, nodeType) =>
+    reactMemo((props) => {
+      let renderMode = props.data?.wanjuanRenderMode || `full`;
+      if (renderMode === `shell` && !props.selected && !props.data?.loading)
+        return jsx(WanJuanRenderShellNode, {
+          ...props,
+          type: nodeType
+        });
+      return jsx(`div`, {
+        className: `wanjuan-render-mode-${renderMode}`,
+        "data-wanjuan-render-mode": renderMode,
+        children: jsx(Component, props)
+      });
+    }),
+  WanJuanHeavyRenderNodeTypes = new Set([
+    `imageNode`,
+    `promptNode`,
+    `videoNode`,
+    `seedanceNode`,
+    `tongyiWanxiangNode`,
+    `audioNode`,
+    `musicNode`,
+    `ttsMusicNode`,
+    `videoExtractNode`,
+    `videoFaceBlurNode`,
+    `qwenTtsCloneNode`,
+    `realEsrganVideoNode`,
+  ]),
+  WanJuanEstimateNodeSize = (node) => ({
+    width: Number(node?.measured?.width || node?.style?.width || 280),
+    height: Number(node?.measured?.height || node?.style?.height || 220)
+  }),
+  WanJuanNodeNeedsFullRender = (node) => {
+    let data = node?.data || {};
+    return !!(
+      node?.selected ||
+      node?.dragging ||
+      data.loading ||
+      data.expanded ||
+      data.configMode ||
+      data.wanjuanForceFullRender ||
+      data.errorMessage ||
+      data.errorMsg
+    );
+  },
+  WanJuanComputeNodeRenderMode = (node, viewport = {
+    x: 0,
+    y: 0,
+    zoom: 1
+  }, viewportSize = {
+    width: 1600,
+    height: 900
+  }) => {
+    if (!WanJuanHeavyRenderNodeTypes.has(node?.type)) return `full`;
+    if (WanJuanNodeNeedsFullRender(node)) return `full`;
+    let zoom = Number(viewport?.zoom || 1);
+    if (zoom >= 0.72) return `full`;
+    let {
+        width,
+        height
+      } = WanJuanEstimateNodeSize(node),
+      centerX = (Number(node?.position?.x || 0) + width / 2) * zoom + Number(viewport?.x || 0),
+      centerY = (Number(node?.position?.y || 0) + height / 2) * zoom + Number(viewport?.y || 0),
+      screenCenterX = Number(viewportSize?.width || 1600) / 2,
+      screenCenterY = Number(viewportSize?.height || 900) / 2,
+      distance = Math.hypot(centerX - screenCenterX, centerY - screenCenterY),
+      centerRadius = Math.max(screenCenterX, screenCenterY) * (zoom < 0.32 ? 0.82 : 1.05);
+    if (zoom <= 0.18) return `shell`;
+    if (zoom <= 0.36 && distance > centerRadius * 0.72) return `shell`;
+    if (zoom <= 0.52 && distance > centerRadius) return `shell`;
+    return zoom < 0.56 ? `lite` : `full`;
+  },
+  WanJuanIsCriticalNodePatch = (patch = {}) =>
+    patch.loading === !1 ||
+    patch.errorMessage !== void 0 ||
+    patch.errorMsg !== void 0 ||
+    patch.videoUrl !== void 0 ||
+    patch.audioUrl !== void 0 ||
+    patch.imageUrl !== void 0 ||
+    patch.resultData !== void 0 && patch.loading === !1 ||
+    patch.progress === 100 ||
+    patch.realEsrganProgress === 100,
+  WanJuanUseThrottledNodeDataUpdate = (nodeId, updateNodeData, delay = 420) => {
+    let pendingRef = useRef(null),
+      timerRef = useRef(0),
+      flush = useCallback(() => {
+        if (timerRef.current) {
+          window.clearTimeout(timerRef.current);
+          timerRef.current = 0;
+        }
+        if (!pendingRef.current) return;
+        let patch = pendingRef.current;
+        pendingRef.current = null;
+        WanJuanRenderRuntime.mark(`nodeUpdates`);
+        updateNodeData(nodeId, patch);
+      }, [nodeId, updateNodeData]);
+    useEffect(() => () => flush(), [flush]);
+    return useCallback((patch, options = {}) => {
+      if (!patch || typeof patch != `object`) return;
+      if (options.immediate || WanJuanIsCriticalNodePatch(patch)) {
+        pendingRef.current = {
+          ...(pendingRef.current || {}),
+          ...patch
+        };
+        flush();
+        return;
+      }
+      pendingRef.current = {
+        ...(pendingRef.current || {}),
+        ...patch
+      };
+      if (timerRef.current) return;
+      timerRef.current = window.setTimeout(flush, delay);
+    }, [delay, flush]);
+  };
 // —— 性能档位接入画布：把 wanjuanPerformanceProfile 映射为 <html> 上的 wj-perf-* 类，
 // 供 ui-overrides.css 在低档位时降低画布渲染负载（关动画/降阴影等）。独立于 React 状态。
 (function syncCanvasPerfMode() {
@@ -1360,40 +1609,22 @@ var TongyiWanxiangLogo = ({
                           }),
                           g &&
                           jsxs(`div`, {
-	                            className: `wanjuan-mention-picker absolute top-full left-0 mt-1 w-72 bg-[#222] border border-[#444] rounded-lg shadow-2xl z-[100] flex flex-col overflow-hidden nopan`,
+                            className: `wanjuan-mention-picker absolute top-full left-0 mt-1 w-[380px] bg-[#22272f] border border-[#3a4250] rounded-lg shadow-2xl z-[100] flex flex-col overflow-hidden nopan`,
                             onWheel: (event) => event.stopPropagation(),
                             onClick: (event) => event.stopPropagation(),
                             children: [
-                              jsxs(`div`, {
-                                className: `flex items-center justify-between p-2 border-b border-[#333] bg-[#1a1a1a] wanjuan-mention-picker-header`,
-                                children: [
-	                                  jsxs(`div`, {
-	                                    className: `text-xs text-gray-300 font-bold flex flex-col gap-1`,
-	                                    children: [
-	                                      jsxs(`div`, {
-	                                        className: `flex items-center gap-2`,
-	                                        children: [
-	                                          jsx(`span`, {
-	                                            children: `选择素材`,
-	                                          }),
-	                                          jsxs(`div`, {
-			                                        className: `flex bg-[#111] rounded p-0.5 wanjuan-mention-picker-tabs`,
-			                                        children: wanjuanRenderResourceFilterTabs(typeFilter, setTypeFilter, setPage),
-	                                          }),
-	                                        ],
-	                                      }),
-	                                      wanjuanRenderResourceSourceTabs(resourceSourceFilter, setResourceSourceFilter, resourceFavoriteOnly, setResourceFavoriteOnly, setPage),
-	                                    ],
-	                                  }),
-                                  jsx(`button`, {
-                                    className: `text-gray-500 hover:text-white`,
-                                    onClick: () => _(!1),
-                                    children: `×`,
-                                  }),
-                                ],
+                              wanjuanRenderResourcePickerHeader({
+                                activeKind: typeFilter,
+                                onSelectKind: setTypeFilter,
+                                activeSource: resourceSourceFilter,
+                                onSelectSource: setResourceSourceFilter,
+                                favoriteOnly: resourceFavoriteOnly,
+                                setFavoriteOnly: setResourceFavoriteOnly,
+                                setPage,
+                                onClose: () => _(!1),
                               }),
                               jsx(`div`, {
-                                className: `p-2 h-48 overflow-y-auto custom-scrollbar wanjuan-node-scroll-area wanjuan-mention-picker-list`,
+	                                className: `p-2 h-48 overflow-y-auto custom-scrollbar wanjuan-node-scroll-area wanjuan-mention-picker-list`,
                                 children: (() => {
 		                                  let filteredResources = resources.filter((resource) => wanjuanResourceMatchesFilter(resource, typeFilter, resourceSourceFilter, resourceFavoriteOnly));
                                   return filteredResources.length === 0 ?
@@ -1402,17 +1633,17 @@ var TongyiWanxiangLogo = ({
                                       children: `暂无素材`,
                                     }) :
                                     jsx(`div`, {
-                                      className: `grid grid-cols-4 gap-1.5`,
+	                                      className: `grid grid-cols-4 gap-2`,
                                       children: filteredResources
                                         .slice((page - 1) * 16, page * 16)
                                         .map((resource) =>
                                           jsxs(
                                             `div`, {
-                                              className: `aspect-square bg-[#111] rounded border border-[#333] hover:border-blue-500 cursor-pointer overflow-hidden relative group wanjuan-mention-picker-item`,
+	                                              className: `aspect-square bg-[#111827] rounded-lg border border-[#333b46] hover:border-blue-500 cursor-pointer overflow-hidden relative group wanjuan-mention-picker-item`,
 	                                              onClick: (event) => {
 	                                                let mentionRange = wanjuanMentionRangeFromPicker(event.currentTarget, prompt),
 	                                                  updatedPrompt = wanjuanReplaceMentionToken(prompt, mentionRange);
-	                                                if (resource.type === `text`) {
+		                                                if (wanjuanResourceKind(resource) === `text`) {
 	                                                  let updatedPrompt2 = wanjuanReplaceMentionToken(prompt, mentionRange, resource.url || ``);
 	                                                  (setPrompt(updatedPrompt2),
 	                                                    updateNodeData(nodeId, {
@@ -1432,23 +1663,7 @@ var TongyiWanxiangLogo = ({
                                                 (_(!1), wanjuanClearMentionPickerPosition(event.currentTarget));
                                               },
                                               children: [
-	                                                resource.type.startsWith(`image`) ?
-	                                                jsx(`img`, {
-	                                                  src: resource.thumbnailUrl || resource.url,
-	                                                  className: `w-full h-full object-cover`,
-	                                                  onError: wanjuanUseBrokenResourceImage,
-	                                                }) :
-                                                resource.type.startsWith(
-                                                  `video`,
-                                                ) ?
-                                                jsx(`video`, {
-                                                  src: resource.url,
-                                                  className: `w-full h-full object-cover`,
-                                                }) :
-                                                jsx(`div`, {
-                                                  className: `p-1 text-[8px] text-gray-400 break-all overflow-hidden h-full`,
-                                                  children: resource.url,
-                                                }),
+		                                                wanjuanRenderResourcePreview(resource),
                                                 jsx(`div`, {
                                                   className: `absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity`,
                                                   children: jsx(
@@ -1472,13 +1687,13 @@ var TongyiWanxiangLogo = ({
                                 return totalPages <= 1 ?
                                   null :
                                   jsxs(`div`, {
-                                    className: `flex items-center justify-between p-1.5 border-t border-[#333] bg-[#1a1a1a]`,
+	                                    className: `flex items-center justify-between p-2 border-t border-[#333b46] bg-[#20252c]`,
                                     children: [
                                       jsx(`button`, {
                                         disabled: page === 1,
                                         onClick: () =>
                                           setPage((prevPage) => Math.max(1, prevPage - 1)),
-                                        className: `text-[10px] px-2 py-0.5 bg-[#333] rounded disabled:opacity-30`,
+	                                        className: `text-[10px] px-2.5 py-1 bg-[#2b313a] rounded-md disabled:opacity-30 text-gray-300 hover:bg-[#343b46]`,
                                         children: `上一页`,
                                       }),
                                       jsxs(`span`, {
@@ -1489,7 +1704,7 @@ var TongyiWanxiangLogo = ({
                                         disabled: page === totalPages,
                                         onClick: () =>
                                           setPage((prevPage) => Math.min(totalPages, prevPage + 1)),
-                                        className: `text-[10px] px-2 py-0.5 bg-[#333] rounded disabled:opacity-30`,
+	                                        className: `text-[10px] px-2.5 py-1 bg-[#2b313a] rounded-md disabled:opacity-30 text-gray-300 hover:bg-[#343b46]`,
                                         children: `下一页`,
                                       }),
                                     ],
@@ -2394,36 +2609,18 @@ var TongyiWanxiangLogo = ({
                           }),
                           isMentionPickerOpen &&
                           jsxs(`div`, {
-	                            className: `wanjuan-mention-picker absolute top-full left-0 mt-1 w-72 bg-[#222] border border-[#444] rounded-lg shadow-2xl z-[100] flex flex-col overflow-hidden`,
+			                            className: `wanjuan-mention-picker absolute top-full left-0 mt-1 w-[380px] bg-[#22272f] border border-[#3a4250] rounded-lg shadow-2xl z-[100] flex flex-col overflow-hidden`,
                             onClick: (event) => event.stopPropagation(),
                             children: [
-                              jsxs(`div`, {
-                                className: `flex items-center justify-between p-2 border-b border-[#333] bg-[#1a1a1a] wanjuan-mention-picker-header`,
-                                children: [
-	                                  jsxs(`div`, {
-	                                    className: `text-xs text-gray-300 font-bold flex flex-col gap-1`,
-	                                    children: [
-	                                      jsxs(`div`, {
-	                                        className: `flex items-center gap-2`,
-	                                        children: [
-	                                          jsx(`span`, {
-	                                            children: `选择素材`,
-	                                          }),
-	                                          jsxs(`div`, {
-			                                        className: `flex bg-[#111] rounded p-0.5 wanjuan-mention-picker-tabs`,
-			                                        children: wanjuanRenderResourceFilterTabs(resourceTypeFilter, te, setCurrentPage),
-	                                          }),
-	                                        ],
-	                                      }),
-	                                      wanjuanRenderResourceSourceTabs(resourceSourceFilter, setResourceSourceFilter, resourceFavoriteOnly, setResourceFavoriteOnly, setCurrentPage),
-	                                    ],
-	                                  }),
-                                  jsx(`button`, {
-                                    className: `text-gray-500 hover:text-white`,
-                                    onClick: () => setIsMentionPickerOpen(!1),
-                                    children: `×`,
-                                  }),
-                                ],
+                              wanjuanRenderResourcePickerHeader({
+                                activeKind: resourceTypeFilter,
+                                onSelectKind: te,
+                                activeSource: resourceSourceFilter,
+                                onSelectSource: setResourceSourceFilter,
+                                favoriteOnly: resourceFavoriteOnly,
+                                setFavoriteOnly: setResourceFavoriteOnly,
+                                setPage: setCurrentPage,
+                                onClose: () => setIsMentionPickerOpen(!1),
                               }),
                               jsx(`div`, {
                                 className: `p-2 h-48 overflow-y-auto custom-scrollbar wanjuan-node-scroll-area wanjuan-mention-picker-list`,
@@ -2435,17 +2632,17 @@ var TongyiWanxiangLogo = ({
                                       children: `暂无素材`,
                                     }) :
                                     jsx(`div`, {
-                                      className: `grid grid-cols-4 gap-1.5`,
+	                                      className: `grid grid-cols-4 gap-2`,
                                       children: filteredResources
                                         .slice((currentPage - 1) * 16, currentPage * 16)
                                         .map((resource) =>
                                           jsxs(
                                             `div`, {
-                                              className: `aspect-square bg-[#111] rounded border border-[#333] hover:border-blue-500 cursor-pointer overflow-hidden relative group wanjuan-mention-picker-item`,
+	                                              className: `aspect-square bg-[#111827] rounded-lg border border-[#333b46] hover:border-blue-500 cursor-pointer overflow-hidden relative group wanjuan-mention-picker-item`,
 	                                              onClick: (event) => {
 	                                                let mentionRange = wanjuanMentionRangeFromPicker(event.currentTarget, prompt),
 	                                                  updatedPrompt = wanjuanReplaceMentionToken(prompt, mentionRange);
-	                                                if (resource.type === `text`) {
+		                                                if (wanjuanResourceKind(resource) === `text`) {
 	                                                  let updatedPrompt2 = wanjuanReplaceMentionToken(prompt, mentionRange, resource.url || ``);
 	                                                  (setPrompt(updatedPrompt2),
 	                                                    updateNodeData(nodeId, {
@@ -2465,23 +2662,7 @@ var TongyiWanxiangLogo = ({
                                                 (setIsMentionPickerOpen(!1), wanjuanClearMentionPickerPosition(event.currentTarget));
                                               },
                                               children: [
-	                                                resource.type.startsWith(`image`) ?
-	                                                jsx(`img`, {
-	                                                  src: resource.thumbnailUrl || resource.url,
-	                                                  className: `w-full h-full object-cover`,
-	                                                  onError: wanjuanUseBrokenResourceImage,
-	                                                }) :
-                                                resource.type.startsWith(
-                                                  `video`,
-                                                ) ?
-                                                jsx(`video`, {
-                                                  src: resource.url,
-                                                  className: `w-full h-full object-cover`,
-                                                }) :
-                                                jsx(`div`, {
-                                                  className: `p-1 text-[8px] text-gray-400 break-all overflow-hidden h-full`,
-                                                  children: resource.url,
-                                                }),
+		                                                wanjuanRenderResourcePreview(resource),
                                                 jsx(`div`, {
                                                   className: `absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity`,
                                                   children: jsx(
@@ -2505,13 +2686,13 @@ var TongyiWanxiangLogo = ({
                                 return totalPages <= 1 ?
                                   null :
                                   jsxs(`div`, {
-                                    className: `flex items-center justify-between p-1.5 border-t border-[#333] bg-[#1a1a1a]`,
+	                                    className: `flex items-center justify-between p-2 border-t border-[#333b46] bg-[#20252c]`,
                                     children: [
                                       jsx(`button`, {
                                         disabled: currentPage === 1,
                                         onClick: () =>
                                           setCurrentPage((prev) => Math.max(1, prev - 1)),
-                                        className: `text-[10px] px-2 py-0.5 bg-[#333] rounded disabled:opacity-30`,
+	                                        className: `text-[10px] px-2.5 py-1 bg-[#2b313a] rounded-md disabled:opacity-30 text-gray-300 hover:bg-[#343b46]`,
                                         children: `上一页`,
                                       }),
                                       jsxs(`span`, {
@@ -2522,7 +2703,7 @@ var TongyiWanxiangLogo = ({
                                         disabled: currentPage === totalPages,
                                         onClick: () =>
                                           setCurrentPage((prev) => Math.min(totalPages, prev + 1)),
-                                        className: `text-[10px] px-2 py-0.5 bg-[#333] rounded disabled:opacity-30`,
+	                                        className: `text-[10px] px-2.5 py-1 bg-[#2b313a] rounded-md disabled:opacity-30 text-gray-300 hover:bg-[#343b46]`,
                                         children: `下一页`,
                                       }),
                                     ],
@@ -5006,39 +5187,20 @@ var Le = reactMemo(({
                           }),
                           isMentionPickerOpen &&
                           jsxs(`div`, {
-	                            className: `wanjuan-mention-picker absolute top-full left-0 mt-1 w-72 bg-[#222] border border-[#444] rounded-lg shadow-2xl z-[100] flex flex-col overflow-hidden h-[300px] nopan`,
+			                            className: `wanjuan-mention-picker absolute top-full left-0 mt-1 w-[380px] bg-[#22272f] border border-[#3a4250] rounded-lg shadow-2xl z-[100] flex flex-col overflow-hidden h-[320px] nopan`,
                             onWheel: (event) => event.stopPropagation(),
                             onClick: (event) => event.stopPropagation(),
                             children: [
-                              jsxs(`div`, {
-                                className: `flex items-center justify-between p-2 border-b border-[#333] bg-[#1a1a1a] wanjuan-mention-picker-header`,
-                                children: [
-	                                  jsxs(`div`, {
-	                                    className: `text-xs text-gray-300 font-bold flex flex-col gap-1`,
-	                                    children: [
-	                                      jsxs(`div`, {
-	                                        className: `flex items-center gap-2`,
-	                                        children: [
-	                                          jsx(`span`, {
-	                                            children: `选择素材`,
-	                                          }),
-	                                          jsxs(`div`, {
-			                                        className: `flex bg-[#111] rounded p-0.5 wanjuan-mention-picker-tabs`,
-			                                        children: wanjuanRenderResourceFilterTabs(resourceTypeFilter, setResourceTypeFilter, setCurrentPage),
-	                                          }),
-	                                        ],
-	                                      }),
-	                                      wanjuanRenderResourceSourceTabs(resourceSourceFilter, setResourceSourceFilter, resourceFavoriteOnly, setResourceFavoriteOnly, setCurrentPage),
-	                                    ],
-	                                  }),
-                                  jsx(`button`, {
-                                    onClick: () => setIsMentionPickerOpen(!1),
-                                    className: `text-gray-500 hover:text-white p-1`,
-                                    children: jsx(F, {
-                                      size: 12
-                                    }),
-                                  }),
-                                ],
+                              wanjuanRenderResourcePickerHeader({
+                                activeKind: resourceTypeFilter,
+                                onSelectKind: setResourceTypeFilter,
+                                activeSource: resourceSourceFilter,
+                                onSelectSource: setResourceSourceFilter,
+                                favoriteOnly: resourceFavoriteOnly,
+                                setFavoriteOnly: setResourceFavoriteOnly,
+                                setPage: setCurrentPage,
+                                onClose: () => setIsMentionPickerOpen(!1),
+                                closeContent: jsx(F, { size: 12 }),
                               }),
                               jsx(`div`, {
                                 className: `p-2 flex-1 overflow-y-auto wanjuan-node-scroll-area wanjuan-mention-picker-list`,
@@ -5050,13 +5212,13 @@ var Le = reactMemo(({
                                       children: `暂无素材`,
                                     }) :
                                     jsx(`div`, {
-                                      className: `grid grid-cols-4 gap-1.5`,
+	                                      className: `grid grid-cols-4 gap-2`,
                                       children: filteredResources
                                         .slice((currentPage - 1) * 16, currentPage * 16)
                                         .map((resource) =>
                                           jsxs(
                                             `div`, {
-                                              className: `aspect-square bg-[#111] rounded border border-[#333] hover:border-blue-500 cursor-pointer overflow-hidden relative group wanjuan-mention-picker-item`,
+	                                              className: `aspect-square bg-[#111827] rounded-lg border border-[#333b46] hover:border-blue-500 cursor-pointer overflow-hidden relative group wanjuan-mention-picker-item`,
                                               onMouseDown: (event) =>
                                                 event.preventDefault(),
 	                                              onClick: (event) => {
@@ -5065,7 +5227,7 @@ var Le = reactMemo(({
 		                                                  suffix = mentionRange ? prompt.substring(mentionRange.end) : ``,
 		                                                  replacedPrompt = wanjuanReplaceMentionToken(prompt, mentionRange);
 	                                                wanjuanClearMentionPickerPosition(event.currentTarget);
-			                                                if (isSeedanceOrWanxiang && resource.type !== `text`) {
+				                                                if (isSeedanceOrWanxiang && wanjuanResourceKind(resource) !== `text`) {
 			                                                  let seedanceKind = wanjuanResourceKind(resource),
 			                                                    seedanceMentionLabel = resource.mention || `${seedanceKind === `video` ? `视频` : seedanceKind === `audio` ? `音频` : `图片`}${selectedContextResources.filter((resource2) => wanjuanResourceKind(resource2) === seedanceKind).length + 1}`,
 			                                                    mentionToken = wanjuanFormatMentionToken(seedanceMentionLabel),
@@ -5094,7 +5256,7 @@ var Le = reactMemo(({
                                                     setIsMentionPickerOpen(!1));
                                                   return;
 	                                                }
-	                                                if (resource.type === `text`) {
+		                                                if (wanjuanResourceKind(resource) === `text`) {
 	                                                  let newPrompt = wanjuanReplaceMentionToken(prompt, mentionRange, resource.url || ``);
                                                   (setPrompt(newPrompt),
                                                     updateNodeData(nodeId, {
@@ -5114,28 +5276,7 @@ var Le = reactMemo(({
                                                 setIsMentionPickerOpen(!1);
                                               },
                                               children: [
-	                                                resource.type.startsWith(`image`) ?
-	                                                jsx(`img`, {
-	                                                  src: resource.thumbnailUrl || resource.url,
-	                                                  className: `w-full h-full object-cover`,
-	                                                  onError: wanjuanUseBrokenResourceImage,
-	                                                }) :
-                                                resource.type.startsWith(
-                                                  `video`,
-                                                ) ?
-                                                jsx(`video`, {
-                                                  src: resource.url,
-                                                  className: `w-full h-full object-cover`,
-                                                }) :
-                                                jsx(`div`, {
-                                                  className: `p-1 text-[8px] text-gray-400 break-all overflow-hidden h-full flex items-center justify-center`,
-                                                  children: resource.type.startsWith(
-                                                      `audio`,
-                                                    ) ||
-                                                    resource.type === `audio` ?
-                                                    `音频` :
-                                                    resource.url,
-                                                }),
+		                                                wanjuanRenderResourcePreview(resource),
                                                 isSeedanceOrWanxiang &&
                                                 resource.mention &&
                                                 jsx(`div`, {
@@ -5165,13 +5306,13 @@ var Le = reactMemo(({
                                 return totalPages <= 1 ?
                                   null :
                                   jsxs(`div`, {
-                                    className: `flex items-center justify-between p-1.5 border-t border-[#333] bg-[#1a1a1a]`,
+	                                    className: `flex items-center justify-between p-2 border-t border-[#333b46] bg-[#20252c]`,
                                     children: [
                                       jsx(`button`, {
                                         disabled: currentPage === 1,
                                         onClick: () =>
                                           setCurrentPage((prevPage) => Math.max(1, prevPage - 1)),
-                                        className: `text-[10px] px-2 py-0.5 bg-[#333] rounded disabled:opacity-30`,
+	                                        className: `text-[10px] px-2.5 py-1 bg-[#2b313a] rounded-md disabled:opacity-30 text-gray-300 hover:bg-[#343b46]`,
                                         children: `上一页`,
                                       }),
                                       jsxs(`span`, {
@@ -5182,7 +5323,7 @@ var Le = reactMemo(({
                                         disabled: currentPage === totalPages,
                                         onClick: () =>
                                           setCurrentPage((prevPage) => Math.min(totalPages, prevPage + 1)),
-                                        className: `text-[10px] px-2 py-0.5 bg-[#333] rounded disabled:opacity-30`,
+	                                        className: `text-[10px] px-2.5 py-1 bg-[#2b313a] rounded-md disabled:opacity-30 text-gray-300 hover:bg-[#343b46]`,
                                         children: `下一页`,
                                       }),
                                     ],
@@ -9425,6 +9566,7 @@ suno_music`)
         getNodes: getNodes,
         getEdges: getEdges
       } = ae(),
+        wanjuanThrottledUpdateNodeData = WanJuanUseThrottledNodeDataUpdate(nodeId, updateNodeData),
         nodeData = data,
         fileInputRef = useRef(null),
         [uploadedFile, setUploadedFile] = useState(null),
@@ -9638,7 +9780,7 @@ suno_music`)
                   prevFrameData = null,
                   threshold = 195840 * (0.01 + 0.24 * ((100 - sensitivity) / 100) ** 2);
                 for (let time = 0.5; time < duration; time += 0.5) {
-                  updateNodeData(nodeId, {
+                  wanjuanThrottledUpdateNodeData({
                     progress: Math.round((time / duration) * 50)
                   });
                   let frameData = await sampleFrame(time);
@@ -9659,11 +9801,11 @@ suno_music`)
               timestamps.length === 0 && mode === `smart` && timestamps.push(duration / 2);
               let frames = [];
               for (let frameIndex = 0; frameIndex < timestamps.length; frameIndex++) {
-                updateNodeData(nodeId, {
+                wanjuanThrottledUpdateNodeData({
                   progress: 50 + Math.round((frameIndex / timestamps.length) * 50)
                 });
                 let frame = await captureFrame(timestamps[frameIndex]);
-                (frames.push(frame), updateNodeData(nodeId, {
+                (frames.push(frame), wanjuanThrottledUpdateNodeData({
                   extractedImages: [...frames]
                 }));
               }
@@ -13903,7 +14045,7 @@ function wanjuanVideoTaskCanAttachToNode(task, node, projectId) {
 }
 function wanjuanResourceKind(mediaItem) {
   let mediaType = String(mediaItem?.type || mediaItem?.mediaKind || ``).toLowerCase(),
-    mediaUrl = String(mediaItem?.url || mediaItem?.localPath || mediaItem?.path || mediaItem?.thumbnailUrl || ``).toLowerCase();
+    mediaUrl = String(mediaItem?.url || mediaItem?.videoUrl || mediaItem?.resultVideoUrl || mediaItem?.audioUrl || mediaItem?.resultAudioUrl || mediaItem?.imageUrl || mediaItem?.mediaUrl || mediaItem?.resultUrl || mediaItem?.localPath || mediaItem?.path || mediaItem?.thumbnailUrl || ``).toLowerCase();
   return mediaType === `text` || mediaType.startsWith(`text/`) ? `text` :
     mediaType === `audio` || mediaType.startsWith(`audio/`) || /^data:audio\//.test(mediaUrl) || /\.(mp3|wav|m4a|aac|ogg|flac)(?:$|[?#])/i.test(mediaUrl) ? `audio` :
     mediaType === `video` || mediaType.startsWith(`video/`) || /^data:video\//.test(mediaUrl) || /\.(mp4|webm|mov|m4v|mpeg|mpg|avi|mkv)(?:$|[?#])/i.test(mediaUrl) ? `video` :
@@ -14109,7 +14251,112 @@ function wanjuanResourceMatchesFilter(resource, kind, sourceKind = `all`, favori
     matchesFavorite = !requireFavorite || resource?.isFavorite === !0;
   return matchesKind && matchesSource && matchesFavorite;
 }
+function wanjuanResourceMediaUrl(resource) {
+  let resourceKind = wanjuanResourceKind(resource);
+  return String(
+    resourceKind === `video` ?
+      resource?.videoUrl || resource?.resultVideoUrl || resource?.url || resource?.mediaUrl || resource?.resultUrl || resource?.localPath || resource?.path || resource?.previewUrl || resource?.thumbnailUrl :
+      resourceKind === `audio` ?
+      resource?.audioUrl || resource?.resultAudioUrl || resource?.url || resource?.mediaUrl || resource?.resultUrl || resource?.localPath || resource?.path :
+      resource?.url || resource?.imageUrl || resource?.mediaUrl || resource?.resultUrl || resource?.localPath || resource?.path || resource?.previewUrl || resource?.thumbnailUrl || ``
+  );
+}
+function wanjuanResourcePosterUrl(resource) {
+  return String(resource?.thumbnailUrl || resource?.posterUrl || resource?.coverUrl || resource?.coverImageUrl || resource?.imageUrl || resource?.previewImageUrl || ``);
+}
+function wanjuanResourceLooksLikeImageUrl(value) {
+  return /^data:image\//i.test(String(value || ``)) || /\.(png|jpe?g|webp|gif|svg|bmp|heic|avif)(?:$|[?#])/i.test(String(value || ``));
+}
+function wanjuanResourceLooksLikeVideoUrl(value) {
+  return /^data:video\//i.test(String(value || ``)) || /\.(mp4|webm|mov|m4v|mpeg|mpg|avi|mkv)(?:$|[?#])/i.test(String(value || ``));
+}
+function wanjuanCanFallbackImageToVideo(resource, mediaUrl, posterUrl) {
+  if (!mediaUrl || wanjuanResourceLooksLikeImageUrl(mediaUrl) || wanjuanResourceLooksLikeImageUrl(posterUrl)) return !1;
+  if (wanjuanResourceLooksLikeVideoUrl(mediaUrl) || resource?.videoUrl || resource?.resultVideoUrl) return !0;
+  return wanjuanResourceSourceKind(resource) === `generated` && !/^data:image\//i.test(mediaUrl);
+}
+function wanjuanUseVideoResourceFallback(event, mediaUrl, posterUrl) {
+  let imageElement = event.currentTarget;
+  imageElement.onerror = null;
+  let videoElement = document.createElement(`video`);
+  videoElement.src = mediaUrl;
+  if (posterUrl && posterUrl !== mediaUrl) videoElement.poster = posterUrl;
+  videoElement.muted = !0;
+  videoElement.playsInline = !0;
+  videoElement.preload = `metadata`;
+  videoElement.className = `w-full h-full object-cover bg-black`;
+  videoElement.title = `视频素材`;
+  let badge = document.createElement(`div`);
+  badge.className = `absolute left-1.5 bottom-1.5 rounded bg-black/65 px-1.5 py-0.5 text-[9px] leading-none text-white/90 pointer-events-none`;
+  badge.textContent = `视频`;
+  videoElement.onerror = () => {
+    let brokenImage = document.createElement(`img`);
+    brokenImage.src = wanjuanBrokenResourceImage;
+    brokenImage.className = `w-full h-full object-cover bg-black wanjuan-resource-image-broken`;
+    brokenImage.title = `素材无法加载，可能是链接已失效或本地文件不可访问`;
+    badge.remove();
+    videoElement.replaceWith(brokenImage);
+  };
+  imageElement.replaceWith(videoElement);
+  videoElement.parentElement?.appendChild(badge);
+}
+function wanjuanRenderResourcePreview(resource, options = {}) {
+  let resourceKind = wanjuanResourceKind(resource),
+    mediaUrl = wanjuanResourceMediaUrl(resource),
+    posterUrl = wanjuanResourcePosterUrl(resource),
+    title = String(resource?.pageTitle || resource?.title || resource?.name || resource?.label || `素材`);
+  if (resourceKind === `video`)
+    return jsxs(`div`, {
+      className: `relative w-full h-full bg-black overflow-hidden`,
+      children: [
+        jsx(`video`, {
+          src: mediaUrl,
+          poster: posterUrl && posterUrl !== mediaUrl ? posterUrl : void 0,
+          className: `w-full h-full object-cover`,
+          muted: !0,
+          playsInline: !0,
+          preload: `metadata`,
+        }),
+        jsx(`div`, {
+          className: `absolute left-1.5 bottom-1.5 rounded bg-black/65 px-1.5 py-0.5 text-[9px] leading-none text-white/90`,
+          children: `视频`,
+        }),
+      ],
+    });
+  if (resourceKind === `audio`)
+    return jsxs(`div`, {
+      className: `w-full h-full bg-[#111827] flex flex-col items-center justify-center gap-1.5 p-2 text-center`,
+      children: [
+        jsx(`div`, {
+          className: `h-7 w-7 rounded-full border border-blue-400/35 bg-blue-400/10 text-blue-300 flex items-center justify-center text-sm`,
+          children: `♪`,
+        }),
+        jsx(`div`, {
+          className: `max-w-full truncate text-[9px] text-gray-400`,
+          title,
+          children: title || `音频素材`,
+        }),
+      ],
+    });
+  if (resourceKind === `text`)
+    return jsx(`div`, {
+      className: `p-1.5 text-[9px] leading-snug text-gray-400 break-all overflow-hidden h-full bg-[#171b22]`,
+      children: mediaUrl,
+    });
+  return jsx(`img`, {
+    src: posterUrl || mediaUrl,
+    className: `w-full h-full object-cover bg-black`,
+    onError: (event) => {
+      wanjuanCanFallbackImageToVideo(resource, mediaUrl, posterUrl) ?
+        wanjuanUseVideoResourceFallback(event, mediaUrl, posterUrl) :
+        wanjuanUseBrokenResourceImage(event);
+    },
+    draggable: options.draggable === !0 ? `true` : void 0,
+    onDragStart: options.onDragStart,
+  });
+}
 function wanjuanRenderResourceFilterTabs(selectedValue, onSelect, setPage) {
+  let activeValue = selectedValue || `all`;
   return [
     [`all`, `全部`],
     [`image`, `图片`],
@@ -14118,7 +14365,15 @@ function wanjuanRenderResourceFilterTabs(selectedValue, onSelect, setPage) {
     [`text`, `文本`],
   ].map(([optionValue, optionLabel]) =>
     jsx(`button`, {
-      className: `px-2 py-0.5 rounded-[4px] text-[10px] ${selectedValue === optionValue ? `bg-[#333] text-white` : `text-gray-500 hover:text-gray-300`}`,
+      "aria-pressed": activeValue === optionValue,
+      "data-active": activeValue === optionValue ? `true` : void 0,
+      className: `wanjuan-resource-filter-tab h-7 flex-1 min-w-0 rounded-md text-[11px] font-medium transition-colors whitespace-nowrap ${activeValue === optionValue ? `wanjuan-resource-filter-tab-active` : `text-gray-400 hover:text-gray-200 hover:bg-white/5`}`,
+      style: activeValue === optionValue ? {
+        backgroundColor: `#8ab4f8`,
+        color: `#0f172a`,
+        WebkitTextFillColor: `#0f172a`,
+        boxShadow: `inset 0 0 0 1px rgba(219,234,254,0.72), 0 6px 14px rgba(96,165,250,0.24)`
+      } : void 0,
       onClick: () => {
         (onSelect(optionValue), setPage(1));
       },
@@ -14127,18 +14382,27 @@ function wanjuanRenderResourceFilterTabs(selectedValue, onSelect, setPage) {
 	  );
 }
 function wanjuanRenderResourceSourceTabs(selectedValue, onSelect, favoriteActive, onToggle, setPage, a = !1) {
+  let activeValue = selectedValue || `all`;
   return jsxs(`div`, {
-    className: `${a ? `mt-1 ` : ``}flex items-center gap-1 wanjuan-resource-source-filter`,
+    className: `${a ? `mt-2 ` : ``}flex items-center gap-2 wanjuan-resource-source-filter`,
     children: [
       jsxs(`div`, {
-        className: `flex bg-[#111] rounded p-0.5`,
+        className: `flex flex-1 min-w-0 bg-[#151a22] border border-[#343b46] rounded-lg p-0.5`,
         children: [
           [`all`, `全部来源`],
           [`generated`, `AI生成`],
           [`external`, `外部素材`],
         ].map(([optionValue, optionLabel]) =>
           jsx(`button`, {
-            className: `px-2 py-0.5 rounded-[4px] text-[10px] ${selectedValue === optionValue ? `bg-[#333] text-white` : `text-gray-500 hover:text-gray-300`}`,
+            "aria-pressed": activeValue === optionValue,
+            "data-active": activeValue === optionValue ? `true` : void 0,
+            className: `wanjuan-resource-filter-tab h-7 flex-1 min-w-0 rounded-md text-[11px] font-medium transition-colors whitespace-nowrap ${activeValue === optionValue ? `wanjuan-resource-filter-tab-active` : `text-gray-400 hover:text-gray-200 hover:bg-white/5`}`,
+            style: activeValue === optionValue ? {
+              backgroundColor: `#8ab4f8`,
+              color: `#0f172a`,
+              WebkitTextFillColor: `#0f172a`,
+              boxShadow: `inset 0 0 0 1px rgba(219,234,254,0.72), 0 6px 14px rgba(96,165,250,0.24)`
+            } : void 0,
             onClick: () => {
               (onSelect(optionValue), setPage(1));
             },
@@ -14147,13 +14411,50 @@ function wanjuanRenderResourceSourceTabs(selectedValue, onSelect, favoriteActive
         ),
       }),
       jsx(`button`, {
-        className: `w-6 h-6 inline-flex items-center justify-center rounded-[4px] border ${favoriteActive ? `border-yellow-400/60 text-yellow-300 bg-yellow-400/10` : `border-[#333] text-gray-500 hover:text-yellow-300 hover:border-yellow-400/40`}`,
+        className: `w-8 h-8 inline-flex items-center justify-center rounded-lg border transition-colors ${favoriteActive ? `border-yellow-400/60 text-yellow-300 bg-yellow-400/10` : `border-[#343b46] text-gray-500 hover:text-yellow-300 hover:border-yellow-400/40 hover:bg-yellow-400/5`}`,
         title: favoriteActive ? `显示全部收藏筛选` : `只看收藏`,
         onClick: () => {
           (onToggle(!favoriteActive), setPage(1));
         },
         children: favoriteActive ? `★` : `☆`,
       }),
+    ],
+  });
+}
+function wanjuanRenderResourcePickerHeader({
+  title = `选择素材`,
+  activeKind,
+  onSelectKind,
+  activeSource,
+  onSelectSource,
+  favoriteOnly,
+  setFavoriteOnly,
+  setPage,
+  onClose,
+  closeContent = `×`,
+}) {
+  return jsxs(`div`, {
+    className: `p-3 border-b border-[#333b46] bg-[#20252c] wanjuan-mention-picker-header`,
+    children: [
+      jsxs(`div`, {
+        className: `flex items-center justify-between gap-3 mb-3`,
+        children: [
+          jsx(`div`, {
+            className: `text-[13px] font-semibold text-gray-100 tracking-normal whitespace-nowrap`,
+            children: title,
+          }),
+          jsx(`button`, {
+            className: `h-7 w-7 rounded-lg text-gray-500 hover:text-white hover:bg-white/5 flex items-center justify-center flex-shrink-0`,
+            onClick: onClose,
+            children: closeContent,
+          }),
+        ],
+      }),
+      jsxs(`div`, {
+        className: `w-full flex bg-[#151a22] border border-[#343b46] rounded-lg p-1 wanjuan-mention-picker-tabs`,
+        children: wanjuanRenderResourceFilterTabs(activeKind, onSelectKind, setPage),
+      }),
+      wanjuanRenderResourceSourceTabs(activeSource, onSelectSource, favoriteOnly, setFavoriteOnly, setPage, !0),
     ],
   });
 }
@@ -14170,40 +14471,22 @@ function rt({
 		  filteredResources = resources.filter((resource) => wanjuanResourceMatchesFilter(resource, typeFilter, resourceSourceFilter, resourceFavoriteOnly)),
     totalPages = Math.ceil(filteredResources.length / 16),
     pageItems = filteredResources.slice((page - 1) * 16, page * 16);
-  return jsxs(`div`, {
-    className: `wanjuan-material-picker w-72 bg-[#222] border border-[#444] rounded-lg z-[100] flex flex-col overflow-hidden`,
+	  return jsxs(`div`, {
+	    className: `wanjuan-material-picker w-[380px] bg-[#22272f] border border-[#3a4250] rounded-lg z-[100] flex flex-col overflow-hidden`,
     style: {
       boxShadow: `18px 18px 36px -22px rgba(0,0,0,0.72), 0 8px 18px -14px rgba(0,0,0,0.5)`
     },
     onClick: (event) => event.stopPropagation(),
     children: [
-      jsxs(`div`, {
-        className: `flex items-center justify-between p-2 border-b border-[#333] bg-[#1a1a1a]`,
-        children: [
-	          jsxs(`div`, {
-	            className: `text-xs text-gray-300 font-bold flex flex-col gap-1`,
-	            children: [
-	              jsxs(`div`, {
-	                className: `flex items-center gap-2`,
-	                children: [
-	                  jsx(`span`, {
-	                    children: `选择素材`
-	                  }),
-	                  jsxs(`div`, {
-		                    className: `flex bg-[#111] rounded p-0.5`,
-		                    children: wanjuanRenderResourceFilterTabs(typeFilter, setTypeFilter, setPage),
-	                  }),
-	                ],
-	              }),
-	              wanjuanRenderResourceSourceTabs(resourceSourceFilter, setResourceSourceFilter, resourceFavoriteOnly, setResourceFavoriteOnly, setPage),
-	            ],
-	          }),
-          jsx(`button`, {
-            className: `text-gray-500 hover:text-white`,
-            onClick: onClose,
-            children: `×`,
-          }),
-        ],
+      wanjuanRenderResourcePickerHeader({
+        activeKind: typeFilter,
+        onSelectKind: setTypeFilter,
+        activeSource: resourceSourceFilter,
+        onSelectSource: setResourceSourceFilter,
+        favoriteOnly: resourceFavoriteOnly,
+        setFavoriteOnly: setResourceFavoriteOnly,
+        setPage,
+        onClose,
       }),
       jsx(`div`, {
         className: `p-2 h-48 overflow-y-auto custom-scrollbar`,
@@ -14213,37 +14496,15 @@ function rt({
             children: `暂无素材`,
           }) :
           jsx(`div`, {
-            className: `grid grid-cols-4 gap-1.5`,
+	            className: `grid grid-cols-4 gap-2`,
             children: pageItems.map((resource) =>
               jsxs(
                 `div`, {
-                  className: `aspect-square bg-[#111] rounded border border-[#333] hover:border-blue-500 cursor-pointer overflow-hidden relative group`,
+	                  className: `aspect-square bg-[#111827] rounded-lg border border-[#333b46] hover:border-blue-500 cursor-pointer overflow-hidden relative group`,
                   onClick: () => onSelect(resource),
                   title: resource.pageTitle || `素材`,
                   children: [
-                    resource.type === `text` ?
-                    jsx(`div`, {
-                      className: `p-1 text-[8px] text-gray-400 break-all overflow-hidden h-full bg-[#1a1a1a]`,
-                      children: resource.url,
-                    }) :
-                    resource.type.startsWith(`video/`) ?
-                    jsx(`video`, {
-                      src: resource.url,
-                      className: `w-full h-full object-cover bg-black`,
-                    }) :
-                    resource.type.startsWith(`audio/`) ?
-                    jsx(`div`, {
-                      className: `w-full h-full bg-black flex items-center justify-center`,
-                      children: jsx(`span`, {
-                        className: `text-[10px] text-blue-500`,
-                        children: `音频`,
-                      }),
-                    }) :
-                    jsx(`img`, {
-                      src: resource.thumbnailUrl || resource.url,
-                      className: `w-full h-full object-cover bg-black`,
-                      onError: wanjuanUseBrokenResourceImage,
-                    }),
+	                    wanjuanRenderResourcePreview(resource),
                     jsx(`div`, {
                       className: `absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity`,
                       children: jsx(`span`, {
@@ -14260,12 +14521,12 @@ function rt({
       }),
       totalPages > 1 &&
       jsxs(`div`, {
-        className: `flex items-center justify-between p-1.5 border-t border-[#333] bg-[#1a1a1a]`,
+	        className: `flex items-center justify-between p-2 border-t border-[#333b46] bg-[#20252c]`,
         children: [
           jsx(`button`, {
             disabled: page === 1,
             onClick: () => setPage((prev) => Math.max(1, prev - 1)),
-            className: `text-[10px] px-2 py-0.5 bg-[#333] rounded disabled:opacity-30 text-gray-300`,
+	            className: `text-[10px] px-2.5 py-1 bg-[#2b313a] rounded-md disabled:opacity-30 text-gray-300 hover:bg-[#343b46]`,
             children: `上一页`,
           }),
           jsxs(`span`, {
@@ -14275,7 +14536,7 @@ function rt({
           jsx(`button`, {
             disabled: page === totalPages,
             onClick: () => setPage((prev) => Math.min(totalPages, prev + 1)),
-            className: `text-[10px] px-2 py-0.5 bg-[#333] rounded disabled:opacity-30 text-gray-300`,
+	            className: `text-[10px] px-2.5 py-1 bg-[#2b313a] rounded-md disabled:opacity-30 text-gray-300 hover:bg-[#343b46]`,
             children: `下一页`,
           }),
         ],
@@ -15164,6 +15425,7 @@ X.default.config({
 	        keepAudio = nodeData.keepAudio !== !1,
 	        unsubscribeRef = useRef(null),
 	        jobIdRef = useRef(null),
+	        wanjuanThrottledUpdateNodeData = WanJuanUseThrottledNodeDataUpdate(nodeId, updateNodeData),
 	        pollJobStatus = useCallback(async () => {
 	          if (!window.wanjuanDesktop?.getRealEsrganJobStatus) return;
 	          let jobStatus = await window.wanjuanDesktop.getRealEsrganJobStatus({
@@ -15173,7 +15435,7 @@ X.default.config({
 	          if (!jobStatus?.ok) return;
 	          if (jobStatus.running) {
 	            jobIdRef.current = jobStatus.jobId || jobIdRef.current;
-	            updateNodeData(nodeId, {
+	            wanjuanThrottledUpdateNodeData({
 	              loading: !0,
 	              realEsrganJobId: jobStatus.jobId || nodeData.realEsrganJobId || jobIdRef.current,
 	              realEsrganProgress: jobStatus.percent || 0,
@@ -15188,7 +15450,7 @@ X.default.config({
 	              realEsrganPaused: !1
 	            });
 	          }
-	        }, [nodeId, updateNodeData, nodeData.loading, nodeData.realEsrganJobId]),
+	        }, [nodeId, wanjuanThrottledUpdateNodeData, updateNodeData, nodeData.loading, nodeData.realEsrganJobId]),
 	        togglePause = async () => {
 	          let jobId = nodeData.realEsrganJobId || jobIdRef.current;
 	          if (!jobId || !window.wanjuanDesktop?.setRealEsrganPaused) return;
@@ -15218,7 +15480,7 @@ X.default.config({
 	          jobIdRef.current = jobId;
 	          unsubscribeRef.current?.();
 	          unsubscribeRef.current = window.wanjuanDesktop?.onRealEsrganProgress?.(jobId, (progress) => {
-	            updateNodeData(nodeId, {
+	            wanjuanThrottledUpdateNodeData({
 	              realEsrganJobId: jobId,
 	              realEsrganProgress: progress.percent || 0,
 	              realEsrganStage: progress.stage || `处理中`,
@@ -15441,26 +15703,26 @@ X.default.config({
 	        });
 	      });
 var at = {
-    imageNode: Me,
-    promptNode: Ne,
-    textNode: Pe,
+    imageNode: WanJuanWithRenderMode(Me, `imageNode`),
+    promptNode: WanJuanWithRenderMode(Ne, `promptNode`),
+    textNode: WanJuanWithRenderMode(Pe, `textNode`),
     cropNode: Ie,
     gridSplitNode: Le,
     gridMergeNode: Re,
-    videoNode: We,
-    seedanceNode: We,
-    tongyiWanxiangNode: We,
-    audioNode: WanJuanUnifiedAudioNode,
-    musicNode: WanJuanTtsMusicNode,
-    ttsMusicNode: WanJuanTtsMusicNode,
+    videoNode: WanJuanWithRenderMode(We, `videoNode`),
+    seedanceNode: WanJuanWithRenderMode(We, `seedanceNode`),
+    tongyiWanxiangNode: WanJuanWithRenderMode(We, `tongyiWanxiangNode`),
+    audioNode: WanJuanWithRenderMode(WanJuanUnifiedAudioNode, `audioNode`),
+    musicNode: WanJuanWithRenderMode(WanJuanTtsMusicNode, `musicNode`),
+    ttsMusicNode: WanJuanWithRenderMode(WanJuanTtsMusicNode, `ttsMusicNode`),
     customNode: qe,
-	    videoExtractNode: Je,
+	    videoExtractNode: WanJuanWithRenderMode(Je, `videoExtractNode`),
 	    textConcatNode: Qe,
 	    urlToImageNode: $e,
 	    fileToLinkNode: WanJuanFileToLinkNode,
-	    videoFaceBlurNode: WanJuanVideoFaceBlurNode,
-	    qwenTtsCloneNode: WanJuanQwenTtsCloneNode,
-	    realEsrganVideoNode: WanJuanRealEsrganVideoNode,
+	    videoFaceBlurNode: WanJuanWithRenderMode(WanJuanVideoFaceBlurNode, `videoFaceBlurNode`),
+	    qwenTtsCloneNode: WanJuanWithRenderMode(WanJuanQwenTtsCloneNode, `qwenTtsCloneNode`),
+	    realEsrganVideoNode: WanJuanWithRenderMode(WanJuanRealEsrganVideoNode, `realEsrganVideoNode`),
 	  },
 	  ot = {
 	    default: et,
@@ -16133,6 +16395,98 @@ function ut(props) {
           box-shadow: 0 0 0 3px rgba(59,130,246,0.28), 0 0 18px rgba(59,130,246,0.95) !important;
           opacity: 1 !important;
         }
+        .wanjuan-render-shell-node {
+          width: 170px;
+          height: 72px;
+          min-width: 170px;
+          min-height: 72px;
+          position: relative;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #e5e7eb;
+        }
+        .wanjuan-render-shell-frame {
+          width: 100%;
+          height: 100%;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 10px 12px;
+          border: 1px solid #334155;
+          border-radius: 10px;
+          background: color-mix(in srgb, var(--wj-surface,#161616) 94%, transparent);
+          box-shadow: 0 8px 20px rgba(0,0,0,.22);
+          overflow: hidden;
+        }
+        .wanjuan-render-shell-node.is-selected .wanjuan-render-shell-frame {
+          box-shadow: 0 0 0 2px rgba(59,130,246,.35), 0 8px 22px rgba(0,0,0,.28);
+        }
+        .wanjuan-render-shell-dot {
+          width: 9px;
+          height: 9px;
+          border-radius: 999px;
+          flex: 0 0 auto;
+          box-shadow: 0 0 12px color-mix(in srgb, var(--wanjuan-shell-color,#38bdf8) 60%, transparent);
+        }
+        .wanjuan-render-shell-copy {
+          min-width: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+        .wanjuan-render-shell-copy strong {
+          font-size: 12px;
+          line-height: 16px;
+          font-weight: 700;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .wanjuan-render-shell-copy span {
+          font-size: 10px;
+          line-height: 14px;
+          color: #94a3b8;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .wanjuan-render-mode-lite img,
+        .wanjuan-render-mode-lite video,
+        .wanjuan-render-mode-lite audio {
+          content-visibility: auto;
+          contain-intrinsic-size: 220px 160px;
+        }
+        [data-wanjuan-render-mode="full"],
+        [data-wanjuan-render-mode="lite"] {
+          display: contents;
+        }
+        .wanjuan-settings-sidebar-group {
+          color: color-mix(in srgb,var(--wj-muted,#6b7280) 82%,transparent);
+          letter-spacing: .06em;
+        }
+        .wanjuan-settings-sidebar-group:not(:first-of-type) {
+          border-top: 1px solid color-mix(in srgb,var(--wj-border,#333) 54%,transparent);
+          margin-top: 6px;
+          padding-top: 10px;
+        }
+        html.wanjuan-canvas-dragging .react-flow__node:not(.selected):not([aria-selected="true"]) {
+          filter: none !important;
+        }
+        html.wanjuan-canvas-dragging .react-flow__node:not(.selected):not([aria-selected="true"]) *,
+        html.wanjuan-canvas-dragging .react-flow__edge * {
+          transition-duration: 0ms !important;
+          animation-play-state: paused !important;
+          backdrop-filter: none !important;
+        }
+        html.wanjuan-canvas-dragging .react-flow__node:not(.selected):not([aria-selected="true"]) .shadow-xl,
+        html.wanjuan-canvas-dragging .react-flow__node:not(.selected):not([aria-selected="true"]) .shadow-2xl {
+          box-shadow: 0 1px 6px rgba(0,0,0,.28) !important;
+        }
+        html.wanjuan-canvas-dragging .react-flow__node:not(.selected):not([aria-selected="true"]) video,
+        html.wanjuan-canvas-dragging .react-flow__node:not(.selected):not([aria-selected="true"]) audio {
+          pointer-events: none !important;
+        }
       `,
       }),
       jsx(dt, {
@@ -16275,7 +16629,17 @@ wan2.7-videoedit-1080P`,
 	    [xe, Ce] = useState(!1),
 	    abortControllersRef = useRef(new Map()),
 	    wanjuanPrevEdgesRef = useRef([]),
-	    [multiConnectIds, setMultiConnectIds] = useState(null);
+	    [multiConnectIds, setMultiConnectIds] = useState(null),
+	    [wanjuanViewport, setWanjuanViewport] = useState({
+	      x: 0,
+	      y: 0,
+	      zoom: 1
+	    }),
+	    [wanjuanViewportSize, setWanjuanViewportSize] = useState({
+	      width: 1600,
+	      height: 900
+	    }),
+	    wanjuanViewportUpdateRef = useRef(0);
   (useEffect(() => {
       let groupNodes = [],
         isDragging = !1;
@@ -16385,7 +16749,7 @@ wan2.7-videoedit-1080P`,
         return () => clearTimeout(_t);
       }
     }, [shouldFitView, fitView]));
-  let [isVisible, setIsVisible] = useState(!0),
+  let [isVisible, setIsVisible] = useState(!1),
   [history, setHistory] = useState([]),
   [historyIndex, setHistoryIndex] = useState(-1),
   isRestoringRef = useRef(!1),
@@ -16413,7 +16777,31 @@ wan2.7-videoedit-1080P`,
     }, [projectId]),
     useEffect(() => {
       shouldFitViewRef.current = shouldFitView;
-    }, [shouldFitView]));
+    }, [shouldFitView]),
+    useEffect(() => {
+      let updateViewportSize = () => {
+        let rect = wrapperRef.current?.getBoundingClientRect();
+        rect &&
+          setWanjuanViewportSize((prev) =>
+            Math.abs(prev.width - rect.width) > 1 || Math.abs(prev.height - rect.height) > 1 ?
+            {
+              width: rect.width,
+              height: rect.height
+            } :
+            prev,
+          );
+      };
+      updateViewportSize();
+      if (typeof ResizeObserver == `function` && wrapperRef.current) {
+        let observer = new ResizeObserver(updateViewportSize);
+        observer.observe(wrapperRef.current);
+        return () => observer.disconnect();
+      }
+      return (
+        window.addEventListener(`resize`, updateViewportSize),
+        () => window.removeEventListener(`resize`, updateViewportSize)
+      );
+    }, []));
   let openImagePreview = useCallback((imageUrl) => {
       setPreviewImageUrl(imageUrl);
     }, []),
@@ -16602,6 +16990,7 @@ wan2.7-videoedit-1080P`,
     desktopCanvasMirrorPrefix = `desktop-canvas-state-v1-`,
 	    saveCanvasState = useCallback(async () => {
 	      if (!shouldFitViewRef.current) return;
+	      globalThis.__wanjuanLastCanvasActivityAt = Date.now();
 	      try {
 	        globalThis.__wanjuanProjectSafetyRetryCanvasSave = saveCanvasState;
 	      } catch {}
@@ -16614,7 +17003,7 @@ wan2.7-videoedit-1080P`,
 	            .filter((node) => node.id !== `ghost-target`)
 	            .map((node) => {
               let nodeData = {
-                ...node.data
+                ...WanJuanStripRuntimeNodeData(node.data || {})
               };
               return (
                 Object.keys(nodeData).forEach((key) => {
@@ -16627,6 +17016,22 @@ wan2.7-videoedit-1080P`,
 	            }),
 	          edges: savedEdges.filter((edge) => edge.id !== `ghost-edge`),
 	        };
+      if (globalThis.__wanjuanProjectMigrationLocks?.has(currentProjectId)) {
+        console.warn(`Canvas save skipped while project migration is active`, currentProjectId);
+        return;
+      }
+      if (globalThis.__wanjuanStorageMaintenanceRunning) {
+        console.warn(`Canvas save skipped while storage maintenance is active`, currentProjectId);
+        return;
+      }
+      let mainMigrationLock = await window.wanjuanDesktop?.isProjectMigrationLocked?.({
+        projectId: currentProjectId,
+        directory: ``,
+      });
+      if (mainMigrationLock?.locked) {
+        console.warn(`Canvas save skipped by main-process migration lock`, currentProjectId);
+        return;
+      }
       try {
 	        (canvasState = await globalThis.prepareProjectMediaStateForPersistence(
 	          canvasState,
@@ -16656,7 +17061,26 @@ wan2.7-videoedit-1080P`,
 	            return;
 	          }
 	        }
+          mainMigrationLock = await window.wanjuanDesktop?.isProjectMigrationLocked?.({
+            projectId: currentProjectId,
+            directory: ``,
+          });
+          if (mainMigrationLock?.locked) {
+            console.warn(`Canvas save cancelled because migration started during persistence`, currentProjectId);
+            return;
+          }
+          if (globalThis.__wanjuanStorageMaintenanceRunning) {
+            console.warn(`Canvas save cancelled because storage maintenance started during persistence`, currentProjectId);
+            return;
+          }
 	        await X.default.setItem(storageKey, canvasState),
+          window.wanjuanDesktop?.syncProjectReferences &&
+          (await window.wanjuanDesktop.syncProjectReferences({
+            projectId: currentProjectId,
+            directory: ``,
+            references: [...globalThis.collectProjectFileReferences(canvasState)],
+            complete: !0,
+          })),
           typeof chrome < `u` &&
           chrome.storage &&
 	          chrome.storage.local &&
@@ -16939,7 +17363,7 @@ wan2.7-videoedit-1080P`,
     relinkMissingProjectAssetsFromFolder = useCallback(async () => {
       let missingMediaEntries = globalThis.getMissingProjectMediaEntries(nodesRef.current);
       if (!missingMediaEntries.length) {
-        window.alert(`当前项目没有检测到需要批量重连的外部上传素材`);
+        window.alert(`当前项目没有检测到需要批量重连的本地媒体素材`);
         return;
       }
       if (
@@ -17474,7 +17898,7 @@ wan2.7-videoedit-1080P`,
 		          document.body.appendChild(bannerEl));
 		      (bannerEl.querySelector(`[data-relink-label]`) ||
 		        (bannerEl.innerHTML = `<span data-relink-label style="display:block;padding-right:28px;"></span><div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;"><button data-relink-folder style="appearance:none;border:1px solid rgba(255,255,255,0.32);background:rgba(255,255,255,0.18);color:#fff;border-radius:8px;padding:6px 9px;font-size:12px;font-weight:700;cursor:pointer;">立即链接丢失文件</button><button data-relink-single style="appearance:none;border:1px solid rgba(255,255,255,0.22);background:rgba(0,0,0,0.12);color:#fff;border-radius:8px;padding:6px 9px;font-size:12px;font-weight:700;cursor:pointer;">逐个选择</button><button data-relink-never style="appearance:none;border:1px solid rgba(255,255,255,0.18);background:rgba(0,0,0,0.18);color:#ffe8e8;border-radius:8px;padding:6px 9px;font-size:12px;font-weight:700;cursor:pointer;">关闭提示不再询问</button></div><span data-relink-close title="关闭" aria-label="关闭" style="position:absolute;right:10px;top:10px;display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:999px;font-size:20px;line-height:22px;color:#fff;background:rgba(255,255,255,0.16);border:1px solid rgba(255,255,255,0.28);flex:0 0 auto;">&times;</span>`));
-		      ((bannerEl.querySelector(`[data-relink-label]`).textContent = `检测到 ${missingCount} 个外部上传素材丢失`),
+		      ((bannerEl.querySelector(`[data-relink-label]`).textContent = `检测到 ${missingCount} 个本地媒体素材丢失`),
 		        (bannerEl.onclick = (event) => {
 		          if (event?.target?.closest?.(`[data-relink-close]`)) {
 		            globalThis.__wanjuanAssetRelinkBannerDismissedCount = missingCount;
@@ -25784,10 +26208,11 @@ ${combinedPrompt}`,
             [stopGeneration],
           );
   useEffect(() => {
+    WanJuanRenderRuntime.mark(`setNodes`);
     setNodes((nodes2) =>
       nodes2.map((node) => {
         let nodeData = {
-            ...node.data
+            ...WanJuanStripRuntimeNodeData(node.data || {})
           },
           hasChanged = !1;
         return (
@@ -26321,26 +26746,31 @@ ${combinedPrompt}`,
 		    wanjuanCanvasNodes = useMemo(
 		      () =>
 		      nodes.map((node) => {
-	        let referenceSources = wanjuanSelectedReferenceSourcesByTarget.get(node.id);
-	        return referenceSources && referenceSources.length ?
+	        let referenceSources = wanjuanSelectedReferenceSourcesByTarget.get(node.id),
+	          renderMode = WanJuanComputeNodeRenderMode(node, wanjuanViewport, wanjuanViewportSize),
+	          data = node.data || {},
+	          nextReferenceSources = referenceSources && referenceSources.length ? referenceSources : void 0,
+	          hasReferenceChange =
+	            (nextReferenceSources && data.wanjuanSelectedReferenceSourceIds !== nextReferenceSources) ||
+	            (!nextReferenceSources && Array.isArray(data.wanjuanSelectedReferenceSourceIds)),
+	          hasRenderModeChange = data.wanjuanRenderMode !== renderMode;
+	        return hasReferenceChange || hasRenderModeChange ?
 	          {
 	            ...node,
 	            data: {
-	              ...node.data,
-	              wanjuanSelectedReferenceSourceIds: referenceSources
-	            },
-	          } :
-	          Array.isArray(node.data?.wanjuanSelectedReferenceSourceIds) ?
-	          {
-	            ...node,
-	            data: {
-	              ...node.data,
-	              wanjuanSelectedReferenceSourceIds: void 0
+	              ...data,
+	              ...(nextReferenceSources ? {
+	                wanjuanSelectedReferenceSourceIds: nextReferenceSources
+	              } : {
+	                wanjuanSelectedReferenceSourceIds: void 0
+	              }),
+	              wanjuanRenderMode: renderMode,
+	              wanjuanRenderRuntime: !0
 	            },
 	          } :
 	          node;
 		      }),
-		      [nodes, wanjuanSelectedReferenceSourcesByTarget],
+		      [nodes, wanjuanSelectedReferenceSourcesByTarget, wanjuanViewport, wanjuanViewportSize],
 		    );
 		  const getShortcutNodePosition = () => {
 		      let rect = wrapperRef.current?.getBoundingClientRect(),
@@ -26514,8 +26944,31 @@ ${combinedPrompt}`,
           onNodeClick: ht,
           onPaneContextMenu: handleContextMenu,
           onNodeContextMenu: ft,
-          onSelectionContextMenu: pt,
-          onSelectionEnd: mt,
+	          onSelectionContextMenu: pt,
+	          onSelectionEnd: mt,
+	          onMove: (event, viewport) => {
+	            if (!viewport) return;
+	            let now = performance.now();
+	            if (now - wanjuanViewportUpdateRef.current < 120) return;
+	            wanjuanViewportUpdateRef.current = now;
+	            setWanjuanViewport((prev) =>
+	              Math.abs(prev.x - viewport.x) > 0.5 ||
+	              Math.abs(prev.y - viewport.y) > 0.5 ||
+	              Math.abs(prev.zoom - viewport.zoom) > 0.01 ?
+	              viewport :
+	              prev,
+	            );
+	          },
+	          onMoveEnd: (event, viewport) => {
+	            viewport &&
+	              setWanjuanViewport((prev) =>
+	                Math.abs(prev.x - viewport.x) > 0.5 ||
+	                Math.abs(prev.y - viewport.y) > 0.5 ||
+	                Math.abs(prev.zoom - viewport.zoom) > 0.005 ?
+	                viewport :
+	                prev,
+	              );
+	          },
           onPaneClick: handleCancel,
           onDragOver: onDragOver,
           onDrop: onDrop,
@@ -26533,45 +26986,49 @@ ${combinedPrompt}`,
             hideAttribution: !0
           },
           children: [
-            jsxs(I, {
-              position: `top-right`,
-              className: `flex items-center gap-3 mt-2 mr-2`,
-              children: [
-                jsxs(`div`, {
-                  className: `flex items-center bg-[#2a2a2a] border border-[#333] rounded-lg p-1 shadow-lg`,
-                  children: [
-                    jsx(`button`, {
-                      onClick: autoLayout,
-                      className: `p-1.5 rounded flex items-center justify-center transition-colors text-gray-300 hover:text-white hover:bg-[#444]`,
-                      title: `一键自动排版`,
-                      children: jsx(Ae, {
-                        size: 16
-                      }),
-                    }),
-                    jsx(`div`, {
-                      className: `w-[1px] h-4 bg-[#444] mx-1`,
-                    }),
-                    jsx(`button`, {
-                      onClick: $e,
-                      disabled: historyIndex <= 0,
-                      className: `p-1.5 rounded flex items-center justify-center transition-colors ${historyIndex <= 0 ? `text-gray-600 cursor-not-allowed` : `text-gray-300 hover:text-white hover:bg-[#444]`}`,
-                      title: `撤销 (Ctrl+Z)`,
-                      children: jsx(L, {
-                        size: 16
-                      }),
-                    }),
-                    jsx(`div`, {
-                      className: `w-[1px] h-4 bg-[#444] mx-1`,
-                    }),
-                    jsx(`button`, {
-                      onClick: redo,
-                      disabled: historyIndex >= history.length - 1,
-                      className: `p-1.5 rounded flex items-center justify-center transition-colors ${historyIndex >= history.length - 1 ? `text-gray-600 cursor-not-allowed` : `text-gray-300 hover:text-white hover:bg-[#444]`}`,
-                      title: `重做 (Ctrl+Y)`,
-                      children: jsx(i, {
-                        size: 16
-                      }),
-                    }),
+	            jsxs(I, {
+	              position: `top-right`,
+	              className: `wanjuan-canvas-top-tools flex items-center gap-3 mt-2 mr-2`,
+	              style: {
+	                transform: `scale(0.8)`,
+	                transformOrigin: `top right`
+	              },
+	              children: [
+	                jsxs(`div`, {
+	                  className: `flex items-center bg-[#2a2a2a] border border-[#333] rounded-lg p-1 shadow-lg`,
+	                  children: [
+	                    jsx(`button`, {
+	                      onClick: autoLayout,
+	                      className: `p-1.5 rounded flex items-center justify-center transition-colors text-gray-300 hover:text-white hover:bg-[#444]`,
+	                      title: `一键自动排版`,
+	                      children: jsx(Ae, {
+	                        size: 16
+	                      }),
+	                    }),
+	                    jsx(`div`, {
+	                      className: `w-[1px] h-4 bg-[#444] mx-1`,
+	                    }),
+	                    jsx(`button`, {
+	                      onClick: $e,
+	                      disabled: historyIndex <= 0,
+	                      className: `p-1.5 rounded flex items-center justify-center transition-colors ${historyIndex <= 0 ? `text-gray-600 cursor-not-allowed` : `text-gray-300 hover:text-white hover:bg-[#444]`}`,
+	                      title: `撤销 (Ctrl+Z)`,
+	                      children: jsx(L, {
+	                        size: 16
+	                      }),
+	                    }),
+	                    jsx(`div`, {
+	                      className: `w-[1px] h-4 bg-[#444] mx-1`,
+	                    }),
+	                    jsx(`button`, {
+	                      onClick: redo,
+	                      disabled: historyIndex >= history.length - 1,
+	                      className: `p-1.5 rounded flex items-center justify-center transition-colors ${historyIndex >= history.length - 1 ? `text-gray-600 cursor-not-allowed` : `text-gray-300 hover:text-white hover:bg-[#444]`}`,
+	                      title: `重做 (Ctrl+Y)`,
+	                      children: jsx(i, {
+	                        size: 16
+	                      }),
+	                    }),
                   ],
                 }),
                 jsxs(`div`, {
@@ -27096,9 +27553,16 @@ ${combinedPrompt}`,
                           menuPosition.connection,
                         ),
                       children: [
-                        jsx(h, {
-                          size: 16,
-                          className: `text-cyan-400`,
+                        jsx(`svg`, {
+                          xmlns: `http://www.w3.org/2000/svg`,
+                          width: `16`,
+                          height: `16`,
+                          viewBox: `0 0 24 24`,
+                          fill: `currentColor`,
+                          className: `text-blue-400 flex-shrink-0`,
+                          children: jsx(`path`, {
+                            d: `M12 2.8l2.75 6.45L21.2 12l-6.45 2.75L12 21.2l-2.75-6.45L2.8 12l6.45-2.75L12 2.8z`,
+                          }),
                         }),
 	                        jsx(`span`, {
 	                          children: `即梦节点`,
@@ -29262,6 +29726,11 @@ Suno 音乐生成`,
   [themeMode, setThemeMode] = useState(`graphite`),
   [appLanguage, setAppLanguage] = useState(`zh-CN`),
   [downloadDirectory, setDownloadDirectory] = useState(``),
+  [storageOptimizationEnabled, setStorageOptimizationEnabled] = useState(!1),
+  [storageOptimizationPaused, setStorageOptimizationPaused] = useState(!1),
+  [storageOptimizationStatus, setStorageOptimizationStatus] = useState(null),
+  [storageOptimizationBusy, setStorageOptimizationBusy] = useState(!1),
+  [storageOptimizationLastResult, setStorageOptimizationLastResult] = useState(``),
   [videoResolutions, setVideoResolutions] = useState(`1280x720
 		720x1280
 		1080x720
@@ -29775,7 +30244,7 @@ time=1h`,
         "当前已启用全局统一API配置": "目前已啟用全域統一 API 配置",
         "切换石墨灰、曜石黑、晴空蓝、暖砂白、樱雾粉、薄荷绿或跟随系统外观，不改变现有布局结构": "切換石墨灰、曜石黑、晴空藍、暖砂白、櫻霧粉、薄荷綠或跟隨系統外觀，不改變現有布局結構",
         "选择界面语言偏好，后续多语言文案将按此设置展示": "選擇介面語言偏好，介面文案會依此設定顯示",
-        "1.2.8：落实语言包与资源页清理；修复视频剪辑台导出副本按钮点击被拖拽区域拦截的问题；修复即梦/天玑参考上传模式会回弹到全局默认且生成时不按节点选择上传的问题。": "1.2.8：落實語言包與資源頁清理；修復影片剪輯台匯出副本按鈕點擊被拖曳區域攔截的問題；修復即夢/天璣參考上傳模式會回彈到全域預設且生成時不按節點選擇上傳的問題。",
+        "1.2.9：优化大画布渲染流畅度；改进选择素材弹窗布局、筛选选中态和音视频素材预览；修复部分生成视频下载路径不一致；整理项目、备份中心和即梦节点菜单图标等界面细节。": "1.2.9：優化大畫布渲染流暢度；改進選擇素材彈窗布局、篩選選中態和音影片素材預覽；修復部分生成影片下載路徑不一致；整理專案、備份中心和即夢節點選單圖示等介面細節。",
         "曜石黑": "曜石黑",
         "晴空蓝": "晴空藍",
         "暖砂白": "暖砂白",
@@ -29831,7 +30300,7 @@ time=1h`,
         "当前已启用全局统一API配置": "Global unified API config is enabled",
         "切换石墨灰、曜石黑、晴空蓝、暖砂白、樱雾粉、薄荷绿或跟随系统外观，不改变现有布局结构": "Switch the visual theme without changing the current layout.",
         "选择界面语言偏好，后续多语言文案将按此设置展示": "Choose the interface language. Supported interface text follows this setting.",
-        "1.2.8：落实语言包与资源页清理；修复视频剪辑台导出副本按钮点击被拖拽区域拦截的问题；修复即梦/天玑参考上传模式会回弹到全局默认且生成时不按节点选择上传的问题。": "1.2.8: Added language packs and asset cleanup; fixed video editor duplicate export toolbar clicks being intercepted by drag areas; fixed Seedance/Tianji reference upload mode snapping back to the global default and generation ignoring the selected node upload channel.",
+        "1.2.9：优化大画布渲染流畅度；改进选择素材弹窗布局、筛选选中态和音视频素材预览；修复部分生成视频下载路径不一致；整理项目、备份中心和即梦节点菜单图标等界面细节。": "1.2.9: Improved large-canvas rendering responsiveness; polished the asset picker layout, selected filter state, and audio/video previews; fixed inconsistent save paths for some generated videos; refined project, Backup Center, and Jimeng node menu icon details.",
         "曜石黑": "Obsidian",
         "晴空蓝": "Sky Blue",
         "暖砂白": "Warm Sand",
@@ -29900,6 +30369,8 @@ time=1h`,
             appLanguage: appLanguage,
             uiLanguage: appLanguage,
             downloadDirectory: downloadDirectory,
+            storageOptimizationEnabled: storageOptimizationEnabled,
+            storageOptimizationPaused: storageOptimizationPaused,
             presetPrompts: presetPrompts,
             layeredRunConcurrencyOptions: layeredRunConcurrencyOptions,
             layeredRunMaxConcurrency: layeredRunMaxConcurrency,
@@ -33347,6 +33818,8 @@ ${docText}`;
                   `appLanguage`,
                   `uiLanguage`,
                   `downloadDirectory`,
+                  `storageOptimizationEnabled`,
+                  `storageOptimizationPaused`,
                   `backupExportSelection`,
                   `backupImportSelection`,
                   `audioModel`,
@@ -33557,6 +34030,10 @@ ${docText}`;
                     setAppLanguage(settings.appLanguage || settings.uiLanguage),
                     settings.downloadDirectory &&
                     setDownloadDirectory(settings.downloadDirectory),
+                    settings.storageOptimizationEnabled === !0 &&
+                    setStorageOptimizationEnabled(!0),
+                    settings.storageOptimizationPaused === !0 &&
+                    setStorageOptimizationPaused(!0),
                     Array.isArray(settings.backupExportSelection) &&
                     settings.backupExportSelection.length > 0 &&
                     setBackupExportSelection(settings.backupExportSelection),
@@ -33664,6 +34141,8 @@ ${docText}`;
       themeMode,
       appLanguage,
       downloadDirectory,
+      storageOptimizationEnabled,
+      storageOptimizationPaused,
       presetPrompts,
       layeredRunConcurrencyOptions,
       layeredRunMaxConcurrency,
@@ -33672,6 +34151,30 @@ ${docText}`;
       selectedAgentId,
       agentConversations,
     ]),
+    useEffect(() => {
+      globalThis.__wanjuanLastCanvasActivityAt = Date.now();
+    }, [activeProjectId]),
+    useEffect(() => {
+      if (!storageOptimizationEnabled || storageOptimizationPaused) return;
+      let timer = setInterval(() => {
+        let hasActiveTask = globalTasks.some((task) => task?.status === `running` || task?.status === `pending`);
+        if (hasActiveTask || Date.now() - Number(globalThis.__wanjuanLastCanvasActivityAt || 0) < 3e4) return;
+        globalThis.__wanjuanRunNextStorageMigration?.(!0);
+      }, 15e3);
+      return () => clearInterval(timer);
+    }, [storageOptimizationEnabled, storageOptimizationPaused, globalTasks, activeProjectId]),
+    useEffect(() => {
+      activeSettingsTab === `data` && window.wanjuanDesktop?.getStorageOptimizationStatus?.({
+        directory: downloadDirectory
+      }).then((result) => result?.ok && setStorageOptimizationStatus(result)).catch(console.error);
+    }, [activeSettingsTab, downloadDirectory]),
+    useEffect(() => {
+      if (!storageOptimizationEnabled) return;
+      let previous = globalThis.__wanjuanStorageOptimizationDirectory;
+      if (previous !== void 0 && previous !== downloadDirectory)
+        setStorageOptimizationLastResult(`下载目录已更改。新结果写入新媒体库，旧媒体库保持只读可用；如需集中存放，请手动搬迁。`);
+      globalThis.__wanjuanStorageOptimizationDirectory = downloadDirectory;
+    }, [storageOptimizationEnabled, downloadDirectory]),
     useEffect(() => () => {
       nonModelSettingsSaveTimerRef.current &&
         clearTimeout(nonModelSettingsSaveTimerRef.current);
@@ -34664,6 +35167,343 @@ ${docText}`;
               showToast2(`项目已删除`));
           }
         },
+        storageStatusLabels = {
+          unoptimized: `未优化`,
+          queued: `等待迁移`,
+          migrating: `迁移中`,
+          optimized: `已优化`,
+          authorization: `需要授权`,
+          failed: `迁移失败`,
+        },
+        formatStorageBytes = (value) => {
+          let bytes = Number(value || 0);
+          if (bytes < 1024) return `${bytes} B`;
+          if (bytes < 1048576) return `${(bytes / 1024).toFixed(1)} KB`;
+          if (bytes < 1073741824) return `${(bytes / 1048576).toFixed(1)} MB`;
+          return `${(bytes / 1073741824).toFixed(2)} GB`;
+        },
+        persistProjectsWithStorageState = (projectId, storageStatus, storageDetail = ``) => {
+          let updatedProjects = projects.map((project) => project.id === projectId ? {
+            ...project,
+            storageStatus: storageStatus,
+            storageDetail: storageDetail,
+            storageUpdatedAt: Date.now(),
+          } : project);
+          (setProjects(updatedProjects),
+            _ && chrome.storage.local.set({
+              projects: updatedProjects
+            }));
+          return updatedProjects;
+        },
+        refreshStorageOptimizationStatus = async () => {
+          let result = await window.wanjuanDesktop?.getStorageOptimizationStatus?.({
+            directory: downloadDirectory
+          });
+          result?.ok && setStorageOptimizationStatus(result);
+          return result;
+        },
+        buildCompleteStorageReferenceIndex = async () => {
+          let indexedProjects = [];
+          for (let project of projects) {
+            let state = await X.default?.getItem(getProjectCanvasStorageKey(project.id));
+            indexedProjects.push({
+              projectId: project.id,
+              complete: !!state,
+              references: state ? [...globalThis.collectProjectFileReferences(state)] : [],
+            });
+          }
+          let result = await window.wanjuanDesktop?.rebuildStorageReferenceIndex?.({
+            directory: downloadDirectory,
+            projects: indexedProjects,
+          });
+          result?.ok && (await refreshStorageOptimizationStatus());
+          return result;
+        },
+        runStorageMigrationForProject = async (projectId, automatic = !1) => {
+          if (!storageOptimizationEnabled) {
+            automatic || showToast2(`请先启用存储优化`);
+            return {
+              ok: !1,
+              error: `STORAGE_OPTIMIZATION_DISABLED`
+            };
+          }
+          if (projectId === activeProjectId) {
+            persistProjectsWithStorageState(projectId, `queued`, `切换到其他项目后将在空闲时迁移`);
+            automatic || showToast2(`当前项目已加入优先队列，切换项目后执行`);
+            return {
+              ok: !1,
+              error: `CURRENT_PROJECT_MUST_BE_CLOSED`
+            };
+          }
+          if (globalThis.__wanjuanStorageMigrationRunning) return {
+            ok: !1,
+            error: `STORAGE_MIGRATION_BUSY`
+          };
+          globalThis.__wanjuanStorageMigrationRunning = !0;
+          persistProjectsWithStorageState(projectId, `migrating`, ``);
+          try {
+            let result = await globalThis.runForcedArchiveMigration(projectId, downloadDirectory, {
+              currentProjectId: activeProjectId
+            });
+            persistProjectsWithStorageState(projectId, `optimized`, `迁移完成`);
+            setStorageOptimizationLastResult(`项目迁移完成：${projects.find((project) => project.id === projectId)?.name || projectId}`);
+            await refreshStorageOptimizationStatus();
+            return result;
+          } catch (error) {
+            let message = String(error?.message || error),
+              status = /permission|access|EACCES|EPERM/i.test(message) ? `authorization` : `failed`;
+            persistProjectsWithStorageState(projectId, status, message);
+            setStorageOptimizationLastResult(`项目迁移失败并已恢复：${message}`);
+            automatic || showToast2(`迁移失败，原项目已恢复`);
+            return {
+              ok: !1,
+              error: message
+            };
+          } finally {
+            globalThis.__wanjuanStorageMigrationRunning = !1;
+          }
+        },
+        runNextStorageMigration =
+        (globalThis.__wanjuanRunNextStorageMigration = async (automatic = !1) => {
+          if (!storageOptimizationEnabled || storageOptimizationPaused || globalThis.__wanjuanStorageMigrationRunning) return;
+          let candidate = projects.find((project) => project.id !== activeProjectId && [`queued`, `unoptimized`, void 0].includes(project.storageStatus));
+          if (!candidate) {
+            if (automatic && Date.now() - Number(globalThis.__wanjuanLastTrashPurgeAt || 0) > 864e5) {
+              globalThis.__wanjuanLastTrashPurgeAt = Date.now();
+              await window.wanjuanDesktop?.purgeStorageTrash?.({
+                directory: downloadDirectory,
+                olderThanDays: 30,
+                confirm: !0,
+              });
+            }
+            return;
+          }
+          return runStorageMigrationForProject(candidate.id, automatic);
+        }),
+        enableStorageOptimization = async () => {
+          let status = await refreshStorageOptimizationStatus();
+          if (!status?.ok) {
+            showToast2(`无法检查媒体库状态`);
+            return;
+          }
+          if (!status.writable) {
+            setStorageOptimizationLastResult(`媒体库不可写：${status.accessError || `需要文件访问授权`}`);
+            showToast2(`媒体库不可写，请先在生成设置中选择可访问的下载目录`);
+            return;
+          }
+          if (!confirm(`启用后，新生成结果会写入全局媒体池，旧项目仅在空闲且未打开时逐个迁移。\n\n媒体库：${status.libraryPath}\n可用空间：${status.freeBytes == null ? `未知` : formatStorageBytes(status.freeBytes)}\n\n是否启用？`)) return;
+          let updatedProjects = projects.map((project) => ({
+            ...project,
+            storageStatus: project.storageStatus === `optimized` ? `optimized` : `queued`,
+            storageDetail: project.id === activeProjectId ? `切换项目后迁移` : `等待空闲迁移`,
+          }));
+          (setStorageOptimizationEnabled(!0),
+            setStorageOptimizationPaused(!1),
+            setProjects(updatedProjects),
+            chrome.storage.local.set({
+              storageOptimizationEnabled: !0,
+              storageOptimizationPaused: !1,
+              projects: updatedProjects,
+            }),
+            setStorageOptimizationLastResult(`已启用，等待应用空闲后迁移旧项目`));
+        },
+        scanStorageOptimization = async () => {
+          setStorageOptimizationBusy(!0);
+          globalThis.__wanjuanStorageMaintenanceRunning = !0;
+          try {
+            await new Promise((resolve) => setTimeout(resolve, 300));
+            let index = await buildCompleteStorageReferenceIndex();
+            if (!index?.ok || !index.index?.complete) {
+              setStorageOptimizationLastResult(`扫描未通过：存在未建立画布状态或缺失引用的项目`);
+              showToast2(`引用索引不完整，已拒绝清理`);
+              return;
+            }
+            let scan = await window.wanjuanDesktop.scanStorageReclaimable({
+              directory: downloadDirectory
+            });
+            setStorageOptimizationLastResult(scan?.ok ? `扫描完成：${scan.candidateCount} 个文件，可释放 ${formatStorageBytes(scan.candidateBytes)}` : `扫描失败：${scan?.error || `未知错误`}`);
+            await refreshStorageOptimizationStatus();
+          } finally {
+            globalThis.__wanjuanStorageMaintenanceRunning = !1;
+            setStorageOptimizationBusy(!1);
+          }
+        },
+        cleanStorageOptimization = async () => {
+          setStorageOptimizationBusy(!0);
+          globalThis.__wanjuanStorageMaintenanceRunning = !0;
+          try {
+            await new Promise((resolve) => setTimeout(resolve, 300));
+            let index = await buildCompleteStorageReferenceIndex();
+            if (!index?.ok || !index.index?.complete) {
+              showToast2(`引用索引不完整，已拒绝清理`);
+              return;
+            }
+            let scan = await window.wanjuanDesktop.scanStorageReclaimable({
+              directory: downloadDirectory
+            });
+            if (!scan?.ok || !scan.candidateCount) {
+              showToast2(`没有可清理的未引用媒体`);
+              return;
+            }
+            if (!confirm(`将 ${scan.candidateCount} 个未引用文件（${formatStorageBytes(scan.candidateBytes)}）移入 30 天回收区？`)) return;
+            let result = await window.wanjuanDesktop.moveUnreferencedMediaToTrash({
+              directory: downloadDirectory,
+              confirm: !0,
+            });
+            setStorageOptimizationLastResult(result?.ok ? `已移入回收区：${result.movedCount} 个文件` : `清理失败：${result?.error || `未知错误`}`);
+            await refreshStorageOptimizationStatus();
+          } finally {
+            globalThis.__wanjuanStorageMaintenanceRunning = !1;
+            setStorageOptimizationBusy(!1);
+          }
+        },
+        restoreStorageOptimizationTrash = async () => {
+          let result = await window.wanjuanDesktop?.restoreStorageTrash?.({
+            directory: downloadDirectory
+          });
+          setStorageOptimizationLastResult(result?.ok ? `已恢复 ${result.restoredCount} 个回收区文件` : `恢复失败`);
+          await refreshStorageOptimizationStatus();
+        },
+        purgeStorageOptimizationTrash = async () => {
+          if (!confirm(`永久删除回收区内超过 30 天的文件？此操作无法撤销。`)) return;
+          let result = await window.wanjuanDesktop?.purgeStorageTrash?.({
+            directory: downloadDirectory,
+            olderThanDays: 30,
+            confirm: !0,
+          });
+          setStorageOptimizationLastResult(result?.ok ? `已永久删除 ${result.purgedFiles} 个过期文件` : `永久删除失败`);
+          await refreshStorageOptimizationStatus();
+        },
+        showStorageOptimizationDetails = () => {
+          let lines = projects.map((project) => `${project.name}：${projectStorageLabel(project)}${project.storageDetail ? ` · ${project.storageDetail}` : ``}`);
+          alert(`存储优化详细记录\n\n${lines.join(`\n`) || `暂无项目记录`}\n\n最近结果：${storageOptimizationLastResult || `暂无`}`);
+        },
+        manageStorageOptimizationTrash = async () => {
+          let result = await window.wanjuanDesktop?.listStorageTrash?.({
+            directory: downloadDirectory
+          });
+          alert(result?.ok ? `回收区共有 ${result.totalFiles} 个文件，占用 ${formatStorageBytes(result.totalBytes)}。\n\n可使用“恢复回收区”恢复全部文件，或永久删除超过 30 天的文件。` : `无法读取回收区：${result?.error || `未知错误`}`);
+        },
+        renderStorageOptimizationPanel = () =>
+        jsxs(`div`, {
+          className: `mx-4 mt-4 rounded-xl border border-[#3a414c] bg-[#171a1f] p-4 space-y-4 wanjuan-settings-subcard`,
+          children: [
+            jsxs(`div`, {
+              className: `flex items-start justify-between gap-4`,
+              children: [
+                jsxs(`div`, {
+                  children: [
+                    jsx(`div`, {
+                      className: `text-sm font-bold text-gray-100`,
+                      children: `存储优化`,
+                    }),
+                    jsx(`div`, {
+                      className: `mt-1 text-xs text-gray-500`,
+                      children: storageOptimizationEnabled ? storageOptimizationPaused ? `已暂停自动迁移` : globalThis.__wanjuanStorageMigrationRunning ? `正在迁移项目` : `已启用，等待空闲迁移` : `未启用，现有存储行为保持不变`,
+                    }),
+                  ],
+                }),
+                !storageOptimizationEnabled ?
+                jsx(`button`, {
+                  onClick: enableStorageOptimization,
+                  className: `rounded-lg border border-blue-500/50 bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-500`,
+                  children: `启用存储优化`,
+                }) :
+                jsx(`button`, {
+                  onClick: () => {
+                    let next = !storageOptimizationPaused;
+                    (setStorageOptimizationPaused(next),
+                      chrome.storage.local.set({
+                        storageOptimizationPaused: next
+                      }),
+                      setStorageOptimizationLastResult(next ? `已暂停自动迁移` : `已继续自动迁移`));
+                  },
+                  className: `rounded-lg border border-[#444] bg-[#252a31] px-3 py-2 text-xs text-gray-200 hover:border-blue-500`,
+                  children: storageOptimizationPaused ? `继续自动迁移` : `暂停自动迁移`,
+                }),
+              ],
+            }),
+            jsxs(`div`, {
+              className: `grid grid-cols-2 md:grid-cols-4 gap-2`,
+              children: [
+                [`媒体池占用`, formatStorageBytes(storageOptimizationStatus?.blobBytes)],
+                [`媒体文件`, `${storageOptimizationStatus?.blobCount || 0} 个`],
+                [`回收区`, formatStorageBytes(storageOptimizationStatus?.trashBytes)],
+                [`已优化项目`, `${projects.filter((project) => project.storageStatus === `optimized`).length}/${projects.length}`],
+              ].map((item) => jsxs(`div`, {
+                className: `rounded-lg border border-[#303640] bg-[#20242a] p-3`,
+                children: [
+                  jsx(`div`, {
+                    className: `text-[10px] text-gray-500`,
+                    children: item[0],
+                  }),
+                  jsx(`div`, {
+                    className: `mt-1 text-xs font-semibold text-gray-200`,
+                    children: item[1],
+                  }),
+                ],
+              }, item[0])),
+            }),
+            jsx(`div`, {
+              className: `truncate text-[11px] text-gray-500`,
+              title: storageOptimizationStatus?.libraryPath || downloadDirectory,
+              children: `媒体库：${storageOptimizationStatus?.libraryPath || downloadDirectory || `默认下载目录`}`,
+            }),
+            jsx(`div`, {
+              className: `text-[11px] text-gray-400`,
+              children: storageOptimizationLastResult || `尚无迁移、扫描或恢复记录`,
+            }),
+            jsxs(`div`, {
+              className: `flex flex-wrap gap-2`,
+              children: [
+                jsx(`button`, {
+                  onClick: () => runNextStorageMigration(!1),
+                  disabled: !storageOptimizationEnabled || storageOptimizationBusy,
+                  className: `rounded-lg border border-[#444] px-3 py-1.5 text-xs text-gray-200 hover:border-blue-500 disabled:opacity-40`,
+                  children: `立即处理下一个项目`,
+                }),
+                jsx(`button`, {
+                  onClick: scanStorageOptimization,
+                  disabled: storageOptimizationBusy,
+                  className: `rounded-lg border border-[#444] px-3 py-1.5 text-xs text-gray-200 hover:border-blue-500 disabled:opacity-40`,
+                  children: `扫描可释放空间`,
+                }),
+                jsx(`button`, {
+                  onClick: cleanStorageOptimization,
+                  disabled: !storageOptimizationEnabled || storageOptimizationBusy,
+                  className: `rounded-lg border border-amber-500/40 px-3 py-1.5 text-xs text-amber-200 hover:bg-amber-500/10 disabled:opacity-40`,
+                  children: `清理未引用媒体`,
+                }),
+                jsx(`button`, {
+                  onClick: manageStorageOptimizationTrash,
+                  className: `rounded-lg border border-[#444] px-3 py-1.5 text-xs text-gray-200 hover:border-green-500`,
+                  children: `管理回收区`,
+                }),
+                jsx(`button`, {
+                  onClick: restoreStorageOptimizationTrash,
+                  className: `rounded-lg border border-[#444] px-3 py-1.5 text-xs text-gray-200 hover:border-green-500`,
+                  children: `恢复回收区`,
+                }),
+                jsx(`button`, {
+                  onClick: purgeStorageOptimizationTrash,
+                  className: `rounded-lg border border-red-500/40 px-3 py-1.5 text-xs text-red-300 hover:bg-red-500/10`,
+                  children: `永久删除过期文件`,
+                }),
+                jsx(`button`, {
+                  onClick: refreshStorageOptimizationStatus,
+                  className: `rounded-lg border border-[#444] px-3 py-1.5 text-xs text-gray-400 hover:text-white`,
+                  children: `刷新状态`,
+                }),
+                jsx(`button`, {
+                  onClick: showStorageOptimizationDetails,
+                  className: `rounded-lg border border-[#444] px-3 py-1.5 text-xs text-gray-400 hover:text-white`,
+                  children: `查看详细记录`,
+                }),
+              ],
+            }),
+          ],
+        }),
+        projectStorageLabel = (project) => storageStatusLabels[project?.storageStatus || `unoptimized`] || `未优化`,
         projectGroupList = normalizeProjectGroups(projectGroups),
         projectGroupIds = new Set(projectGroupList.map((group) => group.id)),
         projectGroupSearchText = String(projectGroupSearch || ``).trim().toLowerCase(),
@@ -38640,6 +39480,11 @@ ${String(l || ``).slice(0, 5e4)}`;
             let clonedBackup = cloneBackupValue(backup || {});
             return (
               Array.isArray(clonedBackup.nodes) &&
+              (clonedBackup.nodes = clonedBackup.nodes.map((node) => ({
+                ...node,
+                data: WanJuanStripRuntimeNodeData(node?.data || {})
+              }))),
+              Array.isArray(clonedBackup.nodes) &&
               (clonedBackup.nodes = await Promise.all(
                 clonedBackup.nodes.map((node, index) =>
                   externalizeProjectAssetContainer(node, {
@@ -38920,21 +39765,24 @@ ${String(l || ``).slice(0, 5e4)}`;
                   if (origin === `media` && hasExternalUploadLikeFileName(binding, data)) return !0;
                   return !1;
                 },
-                isProjectMediaLargeBinaryBinding = (binding, t, fallbackKind) => {
+                isProjectMediaFileBackedBinding = (binding, t, fallbackKind) => {
                   let mime = String(binding?.mime || ``).toLowerCase(),
                     kind = String(binding?.kind || fallbackKind || ``).toLowerCase();
                   return (
+                    kind === `image` ||
                     kind === `video` ||
                     kind === `audio` ||
+                    /^image\//i.test(mime) ||
                     /^video\//i.test(mime) ||
                     /^audio\//i.test(mime) ||
+                    t === `imageUrl` ||
                     t === `videoUrl` ||
                     t === `audioUrl`
                   );
                 },
                 stripLargeProjectMediaPortablePayload = (binding, bindingKey, data) => {
                   if (!binding || typeof binding != `object`) return binding;
-                  if (!binding.localPath || !isProjectMediaLargeBinaryBinding(binding, bindingKey, data)) return binding;
+                  if (!binding.localPath || !isProjectMediaFileBackedBinding(binding, bindingKey, data)) return binding;
                   let {
                     value,
                     portableData,
@@ -39047,9 +39895,12 @@ ${String(l || ``).slice(0, 5e4)}`;
 	                          missing: strippedBinding?.localPath ? !fileExists : !1,
 	                          lastCheckedAt: new Date().toISOString(),
 	                        };
-                      (nextBindings[bindingKey] = resolvedBinding), resolvedBinding.missing && isExternalUploadedProjectAssetBinding(resolvedBinding, bindingKey, data) && missingAssets.push(bindingKey);
+                      (nextBindings[bindingKey] = resolvedBinding),
+                        resolvedBinding.missing &&
+                        isProjectMediaFileBackedBinding(resolvedBinding, bindingKey, resolvedBinding.kind) &&
+                        missingAssets.push(bindingKey);
                       let revivedValue = reviveProjectMediaBindingValue(resolvedBinding);
-                      if (resolvedBinding.localPath && isProjectMediaLargeBinaryBinding(resolvedBinding, bindingKey, resolvedBinding.kind)) {
+                      if (resolvedBinding.localPath && isProjectMediaFileBackedBinding(resolvedBinding, bindingKey, resolvedBinding.kind)) {
                         let fileUrl = buildProjectMediaFileUrl(resolvedBinding.localPath);
                         fileUrl &&
                           (bindingKey === `audioUrl` ||
@@ -39081,7 +39932,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                         let bindings = node?.data?.projectAssetBindings || {};
                         Object.entries(bindings).forEach(([bindingKey, binding]) => {
                           binding?.missing &&
-                            isExternalUploadedProjectAssetBinding(binding, bindingKey, node?.data || {}) &&
+                            isProjectMediaFileBackedBinding(binding, bindingKey, binding?.kind) &&
                             missingEntries.push({
                               nodeId: node.id,
                               nodeType: node.type,
@@ -39123,8 +39974,41 @@ ${String(l || ``).slice(0, 5e4)}`;
                       extensions: [`*`]
                     },
                   ],
+                  forceRehomeProjectDataFileReferences = async (value, context, pathParts = []) => {
+                    if (typeof value == `string` && value.startsWith(`file://`)) {
+                      try {
+                        let archivedAsset = await window.wanjuanDesktop.persistProjectAsset({
+                          url: value,
+                          projectId: context.projectId,
+                          nodeId: context.nodeId,
+                          field: pathParts.join(`.`) || `file`,
+                          kind: `binary`,
+                          directory: context.directory,
+                          forceArchiveExistingFile: !0,
+                          migrationId: context.migrationId,
+                        });
+                        if (archivedAsset?.ok && archivedAsset.localPath)
+                          return buildProjectMediaFileUrl(archivedAsset.localPath);
+                      } catch (error) {
+                        console.warn(`Nested project file force archive skipped`, error);
+                      }
+                      return value;
+                    }
+                    if (Array.isArray(value))
+                      return Promise.all(value.map((item, index) => forceRehomeProjectDataFileReferences(item, context, [...pathParts, String(index)])));
+                    if (!value || typeof value != `object`) return value;
+                    let result = {};
+                    for (let [key, item] of Object.entries(value)) {
+                      if (key === `projectAssetBindings`) {
+                        result[key] = item;
+                        continue;
+                      }
+                      result[key] = await forceRehomeProjectDataFileReferences(item, context, [...pathParts, key]);
+                    }
+                    return result;
+                  },
                   prepareProjectMediaStateForPersistence =
-                  (globalThis.prepareProjectMediaStateForPersistence = async (canvasState, projectId, n) => {
+                  (globalThis.prepareProjectMediaStateForPersistence = async (canvasState, projectId, n, options = {}) => {
                     if (!window.wanjuanDesktop?.persistProjectAsset || !X.default) return canvasState;
                     let clonedState = cloneBackupValue(canvasState || {});
                     if (!Array.isArray(clonedState.nodes) || !clonedState.nodes.length) return clonedState;
@@ -39142,10 +40026,56 @@ ${String(l || ``).slice(0, 5e4)}`;
                             binding = bindings[bindingKey] || {},
                             kind = binding.kind || getProjectMediaBindingKind(bindingKey, node),
                             strippedBinding = stripLargeProjectMediaPortablePayload(binding, bindingKey, kind);
+                          if (options.forceRehomeExistingFiles) {
+                            let existingFileValue =
+                              binding.localPath ||
+                              (typeof fieldValue == `string` && fieldValue.startsWith(`file://`) ? fieldValue : ``);
+                            if (existingFileValue) {
+                              try {
+                                let archivedAsset = await window.wanjuanDesktop.persistProjectAsset({
+                                    localPath: binding.localPath,
+                                    url: binding.localPath ? `` : existingFileValue,
+                                    mime: binding.mime,
+                                    filename: binding.filename || binding.originalName,
+                                    projectId: projectId,
+                                    nodeId: node.id,
+                                    field: bindingKey,
+                                    kind: kind,
+                                    assetId: binding.assetId,
+                                    directory: n,
+                                    forceArchiveExistingFile: !0,
+                                    migrationId: options.migrationId,
+                                  });
+                                if (!archivedAsset?.ok || !archivedAsset.localPath)
+                                  throw Error(archivedAsset?.error || `Project media archive failed`);
+                                let archivedFileUrl = buildProjectMediaFileUrl(archivedAsset.localPath);
+                                archivedFileUrl && (data[bindingKey] = archivedFileUrl);
+                                try {
+                                  binding.portableDataRef && (await X.default.removeItem(binding.portableDataRef));
+                                } catch {}
+                                bindings[bindingKey] = {
+                                  ...binding,
+                                  ...archivedAsset,
+                                  field: bindingKey,
+                                  portableDataRef: void 0,
+                                  portableData: void 0,
+                                  value: archivedFileUrl,
+                                  sourceSignature: archivedFileUrl,
+                                  valueFormat: archivedAsset.valueFormat || binding.valueFormat,
+                                  missing: !1,
+                                };
+                                continue;
+                              } catch (error) {
+                                console.warn(`Project media force archive skipped`, error);
+                              }
+                            }
+                          }
                           if (strippedBinding !== binding) {
                             try {
                               binding.portableDataRef && (await X.default.removeItem(binding.portableDataRef));
                             } catch {}
+                            let localFileUrl = buildProjectMediaFileUrl(strippedBinding.localPath);
+                            localFileUrl && (data[bindingKey] = localFileUrl);
                             ((bindings[bindingKey] = {
                                 ...strippedBinding,
                                 field: bindingKey,
@@ -39194,31 +40124,49 @@ ${String(l || ``).slice(0, 5e4)}`;
                             binding.portableDataRef ||
                             buildProjectAssetStorageKey(projectId, node.id || `node`, `media-${bindingKey}-portable`);
                           try {
-                            ((await X.default.setItem(storageKey, payload.portableValue)),
-                              (bindings[bindingKey] = {
-                                ...binding,
-                                ...(await window.wanjuanDesktop.persistProjectAsset({
-                                  ...payload.persistPayload,
-                                  projectId: projectId,
-                                  nodeId: node.id,
-                                  field: bindingKey,
-                                  kind: getProjectMediaBindingKind(bindingKey, node),
-                                  assetId: binding.assetId,
-                                  directory: n,
-                                })),
+                            let persistedAsset = await window.wanjuanDesktop.persistProjectAsset({
+                                ...payload.persistPayload,
+                                projectId: projectId,
+                                nodeId: node.id,
                                 field: bindingKey,
-                                portableDataRef: storageKey,
-                                sourceSignature: sourceSignature,
-                                valueFormat: payload.valueFormat,
+                                kind: getProjectMediaBindingKind(bindingKey, node),
+                                assetId: binding.assetId,
+                                directory: n,
+                                migrationId: options.migrationId,
+                              }),
+                              fileBacked = persistedAsset?.localPath &&
+                                isProjectMediaFileBackedBinding(persistedAsset, bindingKey, kind);
+                            if (!persistedAsset?.ok) throw Error(persistedAsset?.error || `Project media persist failed`);
+                            if (fileBacked) {
+                              try {
+                                await X.default.removeItem(storageKey);
+                              } catch {}
+                              let localFileUrl = buildProjectMediaFileUrl(persistedAsset.localPath);
+                              localFileUrl && (data[bindingKey] = localFileUrl);
+                            } else {
+                              await X.default.setItem(storageKey, payload.portableValue);
+                            }
+                            (bindings[bindingKey] = {
+                                ...binding,
+                                ...persistedAsset,
+                                field: bindingKey,
+                                portableDataRef: fileBacked ? void 0 : storageKey,
+                                sourceSignature: fileBacked ?
+                                  buildProjectMediaFileUrl(persistedAsset.localPath) :
+                                  sourceSignature,
+                                valueFormat: fileBacked ? `file-url` : payload.valueFormat,
                                 sourceOrigin: binding.sourceOrigin ||
                                   data.sourceOrigin ||
                                   data.mediaSourceOrigin ||
                                   (bindingKey === `text` || bindingKey === `resultData` ? `generated-text` : `media`),
                                 originalName: binding.originalName || data.originalName || data.label || data.name || ``,
                                 missing: !1,
-                              }));
+                              });
                           } catch (error) {
                             console.warn(`Project media persist skipped`, error);
+                            try {
+                              await X.default.setItem(storageKey, payload.portableValue);
+                            } catch {}
                             bindings[bindingKey] = {
                               ...binding,
                               field: bindingKey,
@@ -39228,6 +40176,13 @@ ${String(l || ``).slice(0, 5e4)}`;
                             };
                           }
                         }
+                        options.forceRehomeExistingFiles &&
+                          (data = await forceRehomeProjectDataFileReferences(data, {
+                            projectId: projectId,
+                            nodeId: node.id,
+                            directory: n,
+                            migrationId: options.migrationId,
+                          }));
                         return {
                           ...node,
                           data: {
@@ -39239,6 +40194,149 @@ ${String(l || ``).slice(0, 5e4)}`;
                     );
                     return clonedState;
                   }),
+                  collectProjectFileReferences = (value, references = new Set()) => {
+                    if (typeof value == `string` && value.startsWith(`file://`)) {
+                      try {
+                        references.add(decodeURIComponent(new URL(value).pathname));
+                      } catch {}
+                      return references;
+                    }
+                    if (Array.isArray(value)) {
+                      value.forEach((item) => collectProjectFileReferences(item, references));
+                      return references;
+                    }
+                    if (value && typeof value == `object`)
+                      Object.values(value).forEach((item) => collectProjectFileReferences(item, references));
+                    return references;
+                  },
+                  exposeProjectFileReferenceCollector =
+                  (globalThis.collectProjectFileReferences = collectProjectFileReferences),
+                  projectMigrationLocks = (globalThis.__wanjuanProjectMigrationLocks ||= new Set()),
+                  activeProjectMigrations = (globalThis.__wanjuanActiveProjectMigrations ||= new Map()),
+                  getForcedArchiveMigrationStatus =
+                  (globalThis.getForcedArchiveMigrationStatus = async (projectId) => {
+                    let migrationId = activeProjectMigrations.get(projectId);
+                    return migrationId ?
+                      window.wanjuanDesktop?.getProjectMigration?.({
+                        migrationId: migrationId
+                      }) :
+                      {
+                        ok: !1,
+                        error: `MIGRATION_NOT_FOUND`
+                      };
+                  }),
+                  cancelForcedArchiveMigration =
+                  (globalThis.cancelForcedArchiveMigration = async (projectId) => {
+                    let migrationId = activeProjectMigrations.get(projectId);
+                    return migrationId ?
+                      window.wanjuanDesktop?.cancelProjectMigration?.({
+                        migrationId: migrationId
+                      }) :
+                      {
+                        ok: !1,
+                        error: `MIGRATION_NOT_FOUND`
+                      };
+                  }),
+                  runForcedArchiveMigration =
+                  (globalThis.runForcedArchiveMigration = async (projectId, directory, options = {}) => {
+                    if (!X.default || !window.wanjuanDesktop?.beginProjectMigration)
+                      throw Error(`Migration API unavailable`);
+                    if (options.currentProjectId === projectId)
+                      throw Error(`CURRENT_PROJECT_MUST_BE_CLOSED`);
+                    if (projectMigrationLocks.has(projectId))
+                      throw Error(`PROJECT_MIGRATION_LOCKED`);
+                    let storageKey = getProjectCanvasStorageKey(projectId),
+                      originalState = await X.default.getItem(storageKey);
+                    if (!originalState) throw Error(`PROJECT_STATE_NOT_FOUND`);
+                    let originalReferences = [...collectProjectFileReferences(originalState)],
+                      originalReferenceCheck = await window.wanjuanDesktop.checkProjectAssets(originalReferences),
+                      requiredBytes = (originalReferenceCheck?.assets || []).reduce((sum, asset) => sum + Number(asset?.size || 0), JSON.stringify(originalState).length);
+                    let begin = await window.wanjuanDesktop.beginProjectMigration({
+                      projectId: projectId,
+                      directory: directory,
+                      total: Array.isArray(originalState.nodes) ? originalState.nodes.length : 0,
+                      requiredBytes: requiredBytes,
+                    });
+                    if (!begin?.ok) throw Error(begin?.error || `Migration begin failed`);
+                    let migrationId = begin.migrationId;
+                    projectMigrationLocks.add(projectId);
+                    activeProjectMigrations.set(projectId, migrationId);
+                    let snapshot = await window.wanjuanDesktop.saveProjectMigrationSnapshot({
+                      migrationId: migrationId,
+                      projectId: projectId,
+                      state: originalState,
+                    });
+                    if (!snapshot?.ok) throw Error(snapshot?.error || `Migration snapshot failed`);
+                    try {
+                      let migratedState = await globalThis.prepareProjectMediaStateForPersistence(
+                        originalState,
+                        projectId,
+                        directory,
+                        {
+                          forceRehomeExistingFiles: !0,
+                          migrationId: migrationId,
+                        },
+                      );
+                      let references = [...collectProjectFileReferences(migratedState)];
+                      let check = await window.wanjuanDesktop.checkProjectAssets(references);
+                      let missing = (check?.assets || []).filter((asset) => !asset.exists);
+                      if (missing.length) throw Error(`MIGRATION_REFERENCE_MISSING:${missing.length}`);
+                      await X.default.setItem(storageKey, migratedState);
+                      let committed = await window.wanjuanDesktop.commitProjectMigration({
+                        migrationId: migrationId,
+                        references: references,
+                        requireGlobalBlobs: !0,
+                      });
+                      if (!committed?.ok) throw Error(committed?.error || `Migration commit failed`);
+                      return {
+                        ok: !0,
+                        migrationId: migrationId,
+                        state: migratedState,
+                        references: references,
+                        session: committed.session,
+                      };
+                    } catch (error) {
+                      await X.default.setItem(storageKey, originalState);
+                      await window.wanjuanDesktop.rollbackProjectMigration({
+                        migrationId: migrationId,
+                        error: String(error?.message || error),
+                      });
+                      throw error;
+                    } finally {
+                      projectMigrationLocks.delete(projectId);
+                      activeProjectMigrations.delete(projectId);
+                    }
+                  }),
+                  recoverInterruptedProjectMigrations =
+                  (globalThis.recoverInterruptedProjectMigrations = async (directory = ``) => {
+                    if (!X.default || !window.wanjuanDesktop?.listIncompleteMigrations) return [];
+                    let result = await window.wanjuanDesktop.listIncompleteMigrations({
+                        directory: directory
+                      }),
+                      recovered = [];
+                    for (let session of result?.migrations || []) {
+                      try {
+                        let snapshot = await window.wanjuanDesktop.loadProjectMigrationSnapshot({
+                          migrationId: session.id,
+                          directory: directory,
+                        });
+                        if (!snapshot?.ok) throw Error(snapshot?.error || `Migration snapshot unavailable`);
+                        await X.default.setItem(getProjectCanvasStorageKey(session.projectId), snapshot.state);
+                        await window.wanjuanDesktop.rollbackProjectMigration({
+                          migrationId: session.id,
+                          directory: directory,
+                          error: `Recovered after interrupted migration`,
+                        });
+                        recovered.push(session.projectId);
+                      } catch (error) {
+                        console.error(`Interrupted project migration recovery failed`, session.projectId, error);
+                      }
+                    }
+                    return recovered;
+                  }),
+                  scheduleInterruptedMigrationRecovery = setTimeout(() => {
+                    globalThis.recoverInterruptedProjectMigrations?.(``).catch(console.error);
+                  }, 1500),
                   buildProjectLocalforagePayload = (e, projectIds = []) => {
                     let canvasStates = {},
                       assetRefs = new Set(),
@@ -39896,7 +40994,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                           [],
                         ),
                         buildBackupPayload = async (e, t, n, r = {}) => ({
-	                            version: `1.2.8`,
+	                            version: `1.2.9`,
                             backupFormat: `4`,
                             exportedAt: new Date().toISOString(),
                             modules: await buildBackupModules(e, t, n, r),
@@ -40481,7 +41579,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                 }),
                 jsx(`span`, {
                   className: `absolute bottom-1 right-2 text-[8px] text-gray-600 font-normal`,
-		                  children: `v1.2.8`,
+		                  children: `v1.2.9`,
                 }),
                 updateInfo?.hasUpdate &&
                 jsx(`span`, {
@@ -40974,6 +42072,12 @@ ${String(l || ``).slice(0, 5e4)}`;
                           className: `bg-[#2a2a2a] text-gray-300 text-xs rounded px-2 py-1 border border-[#333] hover:border-blue-500 hover:text-blue-300`,
                           title: `项目分组管理`,
                           children: `分组`,
+                        }),
+                        jsx(`button`, {
+                          onClick: () => runStorageMigrationForProject(activeProjectId, !1),
+                          className: `bg-[#2a2a2a] text-gray-300 text-[10px] rounded px-2 py-1 border border-[#333] hover:border-blue-500 hover:text-blue-300`,
+                          title: projects.find((project) => project.id === activeProjectId)?.storageDetail || `优先优化此项目`,
+                          children: projectStorageLabel(projects.find((project) => project.id === activeProjectId)),
                         }),
                         jsx(`button`, {
                           onClick: () => setProjectMenuOpen(!0),
@@ -43951,13 +45055,21 @@ ${String(l || ``).slice(0, 5e4)}`;
                       className: `text-[10px] text-gray-500 font-bold px-3 py-2 mb-1 uppercase tracking-wider wanjuan-settings-sidebar-title`,
 	                      children: wanjuanT(`设置菜单`),
                     }),
+                    jsx(`div`, {
+                      className: `text-[10px] text-gray-600 font-semibold px-3 pt-1 pb-1 uppercase tracking-wider wanjuan-settings-sidebar-group`,
+                      children: `基础`,
+                    }),
                     jsxs(`button`, {
                       onClick: () => setActiveSettingsTab(`basic`),
                       className: `text-left px-3 py-2.5 rounded-lg text-sm transition-colors mb-1.5 flex items-center gap-2 wanjuan-settings-nav-item ${activeSettingsTab === `basic` ? `wanjuan-settings-nav-item-active bg-[#252525] text-blue-400 font-bold border border-[#333] shadow-sm` : `text-gray-300 hover:bg-[#222] hover:text-gray-100 border border-transparent`}`,
                       children: [jsx(`span`, {
                         className: `wanjuan-skeuo-icon wanjuan-skeuo-icon-basic`,
                         children: `🪄`,
-	                      }), ` ${wanjuanT(`个性设置`)}`],
+	                      }), ` 外观与通用`],
+                    }),
+                    jsx(`div`, {
+                      className: `text-[10px] text-gray-600 font-semibold px-3 pt-3 pb-1 uppercase tracking-wider wanjuan-settings-sidebar-group`,
+                      children: `模型服务`,
                     }),
                     jsxs(`button`, {
                       onClick: () => setActiveSettingsTab(`models`),
@@ -43967,7 +45079,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                           className: `wanjuan-skeuo-icon wanjuan-skeuo-icon-models`,
                           children: `🧠`,
                         }),
-	                        ` ${wanjuanT(`模型配置`)}`,
+	                        ` 模型与 API`,
                       ],
                     }),
                     jsxs(`button`, {
@@ -43976,15 +45088,19 @@ ${String(l || ``).slice(0, 5e4)}`;
                       children: [jsx(`span`, {
                         className: `wanjuan-skeuo-icon wanjuan-skeuo-icon-cloud`,
                         children: `☁️`
-	                      }), ` ${wanjuanT(`云盘设置`)}`],
+	                      }), ` 上传与直链`],
                     }),
+	                    jsx(`div`, {
+	                      className: `text-[10px] text-gray-600 font-semibold px-3 pt-3 pb-1 uppercase tracking-wider wanjuan-settings-sidebar-group`,
+	                      children: `运行`,
+	                    }),
 	                    jsxs(`button`, {
 	                      onClick: () => setActiveSettingsTab(`generation`),
 	                      className: `text-left px-3 py-2.5 rounded-lg text-sm transition-colors mb-1.5 flex items-center gap-2 wanjuan-settings-nav-item ${activeSettingsTab === `generation` ? `wanjuan-settings-nav-item-active bg-[#252525] text-green-400 font-bold border border-[#333] shadow-sm` : `text-gray-300 hover:bg-[#222] hover:text-gray-100 border border-transparent`}`,
 	                      children: [jsx(`span`, {
 	                        className: `wanjuan-skeuo-icon wanjuan-skeuo-icon-generation`,
 	                        children: `✨`
-		                      }), ` ${wanjuanT(`生成设置`)}`],
+		                      }), ` 生成与下载`],
 	                    }),
 	                    jsxs(`button`, {
 	                      onClick: () => setActiveSettingsTab(`extensions`),
@@ -43992,7 +45108,11 @@ ${String(l || ``).slice(0, 5e4)}`;
 	                      children: [jsx(`span`, {
 	                        className: `wanjuan-skeuo-icon wanjuan-skeuo-icon-extensions`,
 	                        children: `🧩`
-		                      }), ` ${wanjuanT(`拓展功能`)}`],
+		                      }), ` 本地工具`],
+	                    }),
+	                    jsx(`div`, {
+	                      className: `text-[10px] text-gray-600 font-semibold px-3 pt-3 pb-1 uppercase tracking-wider wanjuan-settings-sidebar-group`,
+	                      children: `数据`,
 	                    }),
 	                    jsxs(`button`, {
 	                      onClick: () => setActiveSettingsTab(`data`),
@@ -44000,7 +45120,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                       children: [jsx(`span`, {
                         className: `wanjuan-skeuo-icon wanjuan-skeuo-icon-data`,
                         children: `🗄️`,
-	                      }), ` ${wanjuanT(`数据管理`)}`],
+	                      }), ` 项目与备份`],
                     }),
                   ],
                 }),
@@ -44328,7 +45448,7 @@ ${String(l || ``).slice(0, 5e4)}`;
 	                                        }),
 	                                        jsx(`div`, {
 	                                          className: `pt-2 border-t border-[#262626] text-[11px] text-gray-500`,
-	                                          children: wanjuanT(`1.2.8：落实语言包与资源页清理；修复视频剪辑台导出副本按钮点击被拖拽区域拦截的问题；修复即梦/天玑参考上传模式会回弹到全局默认且生成时不按节点选择上传的问题。`),
+	                                          children: wanjuanT(`1.2.9：优化大画布渲染流畅度；改进选择素材弹窗布局、筛选选中态和音视频素材预览；修复部分生成视频下载路径不一致；整理项目、备份中心和即梦节点菜单图标等界面细节。`),
 	                                        }),
 	                                      ],
 	                                    }),
@@ -44345,7 +45465,7 @@ ${String(l || ``).slice(0, 5e4)}`;
 	                                      children: [
 	                                        jsx(`span`, {
 	                                          className: `text-sm font-semibold text-gray-100`,
-	                                          children: `1.2.8`,
+	                                          children: `1.2.9`,
 	                                        }),
 	                                        jsx(`span`, {
 	                                          className: `text-[10px] text-gray-500`,
@@ -44525,14 +45645,22 @@ ${String(l || ``).slice(0, 5e4)}`;
                             children: [
                               jsx(`div`, {
                                 className: `flex justify-between items-center p-4 border-b border-[#222] wanjuan-settings-card-header`,
-                                children: jsxs(`h2`, {
-                                  className: `font-bold text-gray-200 text-sm flex items-center gap-2 wanjuan-settings-card-title`,
+                                children: jsxs(`div`, {
                                   children: [
-                                    jsx(`span`, {
-                                      className: `text-cyan-400`,
-                                      children: `☁`,
+                                    jsxs(`h2`, {
+                                      className: `font-bold text-gray-200 text-sm flex items-center gap-2 wanjuan-settings-card-title`,
+                                      children: [
+                                        jsx(`span`, {
+                                          className: `text-cyan-400`,
+                                          children: `☁`,
+                                        }),
+                                        ` 上传与直链`,
+                                      ],
                                     }),
-                                    ` 云盘设置`,
+                                    jsx(`p`, {
+                                      className: `text-[11px] text-gray-500 mt-1 wanjuan-settings-help`,
+                                      children: `管理参考图、视频、音频上传到公网 URL 的通道，不是项目备份或文件下载目录。`,
+                                    }),
                                   ],
                                 }),
                               }),
@@ -44914,14 +46042,22 @@ ${String(l || ``).slice(0, 5e4)}`;
                             children: [
                               jsx(`div`, {
                                 className: `flex justify-between items-center p-4 border-b border-[#222] wanjuan-settings-card-header`,
-                                children: jsxs(`h2`, {
-                                  className: `font-bold text-gray-200 text-sm flex items-center gap-2 wanjuan-settings-card-title`,
+                                children: jsxs(`div`, {
                                   children: [
-                                    jsx(`span`, {
-                                      className: `text-green-400`,
-                                      children: `▶`,
+                                    jsxs(`h2`, {
+                                      className: `font-bold text-gray-200 text-sm flex items-center gap-2 wanjuan-settings-card-title`,
+                                      children: [
+                                        jsx(`span`, {
+                                          className: `text-green-400`,
+                                          children: `▶`,
+                                        }),
+                                        ` 生成与下载`,
+                                      ],
                                     }),
-                                    ` 生成设置`,
+                                    jsx(`p`, {
+                                      className: `text-[11px] text-gray-500 mt-1 wanjuan-settings-help`,
+                                      children: `管理异步轮询、任务并发和生成结果下载位置。`,
+                                    }),
                                   ],
                                 }),
                               }),
@@ -45278,23 +46414,31 @@ ${String(l || ``).slice(0, 5e4)}`;
 	                            children: [
 	                              jsx(`div`, {
 	                                className: `flex justify-between items-center p-4 border-b border-[#222] wanjuan-settings-card-header`,
-	                                children: jsxs(`h2`, {
-	                                  className: `font-bold text-gray-200 text-sm flex items-center gap-2 wanjuan-settings-card-title`,
+	                                children: jsxs(`div`, {
 	                                  children: [
-	                                    jsx(`span`, {
-	                                      className: `text-rose-300`,
-	                                      children: `🧩`,
-	                                    }),
-		                                    ` 拓展功能`,
-		                                  ],
-		                                }),
+	                                    jsxs(`h2`, {
+	                                      className: `font-bold text-gray-200 text-sm flex items-center gap-2 wanjuan-settings-card-title`,
+	                                      children: [
+	                                        jsx(`span`, {
+	                                          className: `text-rose-300`,
+	                                          children: `🧩`,
+	                                        }),
+		                                      ` 本地工具`,
+		                                    ],
+		                                  }),
+		                                  jsx(`p`, {
+		                                    className: `text-[11px] text-gray-500 mt-1 wanjuan-settings-help`,
+		                                    children: `管理需要安装在本机的媒体处理能力，例如打码、声音克隆和视频超分。`,
+		                                  }),
+		                                ],
+		                              }),
 		                              }),
 		                              jsxs(`div`, {
 	                                className: `px-4 pt-4 space-y-4 wanjuan-settings-card-body`,
 	                                children: [
 	                                  jsx(`p`, {
 	                                    className: `text-xs text-gray-500 leading-6 wanjuan-settings-help`,
-	                                    children: `这里管理本地外部项目工具。软件默认不会安装这些项目；只有点击安装后，才会从对应开源项目拉取并安装到当前用户环境。`,
+	                                    children: `软件默认不会安装这些项目；只有点击安装后，才会从对应开源项目拉取并安装到当前用户环境。`,
 	                                  }),
 	                                  jsxs(`div`, {
 	                                    className: `rounded-xl border border-[#333] bg-[#121212] p-4 flex flex-col gap-4`,
@@ -45601,14 +46745,22 @@ ${String(l || ``).slice(0, 5e4)}`;
                             children: [
                               jsx(`div`, {
                                 className: `flex justify-between items-center p-4 select-none border-b border-[#222]`,
-                                children: jsxs(`h2`, {
-                                  className: `font-bold text-gray-200 text-sm flex items-center gap-2 wanjuan-settings-card-title`,
+                                children: jsxs(`div`, {
                                   children: [
-                                    jsx(`span`, {
-                                      className: `wanjuan-skeuo-icon wanjuan-skeuo-icon-api`,
-                                      children: `🔐`,
+                                    jsxs(`h2`, {
+                                      className: `font-bold text-gray-200 text-sm flex items-center gap-2 wanjuan-settings-card-title`,
+                                      children: [
+                                        jsx(`span`, {
+                                          className: `wanjuan-skeuo-icon wanjuan-skeuo-icon-api`,
+                                          children: `🔐`,
+                                        }),
+                                        ` 统一 API 配置`,
+                                      ],
                                     }),
-                                    ` 统一 API 配置`,
+                                    jsx(`p`, {
+                                      className: `text-[11px] text-gray-500 mt-1 wanjuan-settings-help`,
+                                      children: `先维护供应商 Base URL 和 Key，再在下方按模型类型绑定具体调用方式。`,
+                                    }),
                                   ],
                                 }),
                               }),
@@ -47588,7 +48740,7 @@ doubao-seedance-2-0-fast-260128`,
 		                                          children: [
 		                                            jsx(`div`, {
 		                                              className: `text-sm font-semibold text-gray-100`,
-		                                              children: `模型界面`,
+	                            children: `模型分类`,
 		                                            }),
 		                                            jsx(`div`, {
 		                                              className: `text-[11px] text-gray-500`,
@@ -47806,17 +48958,26 @@ doubao-seedance-2-0-fast-260128`,
                           children: [
                             jsx(`div`, {
                               className: `flex justify-between items-center p-4 border-b border-[#222] wanjuan-settings-card-header`,
-                              children: jsxs(`h2`, {
-                                className: `font-bold text-gray-200 text-sm flex items-center gap-2 wanjuan-settings-card-title`,
+                              children: jsxs(`div`, {
                                 children: [
-                                  jsx(`span`, {
-                                    className: `text-orange-500`,
-                                    children: `📦`,
+                                  jsxs(`h2`, {
+                                    className: `font-bold text-gray-200 text-sm flex items-center gap-2 wanjuan-settings-card-title`,
+                                    children: [
+                                      jsx(`span`, {
+                                        className: `text-orange-500`,
+                                        children: `📦`,
+                                      }),
+                                      ` 项目与备份`,
+                                    ],
                                   }),
-                                  ` 数据管理`,
+                                  jsx(`p`, {
+                                    className: `text-[11px] text-gray-500 mt-1 wanjuan-settings-help`,
+                                    children: `管理项目存储优化、备份导入导出和跨设备迁移。`,
+                                  }),
                                 ],
                               }),
                             }),
+                            renderStorageOptimizationPanel(),
                             jsxs(`div`, {
                               className: `px-4 pt-4 pb-2 wanjuan-settings-card-body`,
                               children: [
@@ -47974,6 +49135,7 @@ doubao-seedance-2-0-fast-260128`,
 		                                  id: `wanjuan-project-safety-center`,
 		                                  className: `overflow-hidden`,
 		                                  style: {
+		                                    marginTop: 28,
 		                                    minHeight: 360
 		                                  },
 		                                  children: jsxs(`div`, {
