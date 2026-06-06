@@ -1012,6 +1012,13 @@ function installDesktopPatches() {
     const root = document.documentElement;
     if (root.dataset.wanjuanMediaPerfInstalled === "true") return;
     root.dataset.wanjuanMediaPerfInstalled = "true";
+    const perfStats = {
+      managedVideos: 0,
+      unloadedVideos: 0,
+      restoredVideos: 0,
+      lastRefreshAt: 0
+    };
+    try { window.__wanjuanCanvasMediaPerfStats = perfStats; } catch {}
 
     const getCanvasVideos = () =>
       Array.from(document.querySelectorAll(".react-flow__node video"))
@@ -1035,6 +1042,7 @@ function installDesktopPatches() {
       const storedSrc = video.dataset.wanjuanMediaSrc;
       if (storedSrc && !video.getAttribute("src")) {
         video.setAttribute("src", storedSrc);
+        perfStats.restoredVideos++;
         try {
           video.load();
         } catch {}
@@ -1050,6 +1058,7 @@ function installDesktopPatches() {
       if (!src) return;
       video.dataset.wanjuanMediaSrc = src;
       video.removeAttribute("src");
+      perfStats.unloadedVideos++;
       try {
         video.load();
       } catch {}
@@ -1069,6 +1078,7 @@ function installDesktopPatches() {
     const manageVideo = (video) => {
       if (!(video instanceof HTMLVideoElement) || video.dataset.wanjuanMediaManaged === "true") return;
       video.dataset.wanjuanMediaManaged = "true";
+      perfStats.managedVideos++;
       video.preload = "metadata";
       video.playsInline = true;
       video.disableRemotePlayback = true;
@@ -1078,6 +1088,7 @@ function installDesktopPatches() {
     };
 
     const refreshVideos = () => {
+      perfStats.lastRefreshAt = Date.now();
       for (const video of getCanvasVideos()) manageVideo(video);
     };
 
@@ -1106,7 +1117,7 @@ function installDesktopPatches() {
     canvasInteractionTimer = window.setTimeout(() => {
       canvasInteractionTimer = 0;
       document.documentElement.classList.remove("wanjuan-canvas-dragging");
-    }, 180);
+    }, 260);
   };
 
   const isCanvasInteractionTarget = (target) => {

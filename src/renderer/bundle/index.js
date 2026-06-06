@@ -211,8 +211,18 @@ if (typeof globalThis.hydrateProjectAssetContainer !== `function`) {
 }
 if (typeof globalThis.externalizeProjectCanvasState !== `function`) {
   globalThis.externalizeProjectCanvasState = async function externalizeProjectCanvasState(value) {
+    let cleanRuntimeFields = (item) => {
+      if (Array.isArray(item)) return item.map(cleanRuntimeFields);
+      if (!item || typeof item != `object`) return item;
+      let result = {};
+      for (let [key, value2] of Object.entries(item)) {
+        if (key === `wanjuanRenderMode` || key === `wanjuanRenderReason` || key === `wanjuanRenderRuntime`) continue;
+        result[key] = cleanRuntimeFields(value2);
+      }
+      return result;
+    };
     return value && typeof value == `object` ?
-      JSON.parse(JSON.stringify(value)) :
+      cleanRuntimeFields(JSON.parse(JSON.stringify(value))) :
       value;
   };
 }
@@ -259,6 +269,245 @@ var je = De(),
 const { useState, useEffect, useRef, useCallback, useMemo, memo: reactMemo, StrictMode } = q;
 const { jsx, jsxs, Fragment } = J;
 const { createRoot } = je;
+const WanJuanRenderRuntime = (() => {
+    let counters = {
+        nodeUpdates: [],
+        renderModeAt: Date.now()
+      },
+      mark = (key) => {
+        let now = Date.now();
+        counters[key] || (counters[key] = []);
+        counters[key].push(now);
+        counters[key] = counters[key].filter((time) => now - time <= 5000);
+      },
+      debugEnabled = () => {
+        try {
+          return localStorage.getItem(`wanjuan.renderDebug`) === `1` || document.documentElement.dataset.wanjuanDebug === `1`;
+        } catch {
+          return !1;
+        }
+      };
+    try {
+      globalThis.__wanjuanRenderRuntime = {
+        counters: counters,
+        mark: mark,
+        snapshot: () => ({
+          nodeUpdates5s: counters.nodeUpdates.length,
+          setNodes5s: counters.setNodes?.length || 0,
+          renderModeAt: counters.renderModeAt
+        })
+      };
+    } catch {}
+    return {
+      mark: mark,
+      debugEnabled: debugEnabled,
+      snapshot: () => globalThis.__wanjuanRenderRuntime?.snapshot?.() || {}
+    };
+  })(),
+  WanJuanRuntimeNodeDataKeys = new Set([`wanjuanRenderMode`, `wanjuanRenderReason`, `wanjuanRenderRuntime`]),
+  WanJuanStripRuntimeNodeData = (data) => {
+    if (!data || typeof data != `object`) return data;
+    let changed = !1,
+      nextData = {};
+    Object.entries(data).forEach(([key, value]) => {
+      WanJuanRuntimeNodeDataKeys.has(key) ? changed = !0 : nextData[key] = value;
+    });
+    return changed ? nextData : data;
+  },
+  WanJuanNodeTypeLabel = (type, data = {}) => {
+    if (type === `promptNode`) return `图像生成`;
+    if (type === `videoNode`) return `视频生成`;
+    if (type === `seedanceNode`) return `即梦视频`;
+    if (type === `tongyiWanxiangNode`) return `通义万相`;
+    if (type === `audioNode`) return `音频`;
+    if (type === `ttsMusicNode` || type === `musicNode`) return data.mode === `tts` ? `语音` : `音乐`;
+    if (type === `videoExtractNode`) return `视频抽帧`;
+    if (type === `videoFaceBlurNode`) return `人脸打码`;
+    if (type === `realEsrganVideoNode`) return `视频超分`;
+    if (type === `qwenTtsCloneNode`) return `声音克隆`;
+    if (type === `textNode`) return `文本`;
+    if (type === `imageNode`) {
+      if (data.mediaKind === `video`) return `视频素材`;
+      if (data.mediaKind === `audio`) return `音频素材`;
+      if (data.mediaKind === `text`) return `文本素材`;
+      return `图片素材`;
+    }
+    return data.label || `节点`;
+  },
+  WanJuanNodeStatusLabel = (data = {}) =>
+    data.loading ? (data.loadingText || `生成中`) :
+    data.errorMessage || data.errorMsg ? `失败` :
+    data.videoUrl || data.audioUrl || data.imageUrl || data.resultData ? `已生成` :
+    `就绪`,
+  WanJuanNodeStatusColor = (data = {}) =>
+    data.loading ? `#38bdf8` : data.errorMessage || data.errorMsg ? `#ef4444` : data.videoUrl || data.audioUrl || data.imageUrl || data.resultData ? `#22c55e` : `#64748b`,
+  WanJuanRenderShellNode = reactMemo(({
+    id: nodeId,
+    type: nodeType,
+    data: data = {},
+    selected: selected
+  }) => {
+    let label = data.label || data.audioName || data.videoName || data.title || WanJuanNodeTypeLabel(nodeType, data),
+      status = WanJuanNodeStatusLabel(data),
+      color = WanJuanNodeStatusColor(data);
+    return jsxs(`div`, {
+      className: `wanjuan-render-shell-node group/node ${selected ? `is-selected` : ``}`,
+      title: `${label}\n${status}\n点击节点可恢复完整视图`,
+      children: [
+        jsx(Y, {
+          type: `target`,
+          position: A.Left,
+          variant: `small`
+        }),
+        jsxs(`div`, {
+          className: `wanjuan-render-shell-frame`,
+          style: {
+            borderColor: selected ? `#3b82f6` : color,
+            "--wanjuan-shell-color": color
+          },
+          children: [
+            jsx(`span`, {
+              className: `wanjuan-render-shell-dot`,
+              style: {
+                background: color
+              }
+            }),
+            jsxs(`div`, {
+              className: `wanjuan-render-shell-copy`,
+              children: [
+                jsx(`strong`, {
+                  children: label
+                }),
+                jsx(`span`, {
+                  children: status
+                }),
+              ],
+            }),
+          ],
+        }),
+        jsx(Y, {
+          type: `source`,
+          position: A.Right,
+          variant: `small`
+        }),
+      ],
+    });
+  }),
+  WanJuanWithRenderMode = (Component, nodeType) =>
+    reactMemo((props) => {
+      let renderMode = props.data?.wanjuanRenderMode || `full`;
+      if (renderMode === `shell` && !props.selected && !props.data?.loading)
+        return jsx(WanJuanRenderShellNode, {
+          ...props,
+          type: nodeType
+        });
+      return jsx(`div`, {
+        className: `wanjuan-render-mode-${renderMode}`,
+        "data-wanjuan-render-mode": renderMode,
+        children: jsx(Component, props)
+      });
+    }),
+  WanJuanHeavyRenderNodeTypes = new Set([
+    `imageNode`,
+    `promptNode`,
+    `videoNode`,
+    `seedanceNode`,
+    `tongyiWanxiangNode`,
+    `audioNode`,
+    `musicNode`,
+    `ttsMusicNode`,
+    `videoExtractNode`,
+    `videoFaceBlurNode`,
+    `qwenTtsCloneNode`,
+    `realEsrganVideoNode`,
+  ]),
+  WanJuanEstimateNodeSize = (node) => ({
+    width: Number(node?.measured?.width || node?.style?.width || 280),
+    height: Number(node?.measured?.height || node?.style?.height || 220)
+  }),
+  WanJuanNodeNeedsFullRender = (node) => {
+    let data = node?.data || {};
+    return !!(
+      node?.selected ||
+      node?.dragging ||
+      data.loading ||
+      data.expanded ||
+      data.configMode ||
+      data.wanjuanForceFullRender ||
+      data.errorMessage ||
+      data.errorMsg
+    );
+  },
+  WanJuanComputeNodeRenderMode = (node, viewport = {
+    x: 0,
+    y: 0,
+    zoom: 1
+  }, viewportSize = {
+    width: 1600,
+    height: 900
+  }) => {
+    if (!WanJuanHeavyRenderNodeTypes.has(node?.type)) return `full`;
+    if (WanJuanNodeNeedsFullRender(node)) return `full`;
+    let zoom = Number(viewport?.zoom || 1);
+    if (zoom >= 0.72) return `full`;
+    let {
+        width,
+        height
+      } = WanJuanEstimateNodeSize(node),
+      centerX = (Number(node?.position?.x || 0) + width / 2) * zoom + Number(viewport?.x || 0),
+      centerY = (Number(node?.position?.y || 0) + height / 2) * zoom + Number(viewport?.y || 0),
+      screenCenterX = Number(viewportSize?.width || 1600) / 2,
+      screenCenterY = Number(viewportSize?.height || 900) / 2,
+      distance = Math.hypot(centerX - screenCenterX, centerY - screenCenterY),
+      centerRadius = Math.max(screenCenterX, screenCenterY) * (zoom < 0.32 ? 0.82 : 1.05);
+    if (zoom <= 0.18) return `shell`;
+    if (zoom <= 0.36 && distance > centerRadius * 0.72) return `shell`;
+    if (zoom <= 0.52 && distance > centerRadius) return `shell`;
+    return zoom < 0.56 ? `lite` : `full`;
+  },
+  WanJuanIsCriticalNodePatch = (patch = {}) =>
+    patch.loading === !1 ||
+    patch.errorMessage !== void 0 ||
+    patch.errorMsg !== void 0 ||
+    patch.videoUrl !== void 0 ||
+    patch.audioUrl !== void 0 ||
+    patch.imageUrl !== void 0 ||
+    patch.resultData !== void 0 && patch.loading === !1 ||
+    patch.progress === 100 ||
+    patch.realEsrganProgress === 100,
+  WanJuanUseThrottledNodeDataUpdate = (nodeId, updateNodeData, delay = 420) => {
+    let pendingRef = useRef(null),
+      timerRef = useRef(0),
+      flush = useCallback(() => {
+        if (timerRef.current) {
+          window.clearTimeout(timerRef.current);
+          timerRef.current = 0;
+        }
+        if (!pendingRef.current) return;
+        let patch = pendingRef.current;
+        pendingRef.current = null;
+        WanJuanRenderRuntime.mark(`nodeUpdates`);
+        updateNodeData(nodeId, patch);
+      }, [nodeId, updateNodeData]);
+    useEffect(() => () => flush(), [flush]);
+    return useCallback((patch, options = {}) => {
+      if (!patch || typeof patch != `object`) return;
+      if (options.immediate || WanJuanIsCriticalNodePatch(patch)) {
+        pendingRef.current = {
+          ...(pendingRef.current || {}),
+          ...patch
+        };
+        flush();
+        return;
+      }
+      pendingRef.current = {
+        ...(pendingRef.current || {}),
+        ...patch
+      };
+      if (timerRef.current) return;
+      timerRef.current = window.setTimeout(flush, delay);
+    }, [delay, flush]);
+  };
 // —— 性能档位接入画布：把 wanjuanPerformanceProfile 映射为 <html> 上的 wj-perf-* 类，
 // 供 ui-overrides.css 在低档位时降低画布渲染负载（关动画/降阴影等）。独立于 React 状态。
 (function syncCanvasPerfMode() {
@@ -9425,6 +9674,7 @@ suno_music`)
         getNodes: getNodes,
         getEdges: getEdges
       } = ae(),
+        wanjuanThrottledUpdateNodeData = WanJuanUseThrottledNodeDataUpdate(nodeId, updateNodeData),
         nodeData = data,
         fileInputRef = useRef(null),
         [uploadedFile, setUploadedFile] = useState(null),
@@ -9638,7 +9888,7 @@ suno_music`)
                   prevFrameData = null,
                   threshold = 195840 * (0.01 + 0.24 * ((100 - sensitivity) / 100) ** 2);
                 for (let time = 0.5; time < duration; time += 0.5) {
-                  updateNodeData(nodeId, {
+                  wanjuanThrottledUpdateNodeData({
                     progress: Math.round((time / duration) * 50)
                   });
                   let frameData = await sampleFrame(time);
@@ -9659,11 +9909,11 @@ suno_music`)
               timestamps.length === 0 && mode === `smart` && timestamps.push(duration / 2);
               let frames = [];
               for (let frameIndex = 0; frameIndex < timestamps.length; frameIndex++) {
-                updateNodeData(nodeId, {
+                wanjuanThrottledUpdateNodeData({
                   progress: 50 + Math.round((frameIndex / timestamps.length) * 50)
                 });
                 let frame = await captureFrame(timestamps[frameIndex]);
-                (frames.push(frame), updateNodeData(nodeId, {
+                (frames.push(frame), wanjuanThrottledUpdateNodeData({
                   extractedImages: [...frames]
                 }));
               }
@@ -15164,6 +15414,7 @@ X.default.config({
 	        keepAudio = nodeData.keepAudio !== !1,
 	        unsubscribeRef = useRef(null),
 	        jobIdRef = useRef(null),
+	        wanjuanThrottledUpdateNodeData = WanJuanUseThrottledNodeDataUpdate(nodeId, updateNodeData),
 	        pollJobStatus = useCallback(async () => {
 	          if (!window.wanjuanDesktop?.getRealEsrganJobStatus) return;
 	          let jobStatus = await window.wanjuanDesktop.getRealEsrganJobStatus({
@@ -15173,7 +15424,7 @@ X.default.config({
 	          if (!jobStatus?.ok) return;
 	          if (jobStatus.running) {
 	            jobIdRef.current = jobStatus.jobId || jobIdRef.current;
-	            updateNodeData(nodeId, {
+	            wanjuanThrottledUpdateNodeData({
 	              loading: !0,
 	              realEsrganJobId: jobStatus.jobId || nodeData.realEsrganJobId || jobIdRef.current,
 	              realEsrganProgress: jobStatus.percent || 0,
@@ -15188,7 +15439,7 @@ X.default.config({
 	              realEsrganPaused: !1
 	            });
 	          }
-	        }, [nodeId, updateNodeData, nodeData.loading, nodeData.realEsrganJobId]),
+	        }, [nodeId, wanjuanThrottledUpdateNodeData, updateNodeData, nodeData.loading, nodeData.realEsrganJobId]),
 	        togglePause = async () => {
 	          let jobId = nodeData.realEsrganJobId || jobIdRef.current;
 	          if (!jobId || !window.wanjuanDesktop?.setRealEsrganPaused) return;
@@ -15218,7 +15469,7 @@ X.default.config({
 	          jobIdRef.current = jobId;
 	          unsubscribeRef.current?.();
 	          unsubscribeRef.current = window.wanjuanDesktop?.onRealEsrganProgress?.(jobId, (progress) => {
-	            updateNodeData(nodeId, {
+	            wanjuanThrottledUpdateNodeData({
 	              realEsrganJobId: jobId,
 	              realEsrganProgress: progress.percent || 0,
 	              realEsrganStage: progress.stage || `处理中`,
@@ -15441,26 +15692,26 @@ X.default.config({
 	        });
 	      });
 var at = {
-    imageNode: Me,
-    promptNode: Ne,
-    textNode: Pe,
+    imageNode: WanJuanWithRenderMode(Me, `imageNode`),
+    promptNode: WanJuanWithRenderMode(Ne, `promptNode`),
+    textNode: WanJuanWithRenderMode(Pe, `textNode`),
     cropNode: Ie,
     gridSplitNode: Le,
     gridMergeNode: Re,
-    videoNode: We,
-    seedanceNode: We,
-    tongyiWanxiangNode: We,
-    audioNode: WanJuanUnifiedAudioNode,
-    musicNode: WanJuanTtsMusicNode,
-    ttsMusicNode: WanJuanTtsMusicNode,
+    videoNode: WanJuanWithRenderMode(We, `videoNode`),
+    seedanceNode: WanJuanWithRenderMode(We, `seedanceNode`),
+    tongyiWanxiangNode: WanJuanWithRenderMode(We, `tongyiWanxiangNode`),
+    audioNode: WanJuanWithRenderMode(WanJuanUnifiedAudioNode, `audioNode`),
+    musicNode: WanJuanWithRenderMode(WanJuanTtsMusicNode, `musicNode`),
+    ttsMusicNode: WanJuanWithRenderMode(WanJuanTtsMusicNode, `ttsMusicNode`),
     customNode: qe,
-	    videoExtractNode: Je,
+	    videoExtractNode: WanJuanWithRenderMode(Je, `videoExtractNode`),
 	    textConcatNode: Qe,
 	    urlToImageNode: $e,
 	    fileToLinkNode: WanJuanFileToLinkNode,
-	    videoFaceBlurNode: WanJuanVideoFaceBlurNode,
-	    qwenTtsCloneNode: WanJuanQwenTtsCloneNode,
-	    realEsrganVideoNode: WanJuanRealEsrganVideoNode,
+	    videoFaceBlurNode: WanJuanWithRenderMode(WanJuanVideoFaceBlurNode, `videoFaceBlurNode`),
+	    qwenTtsCloneNode: WanJuanWithRenderMode(WanJuanQwenTtsCloneNode, `qwenTtsCloneNode`),
+	    realEsrganVideoNode: WanJuanWithRenderMode(WanJuanRealEsrganVideoNode, `realEsrganVideoNode`),
 	  },
 	  ot = {
 	    default: et,
@@ -16133,6 +16384,89 @@ function ut(props) {
           box-shadow: 0 0 0 3px rgba(59,130,246,0.28), 0 0 18px rgba(59,130,246,0.95) !important;
           opacity: 1 !important;
         }
+        .wanjuan-render-shell-node {
+          width: 170px;
+          height: 72px;
+          min-width: 170px;
+          min-height: 72px;
+          position: relative;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #e5e7eb;
+        }
+        .wanjuan-render-shell-frame {
+          width: 100%;
+          height: 100%;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 10px 12px;
+          border: 1px solid #334155;
+          border-radius: 10px;
+          background: color-mix(in srgb, var(--wj-surface,#161616) 94%, transparent);
+          box-shadow: 0 8px 20px rgba(0,0,0,.22);
+          overflow: hidden;
+        }
+        .wanjuan-render-shell-node.is-selected .wanjuan-render-shell-frame {
+          box-shadow: 0 0 0 2px rgba(59,130,246,.35), 0 8px 22px rgba(0,0,0,.28);
+        }
+        .wanjuan-render-shell-dot {
+          width: 9px;
+          height: 9px;
+          border-radius: 999px;
+          flex: 0 0 auto;
+          box-shadow: 0 0 12px color-mix(in srgb, var(--wanjuan-shell-color,#38bdf8) 60%, transparent);
+        }
+        .wanjuan-render-shell-copy {
+          min-width: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+        .wanjuan-render-shell-copy strong {
+          font-size: 12px;
+          line-height: 16px;
+          font-weight: 700;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .wanjuan-render-shell-copy span {
+          font-size: 10px;
+          line-height: 14px;
+          color: #94a3b8;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .wanjuan-render-mode-lite img,
+        .wanjuan-render-mode-lite video,
+        .wanjuan-render-mode-lite audio {
+          content-visibility: auto;
+          contain-intrinsic-size: 220px 160px;
+        }
+        [data-wanjuan-render-mode="full"],
+        [data-wanjuan-render-mode="lite"] {
+          display: contents;
+        }
+        html.wanjuan-canvas-dragging .react-flow__node:not(.selected):not([aria-selected="true"]) {
+          filter: none !important;
+        }
+        html.wanjuan-canvas-dragging .react-flow__node:not(.selected):not([aria-selected="true"]) *,
+        html.wanjuan-canvas-dragging .react-flow__edge * {
+          transition-duration: 0ms !important;
+          animation-play-state: paused !important;
+          backdrop-filter: none !important;
+        }
+        html.wanjuan-canvas-dragging .react-flow__node:not(.selected):not([aria-selected="true"]) .shadow-xl,
+        html.wanjuan-canvas-dragging .react-flow__node:not(.selected):not([aria-selected="true"]) .shadow-2xl {
+          box-shadow: 0 1px 6px rgba(0,0,0,.28) !important;
+        }
+        html.wanjuan-canvas-dragging .react-flow__node:not(.selected):not([aria-selected="true"]) video,
+        html.wanjuan-canvas-dragging .react-flow__node:not(.selected):not([aria-selected="true"]) audio {
+          pointer-events: none !important;
+        }
       `,
       }),
       jsx(dt, {
@@ -16275,7 +16609,17 @@ wan2.7-videoedit-1080P`,
 	    [xe, Ce] = useState(!1),
 	    abortControllersRef = useRef(new Map()),
 	    wanjuanPrevEdgesRef = useRef([]),
-	    [multiConnectIds, setMultiConnectIds] = useState(null);
+	    [multiConnectIds, setMultiConnectIds] = useState(null),
+	    [wanjuanViewport, setWanjuanViewport] = useState({
+	      x: 0,
+	      y: 0,
+	      zoom: 1
+	    }),
+	    [wanjuanViewportSize, setWanjuanViewportSize] = useState({
+	      width: 1600,
+	      height: 900
+	    }),
+	    wanjuanViewportUpdateRef = useRef(0);
   (useEffect(() => {
       let groupNodes = [],
         isDragging = !1;
@@ -16413,7 +16757,31 @@ wan2.7-videoedit-1080P`,
     }, [projectId]),
     useEffect(() => {
       shouldFitViewRef.current = shouldFitView;
-    }, [shouldFitView]));
+    }, [shouldFitView]),
+    useEffect(() => {
+      let updateViewportSize = () => {
+        let rect = wrapperRef.current?.getBoundingClientRect();
+        rect &&
+          setWanjuanViewportSize((prev) =>
+            Math.abs(prev.width - rect.width) > 1 || Math.abs(prev.height - rect.height) > 1 ?
+            {
+              width: rect.width,
+              height: rect.height
+            } :
+            prev,
+          );
+      };
+      updateViewportSize();
+      if (typeof ResizeObserver == `function` && wrapperRef.current) {
+        let observer = new ResizeObserver(updateViewportSize);
+        observer.observe(wrapperRef.current);
+        return () => observer.disconnect();
+      }
+      return (
+        window.addEventListener(`resize`, updateViewportSize),
+        () => window.removeEventListener(`resize`, updateViewportSize)
+      );
+    }, []));
   let openImagePreview = useCallback((imageUrl) => {
       setPreviewImageUrl(imageUrl);
     }, []),
@@ -16615,7 +16983,7 @@ wan2.7-videoedit-1080P`,
 	            .filter((node) => node.id !== `ghost-target`)
 	            .map((node) => {
               let nodeData = {
-                ...node.data
+                ...WanJuanStripRuntimeNodeData(node.data || {})
               };
               return (
                 Object.keys(nodeData).forEach((key) => {
@@ -25820,10 +26188,11 @@ ${combinedPrompt}`,
             [stopGeneration],
           );
   useEffect(() => {
+    WanJuanRenderRuntime.mark(`setNodes`);
     setNodes((nodes2) =>
       nodes2.map((node) => {
         let nodeData = {
-            ...node.data
+            ...WanJuanStripRuntimeNodeData(node.data || {})
           },
           hasChanged = !1;
         return (
@@ -26357,26 +26726,31 @@ ${combinedPrompt}`,
 		    wanjuanCanvasNodes = useMemo(
 		      () =>
 		      nodes.map((node) => {
-	        let referenceSources = wanjuanSelectedReferenceSourcesByTarget.get(node.id);
-	        return referenceSources && referenceSources.length ?
+	        let referenceSources = wanjuanSelectedReferenceSourcesByTarget.get(node.id),
+	          renderMode = WanJuanComputeNodeRenderMode(node, wanjuanViewport, wanjuanViewportSize),
+	          data = node.data || {},
+	          nextReferenceSources = referenceSources && referenceSources.length ? referenceSources : void 0,
+	          hasReferenceChange =
+	            (nextReferenceSources && data.wanjuanSelectedReferenceSourceIds !== nextReferenceSources) ||
+	            (!nextReferenceSources && Array.isArray(data.wanjuanSelectedReferenceSourceIds)),
+	          hasRenderModeChange = data.wanjuanRenderMode !== renderMode;
+	        return hasReferenceChange || hasRenderModeChange ?
 	          {
 	            ...node,
 	            data: {
-	              ...node.data,
-	              wanjuanSelectedReferenceSourceIds: referenceSources
-	            },
-	          } :
-	          Array.isArray(node.data?.wanjuanSelectedReferenceSourceIds) ?
-	          {
-	            ...node,
-	            data: {
-	              ...node.data,
-	              wanjuanSelectedReferenceSourceIds: void 0
+	              ...data,
+	              ...(nextReferenceSources ? {
+	                wanjuanSelectedReferenceSourceIds: nextReferenceSources
+	              } : {
+	                wanjuanSelectedReferenceSourceIds: void 0
+	              }),
+	              wanjuanRenderMode: renderMode,
+	              wanjuanRenderRuntime: !0
 	            },
 	          } :
 	          node;
 		      }),
-		      [nodes, wanjuanSelectedReferenceSourcesByTarget],
+		      [nodes, wanjuanSelectedReferenceSourcesByTarget, wanjuanViewport, wanjuanViewportSize],
 		    );
 		  const getShortcutNodePosition = () => {
 		      let rect = wrapperRef.current?.getBoundingClientRect(),
@@ -26550,8 +26924,31 @@ ${combinedPrompt}`,
           onNodeClick: ht,
           onPaneContextMenu: handleContextMenu,
           onNodeContextMenu: ft,
-          onSelectionContextMenu: pt,
-          onSelectionEnd: mt,
+	          onSelectionContextMenu: pt,
+	          onSelectionEnd: mt,
+	          onMove: (event, viewport) => {
+	            if (!viewport) return;
+	            let now = performance.now();
+	            if (now - wanjuanViewportUpdateRef.current < 120) return;
+	            wanjuanViewportUpdateRef.current = now;
+	            setWanjuanViewport((prev) =>
+	              Math.abs(prev.x - viewport.x) > 0.5 ||
+	              Math.abs(prev.y - viewport.y) > 0.5 ||
+	              Math.abs(prev.zoom - viewport.zoom) > 0.01 ?
+	              viewport :
+	              prev,
+	            );
+	          },
+	          onMoveEnd: (event, viewport) => {
+	            viewport &&
+	              setWanjuanViewport((prev) =>
+	                Math.abs(prev.x - viewport.x) > 0.5 ||
+	                Math.abs(prev.y - viewport.y) > 0.5 ||
+	                Math.abs(prev.zoom - viewport.zoom) > 0.005 ?
+	                viewport :
+	                prev,
+	              );
+	          },
           onPaneClick: handleCancel,
           onDragOver: onDragOver,
           onDrop: onDrop,
@@ -39051,6 +39448,11 @@ ${String(l || ``).slice(0, 5e4)}`;
         externalizeProjectCanvasState = async (backup, projectId, options = {}) => {
             let clonedBackup = cloneBackupValue(backup || {});
             return (
+              Array.isArray(clonedBackup.nodes) &&
+              (clonedBackup.nodes = clonedBackup.nodes.map((node) => ({
+                ...node,
+                data: WanJuanStripRuntimeNodeData(node?.data || {})
+              }))),
               Array.isArray(clonedBackup.nodes) &&
               (clonedBackup.nodes = await Promise.all(
                 clonedBackup.nodes.map((node, index) =>
