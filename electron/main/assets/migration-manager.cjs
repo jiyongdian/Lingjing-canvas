@@ -115,7 +115,7 @@ function getProjectMigration(payload = {}) {
 
 function listIncompleteMigrations(payload = {}) {
   const directories = payload.directory ? [payload.directory] : knownMigrationDirectories();
-  const activeStatuses = new Set(["preparing", "archiving", "interrupted"]);
+  const activeStatuses = new Set(["preparing", "archiving", "interrupted", "cancelled"]);
   const incomplete = [];
   for (const directory of directories) {
     const root = migrationRoot(directory);
@@ -125,6 +125,8 @@ function listIncompleteMigrations(payload = {}) {
       try {
         const session = JSON.parse(fs.readFileSync(path.join(root, name), "utf8"));
         if (!activeStatuses.has(session.status)) continue;
+        const liveSession = sessions.get(session.id);
+        if (liveSession && ["preparing", "archiving"].includes(liveSession.status)) continue;
         session.status = "interrupted";
         session.lockKey ||= projectLockKey(session.directory || directory, session.projectId);
         session.snapshotAvailable = fs.existsSync(snapshotPath(session));
@@ -167,7 +169,6 @@ function cancelProjectMigration(payload = {}) {
   if (!session) return { ok: false, error: "MIGRATION_NOT_FOUND" };
   session.status = "cancelled";
   saveSession(session);
-  projectLocks.delete(session.lockKey);
   return { ok: true, session };
 }
 
@@ -205,6 +206,7 @@ function rollbackProjectMigration(payload = {}) {
   session.error = String(payload.error || "");
   saveSession(session);
   projectLocks.delete(session.lockKey);
+  fs.rmSync(snapshotPath(session), { force: true });
   // Blobs are deliberately retained as safe orphans; cleanup requires a reference-index pass.
   return { ok: true, session };
 }

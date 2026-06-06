@@ -78,11 +78,12 @@ app.whenReady().then(async () => {
     migrationId: migration.migrationId
   });
   assert.equal(migrated.ok, true);
-  assert.equal(saveProjectMigrationSnapshot({
+  const migrationSnapshot = saveProjectMigrationSnapshot({
     migrationId: migration.migrationId,
     projectId: "migration-project",
     state: { nodes: [{ id: "before" }] }
-  }).ok, true);
+  });
+  assert.equal(migrationSnapshot.ok, true);
   assert.deepEqual(loadProjectMigrationSnapshot({ migrationId: migration.migrationId }).state.nodes, [{ id: "before" }]);
   assert.equal(getProjectMigration({ migrationId: migration.migrationId }).session.progress.completed, 1);
   const failedCommit = commitProjectMigration({
@@ -99,13 +100,17 @@ app.whenReady().then(async () => {
   });
   assert.equal(outsideCommit.error, "MIGRATION_REFERENCE_OUTSIDE_BLOB_STORE");
   assert.equal(rollbackProjectMigration({ migrationId: migration.migrationId, error: "injected" }).ok, true);
+  assert.equal(fs.existsSync(migrationSnapshot.path), false);
 
   const cancelled = beginProjectMigration({ directory: root, projectId: "cancelled-project" });
   assert.equal(cancelProjectMigration({ migrationId: cancelled.migrationId }).ok, true);
+  assert.equal(beginProjectMigration({ directory: root, projectId: "cancelled-project" }).error, "PROJECT_MIGRATION_LOCKED");
   await assert.rejects(
     () => persistProjectAsset({ ...payload, directory: root, projectId: "cancelled-project", migrationId: cancelled.migrationId }),
     /MIGRATION_CANCELLED/
   );
+  assert.equal(rollbackProjectMigration({ migrationId: cancelled.migrationId, error: "cancelled" }).ok, true);
+  assert.equal(beginProjectMigration({ directory: root, projectId: "cancelled-project" }).ok, true);
 
   const committed = beginProjectMigration({ directory: root, projectId: "committed-project" });
   assert.equal(commitProjectMigration({
@@ -119,11 +124,13 @@ app.whenReady().then(async () => {
   const blockedCleanup = cleanupUnreferencedBlobs({ directory: root, confirm: true });
   assert.equal(blockedCleanup.error, "REFERENCE_INDEX_INCOMPLETE");
   const interrupted = beginProjectMigration({ directory: root, projectId: "interrupted-project" });
-  assert.equal(saveProjectMigrationSnapshot({
+  const interruptedSnapshot = saveProjectMigrationSnapshot({
     migrationId: interrupted.migrationId,
     projectId: "interrupted-project",
     state: { nodes: [] }
-  }).ok, true);
+  });
+  assert.equal(interruptedSnapshot.ok, true);
+  assert.equal(listIncompleteMigrations({ directory: root }).migrations.some((entry) => entry.id === interrupted.migrationId), false);
   const managerPath = require.resolve("../electron/main/assets/migration-manager.cjs");
   delete require.cache[managerPath];
   const restartedManager = require("../electron/main/assets/migration-manager.cjs");
@@ -136,6 +143,27 @@ app.whenReady().then(async () => {
     directory: root,
     migrationId: interrupted.migrationId
   }).ok, true);
+  assert.equal(fs.existsSync(interruptedSnapshot.path), false);
+  const cancelledRecovery = restartedManager.beginProjectMigration({ directory: root, projectId: "cancelled-recovery-project" });
+  const cancelledRecoverySnapshot = restartedManager.saveProjectMigrationSnapshot({
+    migrationId: cancelledRecovery.migrationId,
+    projectId: "cancelled-recovery-project",
+    state: { nodes: [{ id: "cancelled-before-crash" }] }
+  });
+  restartedManager.cancelProjectMigration({ migrationId: cancelledRecovery.migrationId });
+  delete require.cache[managerPath];
+  const recoveredCancelledManager = require("../electron/main/assets/migration-manager.cjs");
+  assert.equal(
+    recoveredCancelledManager.listIncompleteMigrations({ directory: root }).migrations.some(
+      (entry) => entry.id === cancelledRecovery.migrationId
+    ),
+    true
+  );
+  assert.equal(recoveredCancelledManager.rollbackProjectMigration({
+    directory: root,
+    migrationId: cancelledRecovery.migrationId
+  }).ok, true);
+  assert.equal(fs.existsSync(cancelledRecoverySnapshot.path), false);
 
   assert.equal(syncProjectReferences({
     directory: root,

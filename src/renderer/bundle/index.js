@@ -39512,6 +39512,12 @@ ${String(l || ``).slice(0, 5e4)}`;
                     }
                     return recovered;
                   }),
+                  readProjectCanvasStorageState =
+                  (globalThis.readProjectCanvasStorageState = async (projectId) =>
+                    X.default?.getItem(getProjectCanvasStorageKey(projectId))),
+                  writeProjectCanvasStorageState =
+                  (globalThis.writeProjectCanvasStorageState = async (projectId, state) =>
+                    X.default?.setItem(getProjectCanvasStorageKey(projectId), state)),
                   scheduleInterruptedMigrationRecovery = setTimeout(() => {
                     globalThis.recoverInterruptedProjectMigrations?.(``).catch(console.error);
                   }, 1500),
