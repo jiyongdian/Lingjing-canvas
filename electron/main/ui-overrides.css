@@ -778,6 +778,29 @@ html:is(.theme-light, .theme-warm-light, .theme-mist-blue, .theme-chrome-blue, .
   color: var(--wj-text) !important;
 }
 
+.wanjuan-check-updates-button {
+  min-width: 82px !important;
+  height: 34px !important;
+  padding: 0 14px !important;
+  border: 1px solid color-mix(in srgb, var(--wj-border) 82%, transparent) !important;
+  border-radius: 9px !important;
+  color: color-mix(in srgb, var(--wj-text) 88%, var(--wj-muted) 12%) !important;
+  font-size: 12px !important;
+  font-weight: 650 !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--wj-text) 7%, transparent) !important;
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease, opacity 150ms ease !important;
+}
+
+.wanjuan-check-updates-button:hover {
+  color: color-mix(in srgb, var(--wj-accent) 62%, var(--wj-text) 38%) !important;
+}
+
+.wanjuan-check-updates-button:disabled {
+  cursor: wait !important;
+}
+
 .wanjuan-settings-button-muted {
   color: color-mix(in srgb, var(--wj-muted) 84%, var(--wj-text) 16%) !important;
 }

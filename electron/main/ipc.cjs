@@ -75,6 +75,7 @@ const {
 const { uploadToAnonymousHosts, validatePublicMediaUrl } = require("./uploaders/anonymous-hosts.cjs");
 const { uploadToTos, uploadToQiniuS3 } = require("./uploaders/cloud-storage.cjs");
 const { uploadToCustomPublicHost } = require("./uploaders/custom-host.cjs");
+const { checkForUpdates } = require("./update-checker.cjs");
 
 function getIpcSenderUrl(event) {
   return String(event?.senderFrame?.url || event?.sender?.getURL?.() || "");
@@ -96,6 +97,12 @@ function rejectUntrustedIpc(event, channel) {
 
 function registerDesktopIpc() {
   if (!ipcMain || !dialog) return;
+
+  ipcMain.handle("wanjuan:check-for-updates", async (event) => {
+    const blocked = rejectUntrustedIpc(event, "wanjuan:check-for-updates");
+    if (blocked) return blocked;
+    return checkForUpdates({ manual: true });
+  });
 
   ipcMain.handle("wanjuan:get-default-download-directory", async (event) => {
     const blocked = rejectUntrustedIpc(event, "wanjuan:get-default-download-directory");

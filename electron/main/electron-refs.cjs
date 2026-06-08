@@ -1,10 +1,10 @@
 // 集中解析 Electron 主进程对象，供各模块共享引用。
 // 保留原始的 electron/main → electron 回退逻辑。
-let app, BrowserWindow, shell, ipcMain, dialog, net;
+let app, BrowserWindow, shell, ipcMain, dialog, net, Menu;
 try {
-  ({ app, BrowserWindow, shell, ipcMain, dialog, net } = require("electron/main"));
+  ({ app, BrowserWindow, shell, ipcMain, dialog, net, Menu } = require("electron/main"));
 } catch {
-  ({ app, BrowserWindow, shell, ipcMain, dialog, net } = require("electron"));
+  ({ app, BrowserWindow, shell, ipcMain, dialog, net, Menu } = require("electron"));
 }
 if (!net) {
   try {
@@ -12,4 +12,4 @@ if (!net) {
   } catch {}
 }
 
-module.exports = { app, BrowserWindow, shell, ipcMain, dialog, net };
+module.exports = { app, BrowserWindow, shell, ipcMain, dialog, net, Menu };

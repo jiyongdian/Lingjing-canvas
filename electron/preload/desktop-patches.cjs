@@ -80,6 +80,58 @@ function installDesktopPatches() {
     }
   };
 
+  const installSettingsUpdateButton = () => {
+    if (document.querySelector("[data-wanjuan-check-updates]")) return true;
+    const labels = Array.from(document.querySelectorAll("label"));
+    const versionLabel = labels.find((label) => (label.textContent || "").replace(/\s+/g, " ").trim() === "当前版本");
+    const field = versionLabel?.parentElement;
+    const row = field?.querySelector(".wanjuan-settings-readonly-row");
+    if (!(row instanceof HTMLElement)) return false;
+
+    const trailing = row.lastElementChild;
+    const actions = document.createElement("div");
+    actions.setAttribute("data-wanjuan-update-actions", "true");
+    actions.style.display = "flex";
+    actions.style.alignItems = "center";
+    actions.style.gap = "12px";
+    actions.style.marginLeft = "auto";
+
+    if (trailing instanceof HTMLElement) {
+      trailing.style.whiteSpace = "nowrap";
+      actions.appendChild(trailing);
+    }
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = "检查更新";
+    button.className = "wanjuan-settings-button wanjuan-check-updates-button";
+    button.setAttribute("data-wanjuan-check-updates", "true");
+    button.style.cssText = [
+      "appearance:none",
+      "cursor:pointer"
+    ].join(";");
+    button.addEventListener("click", async () => {
+      if (button.disabled) return;
+      button.disabled = true;
+      button.style.opacity = ".65";
+      button.style.cursor = "wait";
+      button.textContent = "检查中…";
+      try {
+        await ipcRenderer.invoke("wanjuan:check-for-updates");
+      } catch (error) {
+        console.warn("check for updates failed", error);
+      } finally {
+        button.disabled = false;
+        button.style.opacity = "1";
+        button.style.cursor = "pointer";
+        button.textContent = "检查更新";
+      }
+    });
+    actions.appendChild(button);
+    row.appendChild(actions);
+    return true;
+  };
+
   const getProjectControls = () => {
     const nameButton = document.querySelector("button[title='双击重命名项目'], button[title='点击重命名项目']");
     const select = document.querySelector("select[title='切换项目']");
@@ -2071,6 +2123,7 @@ function installDesktopPatches() {
     markCanvasLockControl();
     markCanvasModelToolbar();
     installPerformanceSettingsPanel();
+    installSettingsUpdateButton();
     installCanvasPressureMeter();
     installSeedreamOfficialIcons();
     installTianjiSettingsPanel().catch((error) => console.warn("Tianji settings panel skipped", error));

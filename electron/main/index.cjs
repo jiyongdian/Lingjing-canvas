@@ -18,6 +18,7 @@ const { setDesktopBaseUrl } = require("./runtime-state.cjs");
 const { createStaticServer } = require("./net/static-server.cjs");
 const { registerDesktopIpc } = require("./ipc.cjs");
 const { createMainWindow } = require("./window.cjs");
+const { installApplicationMenu, scheduleAutomaticUpdateCheck } = require("./update-checker.cjs");
 
 // 应用标识与用户数据目录（保持与原 app 一致，沿用同一 userData，迁移用户无感）。
 try {
@@ -78,6 +79,7 @@ if (!gotSingleInstanceLock) {
 registerDesktopIpc();
 
 app.whenReady().then(async () => {
+  installApplicationMenu();
   const desktopBaseUrl = await createStaticServer();
   setDesktopBaseUrl(desktopBaseUrl);
   appendDesktopLog("test-build-info", {
@@ -88,6 +90,7 @@ app.whenReady().then(async () => {
     packageName: "wanjuan-lingjing-desktop-test"
   });
   createMainWindow(desktopBaseUrl);
+  scheduleAutomaticUpdateCheck();
 
   app.on("second-instance", () => {
     const win = BrowserWindow.getAllWindows()[0];

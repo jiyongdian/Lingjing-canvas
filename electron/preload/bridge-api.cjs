@@ -120,6 +120,7 @@ function showWanjuanInputDialog(options = {}) {
 }
 
 exposeGlobal("wanjuanDesktop", {
+  checkForUpdates: async () => ipcRenderer.invoke("wanjuan:check-for-updates"),
   openExternal: async (url) => {
     try {
       if (!isSafeExternalUrl(url)) {
