@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.10 - 2026-06-08
+
+- Added Windows release packaging for x64 and x86/ia32 alongside the macOS arm64 build.
+- Published GitHub Release assets with macOS and Windows installers plus auto-update metadata.
+- Updated the desktop package version and in-app version display to 1.2.10.
+- Refreshed the public README and product screenshots for the cross-platform release.
+
 ## 1.2.9 - 2026-06-06
 
 - Improved large-canvas rendering responsiveness with lighter visible-node rendering, canvas interaction load shedding, media lazy handling, and throttled progress updates.
