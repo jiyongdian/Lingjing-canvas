@@ -1,6 +1,6 @@
 {
   "name": "wanjuan-lingjing",
-  "version": "1.2.9",
+  "version": "1.2.10",
   "private": true,
   "description": "万卷灵境 - macOS AI 创作画布桌面应用",
   "author": "",
@@ -11,6 +11,10 @@
     "start": "electron .",
     "debug": "cross-env WANJUAN_DEBUG=1 electron .",
     "build": "vite build --config vite.config.mjs && electron-builder",
+    "build:win": "vite build --config vite.config.mjs && electron-builder --win --x64 --ia32",
+    "build:win:x64": "vite build --config vite.config.mjs && electron-builder --win --x64",
+    "build:win:x86": "vite build --config vite.config.mjs && electron-builder --win --ia32",
+    "build:win:ia32": "vite build --config vite.config.mjs && electron-builder --win --ia32",
     "typecheck": "tsc --noEmit",
     "test:lib": "node scripts/test-lib.mjs",
     "test:update-checker": "electron scripts/test-update-checker.cjs",
@@ -46,7 +50,7 @@
   "build": {
     "appId": "com.wanjuan.lingjing",
     "productName": "万卷灵境",
-    "artifactName": "万卷灵境-1.2.9-${arch}.${ext}",
+    "artifactName": "万卷灵境-1.2.10-${arch}.${ext}",
     "directories": {
       "output": "release"
     },
@@ -58,9 +62,23 @@
       "category": "public.app-category.productivity",
       "icon": "build/icon.icns",
       "extendInfo": {
-        "CFBundleShortVersionString": "1.2.9",
-        "CFBundleVersion": "1.2.9"
+        "CFBundleShortVersionString": "1.2.10",
+        "CFBundleVersion": "1.2.10"
       }
+    },
+    "win": {
+      "target": [
+        "nsis",
+        "zip"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "万卷灵境"
     }
   }
 }
