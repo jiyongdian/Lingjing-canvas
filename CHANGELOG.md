@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.11 - 2026-06-09
+
+- Fixed video generation nodes reopening with expired cloud URLs even when completed results had already been saved into the local resource library.
+- Made completed task-list refreshes prefer local resource-library copies instead of overwriting nodes back to remote result URLs.
+- Corrected missing local media detection so stale paths from older machines are no longer treated as valid files.
+- Published a supplemental macOS release package on top of the 1.2.10 release line.
+
 ## 1.2.10 - 2026-06-08
 
 - Added Windows release packaging for x64 and x86/ia32 alongside the macOS arm64 build.

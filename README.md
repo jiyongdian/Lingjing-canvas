@@ -73,8 +73,8 @@
 
 打开 [Releases](../../releases/latest)，按平台下载对应文件：
 
-- macOS Apple Silicon：`wanjuan-lingjing-1.2.10.dmg`
-- macOS 免安装压缩包：`wanjuan-lingjing-1.2.10-arm64-mac.zip`
+- macOS Apple Silicon：`wanjuan-lingjing-1.2.11.dmg`
+- macOS 免安装压缩包：`wanjuan-lingjing-1.2.11-arm64-mac.zip`
 - Windows 通用安装器：`wanjuan-lingjing-setup-1.2.10.exe`
 - Windows x64：`wanjuan-lingjing-setup-1.2.10-x64.exe`
 - Windows x86 / ia32：`wanjuan-lingjing-setup-1.2.10-ia32.exe`
