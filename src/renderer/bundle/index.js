@@ -16761,20 +16761,107 @@ wan2.7-videoedit-1080P`,
     let dailyLimitKey = `daily-limit-${new Date().toISOString().split(`T`)[0]}`;
     setDailyGenerationCount(parseInt(localStorage.getItem(dailyLimitKey) || `0`));
   }, []);
-  let nodesRef = useRef(nodes),
-    edgesRef = useRef(edges),
-    projectIdRef = useRef(projectId),
-    shouldFitViewRef = useRef(shouldFitView);
-  (useEffect(() => {
-      nodesRef.current = nodes;
-    }, [nodes]),
-    useEffect(() => {
-      edgesRef.current = edges;
-    }, [edges]),
-    useEffect(() => {
-      projectIdRef.current = projectId;
-      try { globalThis.__wanjuanCurrentProjectId = projectId; } catch {}
-    }, [projectId]),
+	  let nodesRef = useRef(nodes),
+	    edgesRef = useRef(edges),
+	    projectIdRef = useRef(projectId),
+	    shouldFitViewRef = useRef(shouldFitView);
+	  let wanjuanResourceLocalUrlMap = useMemo(() => {
+	      let localResourceMap = new Map();
+	      (Array.isArray(resources) ? resources : []).forEach((resource) => {
+	        if (!resource || typeof resource != `object`) return;
+	        let localUrl =
+	          typeof resource.url == `string` && /^file:\/\//i.test(resource.url) ?
+	          resource.url :
+	          buildProjectMediaFileUrl(resource.localPath || resource.projectAssetBinding?.localPath || ``);
+	        if (!localUrl) return;
+	        [
+	          resource.originalUrl,
+	          resource.remoteUrl,
+	          resource.sourceUrl,
+	          resource.resultUrl,
+	          resource.mediaUrl,
+	          resource.projectAssetBinding?.sourceSignature,
+	          typeof resource.url == `string` && !/^file:\/\//i.test(resource.url) ? resource.url : ``,
+	        ].forEach((candidate) => {
+	          typeof candidate == `string` && candidate && candidate !== localUrl && localResourceMap.set(candidate, {
+	            url: localUrl,
+	            resource,
+	          });
+	        });
+	        resource.projectAssetBinding?.assetId &&
+	          localResourceMap.set(`asset:${resource.projectAssetBinding.assetId}`, {
+	            url: localUrl,
+	            resource,
+	          });
+	        resource.projectAssetBinding?.sha256 &&
+	          localResourceMap.set(`sha256:${resource.projectAssetBinding.sha256}`, {
+	            url: localUrl,
+	            resource,
+	          });
+	      });
+	      return localResourceMap;
+	    }, [resources]),
+	    resolveWanjuanPlayableTaskUrl = (currentValue, taskValue) => {
+	      let current = typeof currentValue == `string` ? currentValue : ``,
+	        task = typeof taskValue == `string` ? taskValue : ``,
+	        localTaskUrl = task ? wanjuanResourceLocalUrlMap.get(task)?.url || `` : ``;
+	      if (localTaskUrl) return localTaskUrl;
+	      if (/^(file:\/\/|data:video\/|blob:)/i.test(current)) return current;
+	      return task || current;
+	    };
+	  (useEffect(() => {
+	      nodesRef.current = nodes;
+	    }, [nodes]),
+	    useEffect(() => {
+	      edgesRef.current = edges;
+	    }, [edges]),
+	    useEffect(() => {
+	      if (wanjuanResourceLocalUrlMap.size === 0) return;
+	      setNodes((nodes2) => {
+	        let changed = !1,
+	          nextNodes = nodes2.map((node) => {
+	            if (!node?.data) return node;
+	            let nextData = null;
+	            [`imageUrl`, `videoUrl`, `audioUrl`].forEach((field) => {
+	              let currentValue = node.data[field],
+	                binding = node.data.projectAssetBindings?.[field],
+	                replacement =
+	                  (typeof currentValue == `string` ? wanjuanResourceLocalUrlMap.get(currentValue) : null) ||
+	                  (binding?.assetId ? wanjuanResourceLocalUrlMap.get(`asset:${binding.assetId}`) : null) ||
+	                  (binding?.sha256 ? wanjuanResourceLocalUrlMap.get(`sha256:${binding.sha256}`) : null);
+	              if (!replacement || replacement.url === currentValue) return;
+	              nextData ||
+	                (nextData = {
+	                  ...node.data,
+	                  projectAssetBindings: {
+	                    ...(node.data.projectAssetBindings || {}),
+	                  },
+	                });
+	              nextData[field] = replacement.url;
+	              let resourceBinding = replacement.resource?.projectAssetBinding;
+	              if (resourceBinding?.localPath)
+	                nextData.projectAssetBindings[field] = {
+	                  ...(nextData.projectAssetBindings[field] || {}),
+	                  ...resourceBinding,
+	                  field,
+	                  kind: field === `videoUrl` ? `video` : field === `audioUrl` ? `audio` : `image`,
+	                  valueFormat: `file-url`,
+	                  sourceSignature: currentValue,
+	                };
+	              changed = !0;
+	            });
+	            return nextData ? {
+	              ...node,
+	              data: nextData,
+	            } : node;
+	        });
+	        return changed ? nextNodes : nodes2;
+	      });
+	    }, [wanjuanResourceLocalUrlMap, setNodes]),
+	    useEffect(() => {
+	      projectIdRef.current = projectId;
+	      try { globalThis.__wanjuanCurrentProjectId = projectId; } catch {}
+	    }, [projectId]),
     useEffect(() => {
       shouldFitViewRef.current = shouldFitView;
     }, [shouldFitView]),
@@ -17668,7 +17755,7 @@ wan2.7-videoedit-1080P`,
                               imageUrl: activeTask.customOutputType === `image` ?
                                 activeTask.customResultData || hydratedNode.data.imageUrl :
                                 hydratedNode.data.imageUrl,
-                              videoUrl: activeTask.resultUrl || hydratedNode.data.videoUrl,
+	                              videoUrl: resolveWanjuanPlayableTaskUrl(hydratedNode.data.videoUrl, activeTask.resultUrl),
                               audioUrl: activeTask.customOutputType === `audio` ?
                                 WanJuanTtsMusicTaskAudioUrl(activeTask) || hydratedNode.data.audioUrl :
                                 hydratedNode.data.audioUrl,
@@ -17777,7 +17864,7 @@ wan2.7-videoedit-1080P`,
                 (updatedData.text = matchedTask.customResultData || updatedData.text),
                 matchedTask.customOutputType === `image` &&
                 (updatedData.imageUrl = matchedTask.customResultData || updatedData.imageUrl),
-                (updatedData.videoUrl = matchedTask.resultUrl || updatedData.videoUrl),
+	                (updatedData.videoUrl = resolveWanjuanPlayableTaskUrl(updatedData.videoUrl, matchedTask.resultUrl)),
                 matchedTask.customOutputType === `video` &&
                 (updatedData.videoUrl = matchedTask.customResultData || updatedData.videoUrl),
                 matchedTask.customOutputType === `audio` &&
@@ -39880,10 +39967,10 @@ ${String(l || ``).slice(0, 5e4)}`;
 	                    for (let [bindingKey, binding] of Object.entries(bindings || {})) {
 	                      let strippedBinding = stripLargeProjectMediaPortablePayload(binding, bindingKey, binding?.kind),
 	                        value = data[bindingKey],
-	                        fileExists = strippedBinding?.localPath ?
-	                        presenceMap.get(strippedBinding.localPath) !== !1 ||
-	                        !!strippedBinding?.portableData ||
-	                        typeof value == `string` &&
+		                        fileExists = strippedBinding?.localPath ?
+		                        presenceMap.has(strippedBinding.localPath) && presenceMap.get(strippedBinding.localPath) !== !1 ||
+		                        !!strippedBinding?.portableData ||
+		                        typeof value == `string` &&
 	                        !!value &&
 	                        (value.startsWith(`data:`) ||
 	                          /^https?:\/\//i.test(value) ||
