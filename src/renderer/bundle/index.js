@@ -30587,6 +30587,7 @@ time=1h`,
           let isActive = button.getAttribute(`data-tianji-mode`) === normalizedMode;
           button.classList?.toggle(`is-active`, isActive);
           button.setAttribute?.(`aria-pressed`, isActive ? `true` : `false`);
+          button.removeAttribute?.(`style`);
         });
       } catch (error) {
         console.warn(`Failed to apply Tianji settings mode`, error);
@@ -48305,7 +48306,7 @@ wan2.7-videoedit-1080P`,
 	                                            "data-tianji-mode": `official`,
 	                                            "aria-pressed": tianjiSeedanceSettingsMode === `official` ? `true` : `false`,
 	                                            onClick: () => applyTianjiSeedanceSettingsMode(`official`),
-	                                            className: `h-7 min-w-[72px] rounded-md px-3 text-[11px] font-semibold transition-colors ${tianjiSeedanceSettingsMode === `official` ? `is-active bg-blue-600/20 border border-blue-400/50 text-blue-200` : `border border-transparent text-gray-400 hover:text-gray-200 hover:bg-[#242424]`}`,
+	                                            className: `wanjuan-tianji-mode-option ${tianjiSeedanceSettingsMode === `official` ? `is-active` : ``}`,
 	                                            children: `普通模式`,
 	                                          }),
 	                                          jsx(`button`, {
@@ -48313,7 +48314,7 @@ wan2.7-videoedit-1080P`,
 	                                            "data-tianji-mode": `tianji`,
 	                                            "aria-pressed": tianjiSeedanceSettingsMode === `tianji` ? `true` : `false`,
 	                                            onClick: () => applyTianjiSeedanceSettingsMode(`tianji`),
-	                                            className: `h-7 min-w-[72px] rounded-md px-3 text-[11px] font-semibold transition-colors ${tianjiSeedanceSettingsMode === `tianji` ? `is-active bg-blue-600/20 border border-blue-400/50 text-blue-200` : `border border-transparent text-gray-400 hover:text-gray-200 hover:bg-[#242424]`}`,
+	                                            className: `wanjuan-tianji-mode-option ${tianjiSeedanceSettingsMode === `tianji` ? `is-active` : ``}`,
 	                                            children: `天玑模式`,
 	                                          }),
 	                                        ],

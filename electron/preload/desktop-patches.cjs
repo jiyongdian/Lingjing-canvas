@@ -1856,23 +1856,24 @@ function installDesktopPatches() {
       const style = document.createElement("style");
       style.id = "wanjuan-tianji-settings-style";
       style.textContent = `
-      .wanjuan-tianji-settings-card{display:block!important;height:auto!important;min-height:420px;margin-top:12px;background:color-mix(in srgb,var(--wj-surface-2,#1a1a1a) 92%,transparent);border:1px solid color-mix(in srgb,var(--wj-border,#333) 76%,transparent);border-radius:10px;overflow:visible;color:var(--wj-text,#d1d5db)}
+      .wanjuan-tianji-settings-card{display:block!important;width:100%;height:auto!important;max-height:min(620px,calc(100vh - 260px));margin-top:12px;background:color-mix(in srgb,var(--wj-surface,#1a1a1a) 88%,var(--wj-bg,#121212) 12%);border:1px solid color-mix(in srgb,var(--wj-border,#333) 76%,transparent);border-radius:10px;overflow:auto;color:var(--wj-text,#d1d5db)}
+      .wanjuan-tianji-settings-card *{box-sizing:border-box}
       .wanjuan-tianji-settings-card[hidden]{display:none!important}
-      .wanjuan-tianji-settings-host{display:grid;gap:12px}
+      .wanjuan-tianji-settings-host{display:grid;gap:12px;min-width:0}
       .wanjuan-seedance-settings-card.wanjuan-tianji-mode-active .wanjuan-settings-card-body > :not(.wanjuan-tianji-mode-row):not(.wanjuan-tianji-settings-host){display:none!important}
       .wanjuan-seedance-settings-card.wanjuan-tianji-mode-active .wanjuan-tianji-settings-card{margin-top:0}
-      .wanjuan-tianji-mode-row{display:flex!important;align-items:center;justify-content:space-between;gap:12px;border:1px solid color-mix(in srgb,var(--wj-border,#333) 72%,transparent);border-radius:8px;background:color-mix(in srgb,var(--wj-surface,#121212) 92%,transparent);padding:8px 10px}
+      .wanjuan-tianji-mode-row{display:flex!important;align-items:center;justify-content:space-between;gap:12px;border:1px solid color-mix(in srgb,var(--wj-border,#333) 72%,transparent);border-radius:8px;background:color-mix(in srgb,var(--wj-surface-2,#121212) 78%,var(--wj-bg,#0f0f0f) 22%);padding:8px 10px}
       .wanjuan-tianji-mode-row-title{font-size:12px;font-weight:600;color:var(--wj-text,#d1d5db)}
       .wanjuan-tianji-mode-row-help{font-size:10px;color:var(--wj-muted,#6b7280);margin-top:2px}
       .wanjuan-tianji-mode-host{display:flex;align-items:center;justify-content:flex-end;margin-left:0;vertical-align:middle}
-      .wanjuan-tianji-mode-switch{display:inline-flex;align-items:center;gap:3px;padding:3px;border:1px solid color-mix(in srgb,var(--wj-border,#333) 72%,transparent);border-radius:9px;background:color-mix(in srgb,var(--wj-surface,#121212) 92%,transparent);box-shadow:0 1px 0 rgba(255,255,255,.04) inset}
+      .wanjuan-tianji-mode-switch{display:inline-flex;align-items:center;gap:3px;padding:3px;border:1px solid color-mix(in srgb,var(--wj-border,#333) 72%,transparent);border-radius:9px;background:color-mix(in srgb,var(--wj-surface-2,#121212) 84%,var(--wj-bg,#0f0f0f) 16%);box-shadow:0 1px 0 rgba(255,255,255,.04) inset}
       .wanjuan-tianji-mode-switch button{height:26px;min-width:64px;padding:0 12px!important;border:1px solid transparent!important;border-radius:7px!important;background:transparent!important;color:var(--wj-muted,#9ca3af)!important;font-size:11px!important;font-weight:600!important;transition:background .14s ease,border-color .14s ease,color .14s ease,box-shadow .14s ease,transform .14s ease}
       .wanjuan-tianji-mode-switch button:not(.is-active):not([aria-pressed="true"]):hover{background:color-mix(in srgb,var(--wj-surface-3,#2a2a2a) 88%,var(--wj-accent,#60a5fa) 12%)!important;color:var(--wj-text,#d1d5db)!important}
       .wanjuan-tianji-mode-switch button:focus-visible{outline:2px solid color-mix(in srgb,var(--wj-accent,#60a5fa) 70%,#fff 30%)!important;outline-offset:2px!important}
-      .wanjuan-tianji-body{min-height:420px;padding:12px;display:grid!important;gap:14px}
-      .wanjuan-tianji-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
-      .wanjuan-tianji-settings-card label{display:grid;gap:6px;font-size:11px;color:var(--wj-muted,#6b7280)}
-      .wanjuan-tianji-settings-card input,.wanjuan-tianji-settings-card textarea,.wanjuan-tianji-settings-card select{background:color-mix(in srgb,var(--wj-surface,#121212) 92%,transparent);border:1px solid color-mix(in srgb,var(--wj-border,#333) 72%,transparent);border-radius:8px;color:var(--wj-text,#e5e7eb);padding:9px 10px;font-size:12px;outline:none}
+      .wanjuan-tianji-body{padding:12px;display:grid!important;gap:14px;min-width:0}
+      .wanjuan-tianji-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;min-width:0}
+      .wanjuan-tianji-settings-card label{display:grid;gap:6px;min-width:0;font-size:11px;color:var(--wj-muted,#6b7280)}
+      .wanjuan-tianji-settings-card input,.wanjuan-tianji-settings-card textarea,.wanjuan-tianji-settings-card select{width:100%;min-width:0;max-width:100%;background:color-mix(in srgb,var(--wj-surface-2,#121212) 82%,var(--wj-bg,#0f0f0f) 18%);border:1px solid color-mix(in srgb,var(--wj-border,#333) 72%,transparent);border-radius:8px;color:var(--wj-text,#e5e7eb);padding:9px 10px;font-size:12px;outline:none}
       .wanjuan-tianji-settings-card input:focus,.wanjuan-tianji-settings-card textarea:focus,.wanjuan-tianji-settings-card select:focus{border-color:color-mix(in srgb,var(--wj-accent,#60a5fa) 68%,var(--wj-border,#333))}
       .wanjuan-tianji-settings-card textarea{min-height:76px;resize:vertical}
       .wanjuan-tianji-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
@@ -1969,26 +1970,7 @@ function installDesktopPatches() {
         const isActive = button.getAttribute("data-tianji-mode") === normalizedMode;
         button.classList.toggle("is-active", isActive);
         button.setAttribute("aria-pressed", isActive ? "true" : "false");
-        button.style.setProperty("height", "26px", "important");
-        button.style.setProperty("min-width", "64px", "important");
-        button.style.setProperty("border-radius", "7px", "important");
-        button.style.setProperty("border-style", "solid", "important");
-        button.style.setProperty("border-width", "1px", "important");
-        if (isActive) {
-          button.style.setProperty("background", "color-mix(in srgb,var(--wj-accent,#60a5fa) 16%,var(--wj-surface-3,#222) 84%)", "important");
-          button.style.setProperty("border-color", "color-mix(in srgb,var(--wj-accent,#60a5fa) 52%,var(--wj-border,#333) 48%)", "important");
-          button.style.setProperty("color", "color-mix(in srgb,var(--wj-accent,#60a5fa) 82%,var(--wj-text,#fff) 18%)", "important");
-          button.style.setProperty("font-weight", "650", "important");
-          button.style.setProperty("text-shadow", "none", "important");
-          button.style.setProperty("box-shadow", "inset 0 1px 0 color-mix(in srgb,#fff 10%,transparent),0 2px 8px color-mix(in srgb,var(--wj-accent,#60a5fa) 18%,transparent)", "important");
-        } else {
-          button.style.setProperty("background", "transparent", "important");
-          button.style.setProperty("border-color", "transparent", "important");
-          button.style.setProperty("color", "var(--wj-muted,#9ca3af)", "important");
-          button.style.setProperty("font-weight", "600", "important");
-          button.style.setProperty("text-shadow", "none", "important");
-          button.style.setProperty("box-shadow", "none", "important");
-        }
+        button.removeAttribute("style");
       });
     };
     tianjiSettingsInstalled = Boolean(panel.isConnected);
