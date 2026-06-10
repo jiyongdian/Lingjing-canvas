@@ -39271,6 +39271,7 @@ ${String(l || ``).slice(0, 5e4)}`;
     },
     BACKUP_SETTINGS_SECTION_LABELS = {
       basic: `个性设置`,
+      api: `API 配置`,
       models: `模型配置`,
       cloud: `云盘设置`,
       generation: `生成设置`,
@@ -39279,6 +39280,7 @@ ${String(l || ``).slice(0, 5e4)}`;
     },
     BACKUP_SETTINGS_SECTION_ORDER = [
       `basic`,
+      `api`,
       `models`,
       `cloud`,
       `generation`,
@@ -39294,7 +39296,7 @@ ${String(l || ``).slice(0, 5e4)}`;
 	        `appLanguage`,
 	        `uiLanguage`,
 	      ],
-	      models: [
+	      api: [
 	        `apiUrl`,
 	        `apiKey`,
 	        `textApiUrl`,
@@ -39305,6 +39307,24 @@ ${String(l || ``).slice(0, 5e4)}`;
         `videoApiKey`,
         `audioApiUrl`,
         `audioApiKey`,
+        `apiConfigs`,
+        `textApiConfigId`,
+        `imageApiConfigId`,
+        `videoApiConfigId`,
+        `audioApiConfigId`,
+        `configButlerApiUrl`,
+        `configButlerApiKey`,
+	        `configButlerProtocol`,
+	        `configButlerModel`,
+	        `configButlerDocUrl`,
+	        `configButlerMode`,
+        `configButlerTargetCategory`,
+        `configButlerTargetApiConfigId`,
+        `configButlerRepairHistory`,
+        `storedGlobalConfigs`,
+        `activeStoredGlobalConfigId`,
+	      ],
+	      models: [
 	        `textModel`,
 	        `drawingModel`,
 	        `imageCompatResolutions`,
@@ -39333,24 +39353,8 @@ ${String(l || ``).slice(0, 5e4)}`;
         `tianjiSeedanceGroups`,
         `tianjiSeedanceSettingsMode`,
 	        `audioModel`,
-	        `ttsMusicModel`,
-	        `apiConfigs`,
-        `textApiConfigId`,
-        `imageApiConfigId`,
-        `videoApiConfigId`,
-        `audioApiConfigId`,
+		        `ttsMusicModel`,
         `modelProtocolRegistry`,
-        `configButlerApiUrl`,
-        `configButlerApiKey`,
-	        `configButlerProtocol`,
-	        `configButlerModel`,
-	        `configButlerDocUrl`,
-	        `configButlerMode`,
-        `configButlerTargetCategory`,
-        `configButlerTargetApiConfigId`,
-        `configButlerRepairHistory`,
-        `storedGlobalConfigs`,
-        `activeStoredGlobalConfigId`,
         `textModelApiBindings`,
         `textModelProtocolBindings`,
         `imageModelApiBindings`,
@@ -45203,6 +45207,17 @@ ${String(l || ``).slice(0, 5e4)}`;
                       children: `模型服务`,
                     }),
                     jsxs(`button`, {
+                      onClick: () => setActiveSettingsTab(`api`),
+                      className: `text-left px-3 py-2.5 rounded-lg text-sm transition-colors mb-1.5 flex items-center gap-2 wanjuan-settings-nav-item ${activeSettingsTab === `api` ? `wanjuan-settings-nav-item-active bg-[#252525] text-cyan-300 font-bold border border-[#333] shadow-sm` : `text-gray-300 hover:bg-[#222] hover:text-gray-100 border border-transparent`}`,
+                      children: [
+                        jsx(`span`, {
+                          className: `wanjuan-skeuo-icon wanjuan-skeuo-icon-api`,
+                          children: `🔐`,
+                        }),
+	                        ` API 配置`,
+                      ],
+                    }),
+                    jsxs(`button`, {
                       onClick: () => setActiveSettingsTab(`models`),
                       className: `text-left px-3 py-2.5 rounded-lg text-sm transition-colors mb-1.5 flex items-center gap-2 wanjuan-settings-nav-item ${activeSettingsTab === `models` ? `wanjuan-settings-nav-item-active bg-[#252525] text-purple-400 font-bold border border-[#333] shadow-sm` : `text-gray-300 hover:bg-[#222] hover:text-gray-100 border border-transparent`}`,
                       children: [
@@ -45210,7 +45225,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                           className: `wanjuan-skeuo-icon wanjuan-skeuo-icon-models`,
                           children: `🧠`,
                         }),
-	                        ` 模型与 API`,
+	                        ` 模型配置`,
                       ],
                     }),
                     jsxs(`button`, {
@@ -46853,10 +46868,11 @@ ${String(l || ``).slice(0, 5e4)}`;
 	                          }),
 	                        ],
 	                      }),
-	                      activeSettingsTab === `models` &&
+	                      (activeSettingsTab === `api` || activeSettingsTab === `models`) &&
                       jsxs(`div`, {
                         className: `space-y-6 animate-fade-in wanjuan-settings-section`,
                         children: [
+                          activeSettingsTab === `models` &&
                           jsx(`div`, {
                             className: `flex justify-end`,
                             children: jsx(`button`, {
@@ -46871,6 +46887,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                                 `展开全部高级设置`,
                             }),
                           }),
+                          activeSettingsTab === `api` &&
                           jsxs(`div`, {
                             className: `group bg-[#1a1a1a] rounded-xl overflow-hidden transition-all duration-300 pb-4 shadow-sm border border-[#222] wanjuan-settings-card`,
                             children: [
@@ -47021,6 +47038,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                               }),
                             ],
                           }),
+                          activeSettingsTab === `api` &&
                           jsxs(`div`, {
                             className: `group bg-[#1a1a1a] rounded-xl overflow-hidden transition-all duration-300 pb-4 shadow-sm border border-[#222] wanjuan-settings-card`,
                             children: [
@@ -47504,6 +47522,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                               }),
                             ],
                           }),
+                          activeSettingsTab === `models` &&
                           jsxs(`div`, {
                             className: `group bg-[#1a1a1a] rounded-xl overflow-hidden transition-all duration-300 pb-4 shadow-sm border border-[#222] wanjuan-settings-card`,
                             children: [
@@ -47621,6 +47640,7 @@ gpt-4o`,
                               }),
                             ],
                           }),
+                          activeSettingsTab === `models` &&
                           jsxs(`div`, {
                             className: `group bg-[#1a1a1a] rounded-xl overflow-hidden transition-all duration-300 pb-4 shadow-sm border border-[#222] wanjuan-settings-card`,
                             children: [
@@ -47763,6 +47783,7 @@ gpt-4o`,
                               }),
                             ],
                           }),
+                          activeSettingsTab === `models` &&
                           jsxs(`div`, {
                             className: `group bg-[#1a1a1a] rounded-xl overflow-hidden transition-all duration-300 pb-4 shadow-sm border border-[#222] wanjuan-settings-card`,
                             children: [
@@ -47941,6 +47962,7 @@ sora`,
                               }),
                             ],
                           }),
+                          activeSettingsTab === `models` &&
                           jsxs(`div`, {
                             className: `group bg-[#1a1a1a] rounded-xl overflow-hidden transition-all duration-300 pb-4 shadow-sm border border-[#222] wanjuan-settings-card`,
                             children: [
@@ -48184,6 +48206,7 @@ wan2.7-videoedit-1080P`,
                               }),
                             ],
                           }),
+                          activeSettingsTab === `models` &&
                           jsxs(`div`, {
                             className: `group bg-[#1a1a1a] rounded-xl overflow-hidden transition-all duration-300 pb-4 shadow-sm border border-[#222] wanjuan-settings-card`,
                             children: [
@@ -48694,6 +48717,7 @@ doubao-seedance-2-0-fast-260128`,
                               }),
                             ],
                           }),
+                          activeSettingsTab === `models` &&
                           jsxs(`div`, {
                             className: `group bg-[#1a1a1a] rounded-xl overflow-hidden transition-all duration-300 pb-4 shadow-sm border border-[#222] wanjuan-settings-card`,
                             children: [
@@ -48994,6 +49018,7 @@ doubao-seedance-2-0-fast-260128`,
 	                              ],
 	                            }),
 	                          }),
+	                          activeSettingsTab === `models` &&
 	                          jsxs(`div`, {
 	                            className: `group bg-[#1a1a1a] rounded-xl overflow-hidden transition-all duration-300 pb-4 shadow-sm border border-[#222] wanjuan-settings-card`,
 	                            children: [
@@ -49003,14 +49028,14 @@ doubao-seedance-2-0-fast-260128`,
 	                                  jsxs(`h2`, {
 	                                    className: `font-bold text-gray-200 text-sm flex items-center gap-2 wanjuan-settings-card-title`,
 	                                    children: [
-                                      jsx(`span`, {
-                                        className: `wanjuan-skeuo-icon wanjuan-skeuo-icon-tts-model`,
-                                        children: `🎵`,
-                                      }),
-		                                      ` 音乐大模型`,
-	                                    ],
-	                                  }),
-	                                  jsx(`button`, {
+	                                      jsx(`span`, {
+	                                        className: `wanjuan-skeuo-icon wanjuan-skeuo-icon-tts-model`,
+	                                        children: `🎵`,
+	                                      }),
+			                                      ` 音乐大模型`,
+		                                    ],
+		                                  }),
+		                                  jsx(`button`, {
 	                                    type: `button`,
 	                                    onClick: () => setTtsMusicSettingsExpanded(!ttsMusicSettingsExpanded),
 	                                    className: `px-2.5 py-1 rounded-md border border-[#333] bg-[#222] text-[11px] text-gray-300 hover:bg-[#2a2a2a] transition-colors wanjuan-settings-button wanjuan-settings-chip-button ${ttsMusicSettingsExpanded ? `wanjuan-settings-chip-button-open` : ``}`,
@@ -49381,7 +49406,7 @@ doubao-seedance-2-0-fast-260128`,
                     ],
                   }),
                 }),
-                (activeSettingsTab === `models` || activeSettingsTab === `cloud`) &&
+                (activeSettingsTab === `api` || activeSettingsTab === `models` || activeSettingsTab === `cloud`) &&
                 jsx(`div`, {
                   className: `wanjuan-settings-save-bar absolute bottom-0 left-48 right-0 p-4 bg-gradient-to-t from-[#121212] via-[#121212] to-transparent z-20 flex justify-center pointer-events-none`,
                   children: jsx(`button`, {
