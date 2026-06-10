@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.12 - 2026-06-10
+
+- Fixed Jimeng/Tianji video nodes reopening with stale earlier results after multiple generations on the same node.
+- Made completed Tianji, Seedance, Tongyi, and generic video task refreshes write the latest result directly back to the source node.
+- Fixed async image task refreshes so recovered image URLs update the canvas node, not only the task list and resource library.
+- Added background recovery for pending async image and Suno/audio tasks after reopening the app.
+- Added a refresh action inside the Tianji portrait-library picker so newly uploaded portrait assets can be pulled into the node picker without visiting Settings.
+
 ## 1.2.11 - 2026-06-09
 
 - Fixed video generation nodes reopening with expired cloud URLs even when completed results had already been saved into the local resource library.
