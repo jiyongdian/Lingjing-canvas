@@ -4126,9 +4126,22 @@ var Le = reactMemo(({
           applyTianjiPortraitAssets = (stored) => {
             cancelled || setTianjiNodePortraitAssets(wanjuanNormalizeTianjiPortraitAssets(stored?.tianjiSeedanceAssets || {}));
           };
-        typeof chrome < `u` && chrome.storage?.local ?
-          chrome.storage.local.get([`tianjiSeedanceAssets`], applyTianjiPortraitAssets) :
-          applyTianjiPortraitAssets({});
+        if (typeof chrome < `u` && chrome.storage?.local) {
+          chrome.storage.local.get([`tianjiSeedanceAssets`], applyTianjiPortraitAssets);
+          let handleStorageChange = (changes, areaName) => {
+            areaName === `local` &&
+              changes?.tianjiSeedanceAssets &&
+              applyTianjiPortraitAssets({
+                tianjiSeedanceAssets: changes.tianjiSeedanceAssets.newValue
+              });
+          };
+          chrome.storage.onChanged?.addListener?.(handleStorageChange);
+          return () => {
+            cancelled = !0;
+            chrome.storage.onChanged?.removeListener?.(handleStorageChange);
+          };
+        }
+        applyTianjiPortraitAssets({});
         return () => {
           cancelled = !0;
         };
@@ -16028,6 +16041,52 @@ const wanjuanTianjiFindVideoUrl = (data) => {
 const wanjuanTianjiFindTaskId = (data) =>
   wanjuanTianjiFindDeep(data, [`execute_id`, `executeId`, `task_id`, `taskId`, `id`]);
 
+const wanjuanTianjiFindArray = (value) => {
+  if (Array.isArray(value)) return value;
+  if (!value || typeof value != `object`) return [];
+  for (let key of [`list`, `List`, `items`, `Items`, `records`, `Records`, `assets`, `Assets`, `asset_list`, `AssetList`, `results`, `Results`, `result`, `Result`, `rows`, `Rows`, `data`, `Data`]) {
+    let found = wanjuanTianjiFindArray(value[key]);
+    if (found.length) return found;
+  }
+  return [];
+};
+
+const wanjuanTianjiExtractGroups = (result, current = {}, preferredType = ``) => {
+  let found = [],
+    visit = (value, path = []) => {
+      if (value === null || value === void 0) return;
+      if (typeof value == `string` || typeof value == `number`) {
+        let matches = String(value).match(/group-[0-9a-z-]+/ig) || [];
+        matches.forEach((id) => found.push({
+          id: id,
+          path: path.join(`.`).toLowerCase(),
+        }));
+        return;
+      }
+      Array.isArray(value) ?
+        value.forEach((item, index) => visit(item, path.concat(String(index)))) :
+        typeof value == `object` &&
+        Object.entries(value).forEach(([key, item]) => visit(item, path.concat(key)));
+    };
+  visit(result);
+  let unique = [],
+    seen = new Set();
+  found.forEach((item) => {
+    let id = String(item.id || ``);
+    id && !seen.has(id) && (seen.add(id), unique.push(item));
+  });
+  let pickByPath = (pattern) => unique.find((item) => pattern.test(item.path))?.id || ``,
+    live = result?.data?.LivenessFace || result?.data?.group_id || result?.data?.livenessFaceGroupId || result?.data?.live_group_id || pickByPath(/liveness|live|real|真人/i),
+    aigc = result?.data?.AIGC || result?.data?.virtal_group_id || result?.data?.virtual_group_id || result?.data?.virtral_group_id || result?.data?.aigcGroupId || result?.data?.aigc_group_id || pickByPath(/aigc|virtual|virtal|virtral|虚拟/i),
+    ids = unique.map((item) => item.id);
+  if (!live && !aigc && ids.length === 1)
+    preferredType === `AIGC` ? (aigc = ids[0]) : preferredType === `LivenessFace` && (live = ids[0]);
+  return {
+    LivenessFace: live || current.LivenessFace || ``,
+    AIGC: aigc || current.AIGC || ``,
+  };
+};
+
 const wanjuanTianjiCreateLocalUploadAsset = ({ name: name, imageUrl: imageUrl, result: result }) => ({
   id: wanjuanTianjiFindDeep(result, [`portrait_asset_id`, `asset_id`, `assetId`, `id`, `AssetId`]) || `local-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
   portrait_asset_id: wanjuanTianjiFindDeep(result, [`portrait_asset_id`, `asset_id`, `assetId`, `id`, `AssetId`]) || ``,
@@ -16035,7 +16094,7 @@ const wanjuanTianjiCreateLocalUploadAsset = ({ name: name, imageUrl: imageUrl, r
   image_url: imageUrl || ``,
   status: wanjuanTianjiFindDeep(result, [`status`, `Status`]) || `已提交`,
   groupType: `AIGC`,
-  localUploaded: !0,
+  localUploaded: ![`active`, `success`, `succeeded`, `completed`, `complete`, `done`].includes(String(wanjuanTianjiFindDeep(result, [`status`, `Status`]) || ``).trim().toLowerCase()),
   createdAt: Date.now(),
 });
 
@@ -16063,6 +16122,80 @@ const wanjuanTianjiMergeSubmittedPortraitAsset = async (asset) => {
     },
     tianjiSeedanceSettingsMode: `tianji`,
   });
+};
+
+const wanjuanTianjiRefreshPortraitAssets = async (config, {
+  preferredType: preferredType = `AIGC`,
+  retries: retries = 5,
+  delayMs: delayMs = 2e3,
+} = {}) => {
+  let stored = await wanjuanTianjiStorageGet([`tianjiSeedanceAssets`, `tianjiSeedanceGroups`]),
+    currentAssets = stored.tianjiSeedanceAssets && typeof stored.tianjiSeedanceAssets == `object` ? stored.tianjiSeedanceAssets : {},
+    groups = stored.tianjiSeedanceGroups && typeof stored.tianjiSeedanceGroups == `object` ? stored.tianjiSeedanceGroups : {},
+    sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+  if (!groups.AIGC || (preferredType === `LivenessFace` && !groups.LivenessFace)) {
+    try {
+      let groupResult = await wanjuanTianjiRequest(config, `/api/cut/model/seedance-portrait-auth-status`);
+      groups = wanjuanTianjiExtractGroups(groupResult, groups, preferredType);
+      await wanjuanTianjiStorageSet({
+        tianjiSeedanceGroups: groups
+      });
+    } catch (error) {
+      console.warn(`Tianji portrait group sync failed`, error);
+    }
+  }
+  let load = async (groupType, groupId) => {
+      if (!groupId) return [];
+      let result = await wanjuanTianjiRequest(config, `/api/cut/model/get-list-assets`, {
+        params: {
+          group_ids: groupId,
+          group_type: groupType,
+          statuses: `Active`,
+          PageNumber: `1`,
+          PageSize: `60`,
+          SortBy: `CreateTime`,
+          SortOrder: `Desc`,
+        },
+      });
+      return wanjuanTianjiFindArray(result);
+    },
+    aigcItems = Array.isArray(currentAssets.AIGC) ? currentAssets.AIGC : [],
+    liveItems = Array.isArray(currentAssets.LivenessFace) ? currentAssets.LivenessFace : [];
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      groups.AIGC && (aigcItems = await load(`AIGC`, groups.AIGC));
+      if (aigcItems.length > 0 || attempt >= retries) break;
+    } catch (error) {
+      if (attempt >= retries) throw error;
+      console.warn(`Tianji AIGC portrait refresh retry`, error);
+    }
+    await sleep(delayMs);
+  }
+  aigcItems.length === 0 &&
+    Array.isArray(currentAssets.AIGC) &&
+    currentAssets.AIGC.length > 0 &&
+    (aigcItems = currentAssets.AIGC);
+  if (preferredType === `LivenessFace` && groups.LivenessFace)
+    try {
+      liveItems = await load(`LivenessFace`, groups.LivenessFace);
+    } catch (error) {
+      console.warn(`Tianji live portrait refresh skipped`, error);
+    }
+  let nextAssets = {
+    ...currentAssets,
+    AIGC: aigcItems,
+    LivenessFace: liveItems,
+  };
+  await wanjuanTianjiStorageSet({
+    tianjiSeedanceAssets: nextAssets,
+    tianjiSeedanceGroups: groups,
+  });
+  return {
+    assets: nextAssets,
+    groups: groups,
+    aigcCount: aigcItems.length,
+    liveCount: liveItems.length,
+  };
 };
 
 const wanjuanUploadTianjiVirtualPortrait = async (imageUrl, options = {}) => {
@@ -16093,10 +16226,19 @@ const wanjuanUploadTianjiVirtualPortrait = async (imageUrl, options = {}) => {
       result: result,
     });
   await wanjuanTianjiMergeSubmittedPortraitAsset(asset);
+  let refresh = null;
+  try {
+    refresh = await wanjuanTianjiRefreshPortraitAssets(config, {
+      preferredType: `AIGC`
+    });
+  } catch (error) {
+    console.warn(`Tianji portrait auto refresh failed`, error);
+  }
   return {
     result: result,
     asset: asset,
     imageUrl: uploaded.url,
+    refresh: refresh,
   };
 };
 
@@ -25273,7 +25415,11 @@ ${combinedPrompt}`,
             let result = await wanjuanUploadTianjiVirtualPortrait(imageUrl, {
               name: meta.label || `虚拟人像素材`,
             });
-            showToast(`已提交天玑虚拟人像审核，可在设置里的天玑模式刷新素材查看`);
+            showToast(
+              result?.refresh?.aigcCount > 0 ?
+              `已提交并自动刷新天玑虚拟人像库，可直接在即梦节点选择` :
+              `已提交天玑虚拟人像审核，天玑素材库还在处理，稍后会在刷新后可选`,
+            );
             return result;
           } catch (error) {
             (console.error(`Tianji portrait review upload failed`, error),
