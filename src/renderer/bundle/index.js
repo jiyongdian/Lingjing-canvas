@@ -29809,6 +29809,7 @@ Suno 音乐生成`,
   [audioModelSettingsExpanded, setAudioModelSettingsExpanded] = useState(!1),
   [ttsMusicSettingsExpanded, setTtsMusicSettingsExpanded] = useState(!1),
   [seedanceSettingsExpanded, setSeedanceSettingsExpanded] = useState(!1),
+  [tianjiSeedanceSettingsMode, setTianjiSeedanceSettingsMode] = useState(`official`),
   [tongyiWanxiangSettingsExpanded, setTongyiWanxiangSettingsExpanded] = useState(!1),
   [themeMode, setThemeMode] = useState(`graphite`),
   [appLanguage, setAppLanguage] = useState(`zh-CN`),
@@ -30574,6 +30575,30 @@ time=1h`,
         setSeedanceSettingsExpanded(expanded2),
         setTongyiWanxiangSettingsExpanded(expanded2)
       );
+    },
+    applyTianjiSeedanceSettingsMode = (mode) => {
+      let normalizedMode = mode === `tianji` ? `tianji` : `official`;
+      setTianjiSeedanceSettingsMode(normalizedMode);
+      try {
+        document.querySelector(`.wanjuan-seedance-settings-card`)?.classList?.toggle(`wanjuan-tianji-mode-active`, normalizedMode === `tianji`);
+        let panel = document.querySelector(`.wanjuan-tianji-settings-card`);
+        panel && (panel.hidden = normalizedMode !== `tianji`);
+        document.querySelectorAll(`[data-tianji-mode]`).forEach((button) => {
+          let isActive = button.getAttribute(`data-tianji-mode`) === normalizedMode;
+          button.classList?.toggle(`is-active`, isActive);
+          button.setAttribute?.(`aria-pressed`, isActive ? `true` : `false`);
+        });
+      } catch (error) {
+        console.warn(`Failed to apply Tianji settings mode`, error);
+      }
+      try {
+        typeof chrome < `u` &&
+          chrome.storage?.local?.set?.({
+            tianjiSeedanceSettingsMode: normalizedMode,
+          });
+      } catch (error) {
+        console.warn(`Failed to persist Tianji settings mode`, error);
+      }
     },
     normalizeButlerBaseUrl = (value) =>
     String(value || ``)
@@ -33900,6 +33925,7 @@ ${docText}`;
                   `seedanceWatermark`,
                   `seedanceEnableWebSearch`,
                   `seedanceVirtualPortraits`,
+                  `tianjiSeedanceSettingsMode`,
                   `seedanceUploadMode`,
                   `tosConfig`,
                   `customPublicUploadConfig`,
@@ -34078,6 +34104,12 @@ ${docText}`;
                     Array.isArray(settings.seedanceVirtualPortraits) &&
                     setSeedanceVirtualPortraits(
                       wanjuanNormalizeSeedanceVirtualPortraits(settings.seedanceVirtualPortraits),
+                    ),
+                    settings.tianjiSeedanceSettingsMode !== void 0 &&
+                    setTianjiSeedanceSettingsMode(
+                      settings.tianjiSeedanceSettingsMode === `tianji` ?
+                      `tianji` :
+                      `official`,
                     ),
                     settings.tongyiWanxiangTextModels &&
                     setTongyiWanxiangTextModels(settings.tongyiWanxiangTextModels),
@@ -48208,7 +48240,7 @@ wan2.7-videoedit-1080P`,
                           }),
                           activeSettingsTab === `models` &&
                           jsxs(`div`, {
-                            className: `group bg-[#1a1a1a] rounded-xl overflow-hidden transition-all duration-300 pb-4 shadow-sm border border-[#222] wanjuan-settings-card`,
+                            className: `group bg-[#1a1a1a] rounded-xl overflow-hidden transition-all duration-300 pb-4 shadow-sm border border-[#222] wanjuan-settings-card wanjuan-seedance-settings-card ${tianjiSeedanceSettingsMode === `tianji` ? `wanjuan-tianji-mode-active` : ``}`,
                             children: [
                               jsxs(`div`, {
                                 className: `flex justify-between items-center p-4 border-b border-[#222] wanjuan-settings-card-header`,
@@ -48216,17 +48248,13 @@ wan2.7-videoedit-1080P`,
                                   jsxs(`h2`, {
                                     className: `font-bold text-gray-200 text-sm flex items-center gap-2 wanjuan-settings-card-title`,
                                     children: [
-                                      jsx(`span`, {
-                                        className: `wanjuan-skeuo-icon wanjuan-skeuo-icon-seedance`,
-                                        children: `🎞️`,
-                                      }),
-                                      ` 即梦节点`,
-                                      jsx(`span`, {
-                                        className: `wanjuan-tianji-mode-host`,
-                                        "data-wanjuan-tianji-mode-host": `true`,
-                                      }),
-                                    ],
-                                  }),
+	                                      jsx(`span`, {
+	                                        className: `wanjuan-skeuo-icon wanjuan-skeuo-icon-seedance`,
+	                                        children: `🎞️`,
+	                                      }),
+	                                      ` 即梦节点`,
+	                                    ],
+	                                  }),
                                   jsxs(`div`, {
                                     className: `flex items-center gap-3`,
                                     children: [
@@ -48250,11 +48278,50 @@ wan2.7-videoedit-1080P`,
                                 ],
                               }),
                               seedanceSettingsExpanded &&
-                              jsxs(`div`, {
-                                className: `px-4 pt-4 space-y-4 wanjuan-settings-card-body`,
-                                children: [
-                                  jsxs(`div`, {
-                                    children: [
+	                              jsxs(`div`, {
+	                                className: `px-4 pt-4 space-y-4 wanjuan-settings-card-body`,
+	                                children: [
+	                                  jsxs(`div`, {
+	                                    className: `wanjuan-tianji-mode-row flex items-center justify-between gap-3 rounded-lg border border-[#333] bg-[#121212] px-3 py-2`,
+	                                    children: [
+	                                      jsxs(`div`, {
+	                                        children: [
+	                                          jsx(`div`, {
+	                                            className: `wanjuan-tianji-mode-row-title`,
+	                                            children: `工作模式`,
+	                                          }),
+	                                          jsx(`div`, {
+	                                            className: `wanjuan-tianji-mode-row-help`,
+	                                            children: `选择普通即梦配置或天玑模式配置`,
+	                                          }),
+	                                        ],
+	                                      }),
+	                                      jsxs(`span`, {
+	                                        className: `wanjuan-tianji-mode-switch inline-flex items-center gap-1 rounded-lg border border-[#333] bg-[#181818] p-1`,
+	                                        "data-wanjuan-tianji-mode-switch": `true`,
+	                                        children: [
+	                                          jsx(`button`, {
+	                                            type: `button`,
+	                                            "data-tianji-mode": `official`,
+	                                            "aria-pressed": tianjiSeedanceSettingsMode === `official` ? `true` : `false`,
+	                                            onClick: () => applyTianjiSeedanceSettingsMode(`official`),
+	                                            className: `h-7 min-w-[72px] rounded-md px-3 text-[11px] font-semibold transition-colors ${tianjiSeedanceSettingsMode === `official` ? `is-active bg-blue-600/20 border border-blue-400/50 text-blue-200` : `border border-transparent text-gray-400 hover:text-gray-200 hover:bg-[#242424]`}`,
+	                                            children: `普通模式`,
+	                                          }),
+	                                          jsx(`button`, {
+	                                            type: `button`,
+	                                            "data-tianji-mode": `tianji`,
+	                                            "aria-pressed": tianjiSeedanceSettingsMode === `tianji` ? `true` : `false`,
+	                                            onClick: () => applyTianjiSeedanceSettingsMode(`tianji`),
+	                                            className: `h-7 min-w-[72px] rounded-md px-3 text-[11px] font-semibold transition-colors ${tianjiSeedanceSettingsMode === `tianji` ? `is-active bg-blue-600/20 border border-blue-400/50 text-blue-200` : `border border-transparent text-gray-400 hover:text-gray-200 hover:bg-[#242424]`}`,
+	                                            children: `天玑模式`,
+	                                          }),
+	                                        ],
+	                                      }),
+	                                    ],
+	                                  }),
+	                                  jsxs(`div`, {
+	                                    children: [
                                       jsx(`label`, {
                                         className: `block text-xs font-medium text-gray-500 mb-2`,
                                         children: `模型 ID (换行分隔)`,
@@ -49453,6 +49520,7 @@ doubao-seedance-2-0-fast-260128`,
                             seedanceWatermark: seedanceWatermark,
                             seedanceEnableWebSearch: seedanceEnableWebSearch,
                             seedanceVirtualPortraits: seedanceVirtualPortraits,
+                            tianjiSeedanceSettingsMode: tianjiSeedanceSettingsMode,
                             tongyiWanxiangTextModels: tongyiWanxiangTextModels,
                             tongyiWanxiangReferenceImageModels: tongyiWanxiangReferenceImageModels,
                             tongyiWanxiangImageModels: tongyiWanxiangImageModels,

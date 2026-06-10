@@ -1820,6 +1820,11 @@ function installDesktopPatches() {
       tianjiSettingsInstalled = false;
     }
     const tianjiHost = document.querySelector("[data-wanjuan-tianji-settings-host]");
+    if (!tianjiHost) {
+      document.querySelector(".wanjuan-tianji-settings-card")?.remove?.();
+      tianjiSettingsInstalled = false;
+      return;
+    }
     const exactTextNodes = [];
     try {
       const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
@@ -1851,16 +1856,20 @@ function installDesktopPatches() {
       const style = document.createElement("style");
       style.id = "wanjuan-tianji-settings-style";
       style.textContent = `
-      .wanjuan-tianji-settings-card{margin-top:12px;background:color-mix(in srgb,var(--wj-surface-2,#1a1a1a) 92%,transparent);border:1px solid color-mix(in srgb,var(--wj-border,#333) 76%,transparent);border-radius:10px;overflow:hidden;color:var(--wj-text,#d1d5db)}
+      .wanjuan-tianji-settings-card{display:block!important;height:auto!important;min-height:420px;margin-top:12px;background:color-mix(in srgb,var(--wj-surface-2,#1a1a1a) 92%,transparent);border:1px solid color-mix(in srgb,var(--wj-border,#333) 76%,transparent);border-radius:10px;overflow:visible;color:var(--wj-text,#d1d5db)}
       .wanjuan-tianji-settings-card[hidden]{display:none!important}
-      .wanjuan-seedance-settings-card.wanjuan-tianji-mode-active .wanjuan-settings-card-body > :not(.wanjuan-tianji-settings-host){display:none!important}
+      .wanjuan-tianji-settings-host{display:grid;gap:12px}
+      .wanjuan-seedance-settings-card.wanjuan-tianji-mode-active .wanjuan-settings-card-body > :not(.wanjuan-tianji-mode-row):not(.wanjuan-tianji-settings-host){display:none!important}
       .wanjuan-seedance-settings-card.wanjuan-tianji-mode-active .wanjuan-tianji-settings-card{margin-top:0}
-      .wanjuan-tianji-mode-host{display:inline-flex;margin-left:8px;vertical-align:middle}
+      .wanjuan-tianji-mode-row{display:flex!important;align-items:center;justify-content:space-between;gap:12px;border:1px solid color-mix(in srgb,var(--wj-border,#333) 72%,transparent);border-radius:8px;background:color-mix(in srgb,var(--wj-surface,#121212) 92%,transparent);padding:8px 10px}
+      .wanjuan-tianji-mode-row-title{font-size:12px;font-weight:600;color:var(--wj-text,#d1d5db)}
+      .wanjuan-tianji-mode-row-help{font-size:10px;color:var(--wj-muted,#6b7280);margin-top:2px}
+      .wanjuan-tianji-mode-host{display:flex;align-items:center;justify-content:flex-end;margin-left:0;vertical-align:middle}
       .wanjuan-tianji-mode-switch{display:inline-flex;align-items:center;gap:3px;padding:3px;border:1px solid color-mix(in srgb,var(--wj-border,#333) 72%,transparent);border-radius:9px;background:color-mix(in srgb,var(--wj-surface,#121212) 92%,transparent);box-shadow:0 1px 0 rgba(255,255,255,.04) inset}
       .wanjuan-tianji-mode-switch button{height:26px;min-width:64px;padding:0 12px!important;border:1px solid transparent!important;border-radius:7px!important;background:transparent!important;color:var(--wj-muted,#9ca3af)!important;font-size:11px!important;font-weight:600!important;transition:background .14s ease,border-color .14s ease,color .14s ease,box-shadow .14s ease,transform .14s ease}
       .wanjuan-tianji-mode-switch button:not(.is-active):not([aria-pressed="true"]):hover{background:color-mix(in srgb,var(--wj-surface-3,#2a2a2a) 88%,var(--wj-accent,#60a5fa) 12%)!important;color:var(--wj-text,#d1d5db)!important}
       .wanjuan-tianji-mode-switch button:focus-visible{outline:2px solid color-mix(in srgb,var(--wj-accent,#60a5fa) 70%,#fff 30%)!important;outline-offset:2px!important}
-      .wanjuan-tianji-body{padding:12px;display:grid;gap:14px}
+      .wanjuan-tianji-body{min-height:420px;padding:12px;display:grid!important;gap:14px}
       .wanjuan-tianji-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
       .wanjuan-tianji-settings-card label{display:grid;gap:6px;font-size:11px;color:var(--wj-muted,#6b7280)}
       .wanjuan-tianji-settings-card input,.wanjuan-tianji-settings-card textarea,.wanjuan-tianji-settings-card select{background:color-mix(in srgb,var(--wj-surface,#121212) 92%,transparent);border:1px solid color-mix(in srgb,var(--wj-border,#333) 72%,transparent);border-radius:8px;color:var(--wj-text,#e5e7eb);padding:9px 10px;font-size:12px;outline:none}
@@ -1954,26 +1963,9 @@ function installDesktopPatches() {
         <div data-tianji-assets></div>
       </div>
     `;
-    if (tianjiHost) {
-      tianjiHost.replaceChildren(panel);
-    } else if (!tianjiModeHost) {
-      seedanceCard.insertAdjacentElement("afterend", panel);
-    }
-    const modeSwitch = document.createElement("span");
-    modeSwitch.className = "wanjuan-tianji-mode-switch";
-    modeSwitch.setAttribute("data-wanjuan-tianji-mode-switch", "true");
-    modeSwitch.innerHTML = `
-      <button type="button" data-tianji-mode="official" aria-pressed="${tianjiSettingsPanelMode === "official" ? "true" : "false"}" class="${tianjiSettingsPanelMode === "official" ? "is-active" : ""}">普通模式</button>
-      <button type="button" data-tianji-mode="tianji" aria-pressed="${tianjiSettingsPanelMode === "tianji" ? "true" : "false"}" class="${tianjiSettingsPanelMode === "tianji" ? "is-active" : ""}">天玑模式</button>
-    `;
-    if (tianjiModeHost) tianjiModeHost.replaceChildren(modeSwitch);
-    tianjiSettingsInstalled = Boolean(tianjiHost || !tianjiModeHost);
-    const setTianjiMode = async (mode, shouldSave = true) => {
-      const normalizedMode = mode === "tianji" ? "tianji" : "official";
-      seedanceCard?.classList?.toggle("wanjuan-tianji-mode-active", normalizedMode === "tianji");
-      panel.dataset.tianjiMode = normalizedMode;
-      panel.hidden = normalizedMode !== "tianji";
-      modeSwitch.querySelectorAll("[data-tianji-mode]").forEach((button) => {
+    tianjiHost.replaceChildren(panel);
+    const updateTianjiModeButtons = (normalizedMode) => {
+      document.querySelectorAll("[data-tianji-mode]").forEach((button) => {
         const isActive = button.getAttribute("data-tianji-mode") === normalizedMode;
         button.classList.toggle("is-active", isActive);
         button.setAttribute("aria-pressed", isActive ? "true" : "false");
@@ -1998,6 +1990,14 @@ function installDesktopPatches() {
           button.style.setProperty("box-shadow", "none", "important");
         }
       });
+    };
+    tianjiSettingsInstalled = Boolean(panel.isConnected);
+    const setTianjiMode = async (mode, shouldSave = true) => {
+      const normalizedMode = mode === "tianji" ? "tianji" : "official";
+      seedanceCard?.classList?.toggle("wanjuan-tianji-mode-active", normalizedMode === "tianji");
+      panel.dataset.tianjiMode = normalizedMode;
+      panel.hidden = normalizedMode !== "tianji";
+      updateTianjiModeButtons(normalizedMode);
       if (shouldSave) await tianjiStorageSet({ tianjiSeedanceSettingsMode: normalizedMode });
     };
     setTianjiMode(tianjiSettingsPanelMode, false).catch(console.warn);
@@ -2011,14 +2011,6 @@ function installDesktopPatches() {
     });
     panel.addEventListener("input", (event) => {
       if (event.target?.hasAttribute?.("data-tianji-field")) tianjiSaveConfigFromPanel(panel).catch(console.warn);
-    });
-    modeSwitch.addEventListener("click", (event) => {
-      const mode = event.target?.getAttribute?.("data-tianji-mode");
-      if (mode) {
-        event.preventDefault();
-        event.stopPropagation();
-        setTianjiMode(mode).catch(console.warn);
-      }
     });
     panel.addEventListener("click", async (event) => {
       const action = event.target?.getAttribute?.("data-tianji-action");
