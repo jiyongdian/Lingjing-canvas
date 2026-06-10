@@ -1718,7 +1718,7 @@ function installDesktopPatches() {
         : `<div class="wanjuan-tianji-empty">暂无素材，刷新列表或上传人像后查看。</div>`;
       return `<section><div class="wanjuan-tianji-subtitle">${title} · ${assets.length} 个</div><div class="wanjuan-tianji-grid">${body}</div></section>`;
     };
-    target.innerHTML = renderGroup("真人人像", "LivenessFace") + renderGroup("虚拟人像", "AIGC");
+    target.innerHTML = renderGroup("虚拟人像", "AIGC") + renderGroup("真人人像", "LivenessFace");
     target.querySelectorAll("[data-tianji-info]").forEach((button) => {
       button.addEventListener("click", async (event) => {
         event.preventDefault();
@@ -1956,7 +1956,7 @@ function installDesktopPatches() {
           <label style="display:flex;align-items:center;gap:8px"><input data-tianji-field="watermark" type="checkbox" ${tianjiSettingsState.watermark ? "checked" : ""}>添加水印</label>
         </div>
         <div class="wanjuan-tianji-row">
-          <label>上传类型<select data-tianji-upload-type><option value="LivenessFace">真人人像</option><option value="AIGC">虚拟人像</option></select></label>
+          <label>上传类型<select data-tianji-upload-type><option value="AIGC">虚拟人像</option><option value="LivenessFace">真人人像</option></select></label>
           <label>素材名称<input data-tianji-upload-name placeholder="素材名称"></label>
           <label>图片文件<input data-tianji-upload-file type="file" accept="image/*"></label>
         </div>
@@ -2045,7 +2045,7 @@ function installDesktopPatches() {
         if (action === "upload") {
           const file = panel.querySelector("[data-tianji-upload-file]")?.files?.[0];
           if (!file) throw new Error("请选择一张人像图片");
-          const type = panel.querySelector("[data-tianji-upload-type]")?.value || "LivenessFace";
+          const type = panel.querySelector("[data-tianji-upload-type]")?.value || "AIGC";
           const name = panel.querySelector("[data-tianji-upload-name]")?.value || file.name || "人像素材";
           const dataUrl = await new Promise((resolve, reject) => {
             const reader = new FileReader();
