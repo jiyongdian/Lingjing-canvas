@@ -30249,6 +30249,7 @@ time=1h`,
 	    [newProjectIds, setNewProjectIds] = useState([]),
 	    [projectMenuOpen, setProjectMenuOpen] = useState(!1),
     [newProjectName, setNewProjectName] = useState(``),
+    [newProjectGroupId, setNewProjectGroupId] = useState(``),
     [renameProjectId, setRenameProjectId] = useState(null),
     [renameProjectName, setRenameProjectName] = useState(``),
     [backupExportSelection, setBackupExportSelection] = useState([
@@ -35066,18 +35067,24 @@ ${docText}`;
         },
         Ut = () => {
           if (!newProjectName.trim()) return;
-          let newProject = {
+          let normalizedGroupsForNewProject = normalizeProjectGroups(projectGroups),
+            validNewProjectGroupIds = new Set(normalizedGroupsForNewProject.map((group) => group.id)),
+            selectedNewProjectGroupId = validNewProjectGroupIds.has(newProjectGroupId) ? newProjectGroupId : ``,
+            newProject = {
               id: `proj-${Date.now()}`,
-              name: newProjectName
+              name: newProjectName,
+              groupId: selectedNewProjectGroupId
             },
             updatedProjects = [...projects, newProject];
 	          (setProjects(updatedProjects),
 	            setNewProjectIds((prevProjectIds) => (prevProjectIds.includes(newProject.id) ? prevProjectIds : [...prevProjectIds, newProject.id])),
 	            setActiveProjectId(newProject.id),
             setNewProjectName(``),
+            setNewProjectGroupId(selectedNewProjectGroupId),
             setProjectMenuOpen(!1),
             _ && chrome.storage.local.set({
-              projects: updatedProjects
+              projects: updatedProjects,
+              projectGroups: normalizedGroupsForNewProject
             }));
         },
         normalizeProjectGroups = (rawGroups) =>
@@ -42169,7 +42176,12 @@ ${String(l || ``).slice(0, 5e4)}`;
                           children: projectStorageLabel(projects.find((project) => project.id === activeProjectId)),
                         }),
                         jsx(`button`, {
-                          onClick: () => setProjectMenuOpen(!0),
+                          onClick: () => {
+                            let activeProject = projects.find((project) => project.id === activeProjectId),
+                              currentProjectGroupId = activeProject?.groupId || ``;
+                            setNewProjectGroupId(projectGroupIds.has(currentProjectGroupId) ? currentProjectGroupId : ``);
+                            setProjectMenuOpen(!0);
+                          },
                           className: `text-gray-400 hover:text-white p-1`,
                           title: `新建项目`,
                           children: `+`,
@@ -43245,7 +43257,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                 jsx(`div`, {
                   className: `absolute inset-0 bg-black/50 flex items-center justify-center z-50`,
                   children: jsxs(`div`, {
-                    className: `bg-[#2a2a2a] p-4 rounded-lg border border-[#333] w-64`,
+                    className: `bg-[#2a2a2a] p-4 rounded-lg border border-[#333] w-72`,
                     children: [
                       jsx(`h3`, {
                         className: `text-gray-200 text-sm font-bold mb-3`,
@@ -43258,11 +43270,41 @@ ${String(l || ``).slice(0, 5e4)}`;
                         onChange: (event) => setNewProjectName(event.target.value),
                         autoFocus: !0,
                       }),
+                      jsxs(`label`, {
+                        className: `block mb-3`,
+                        children: [
+                          jsx(`span`, {
+                            className: `block text-[11px] font-semibold text-gray-400 mb-1.5`,
+                            children: `项目分组`,
+                          }),
+                          jsxs(`select`, {
+                            value: newProjectGroupId,
+                            onChange: (event) => setNewProjectGroupId(event.target.value),
+                            className: `w-full bg-[#1c1c1c] border border-[#333] rounded p-2 text-gray-200 text-xs outline-none focus:border-blue-500`,
+                            title: `选择新项目所在分组`,
+                            children: [
+                              jsx(`option`, {
+                                value: ``,
+                                children: `未分组`,
+                              }),
+                              projectGroupList.map((group) =>
+                                jsx(`option`, {
+                                  value: group.id,
+                                  children: group.name,
+                                }, group.id),
+                              ),
+                            ],
+                          }),
+                        ],
+                      }),
                       jsxs(`div`, {
                         className: `flex justify-end gap-2`,
                         children: [
                           jsx(`button`, {
-                            onClick: () => setProjectMenuOpen(!1),
+                            onClick: () => {
+                              setProjectMenuOpen(!1);
+                              setNewProjectGroupId(``);
+                            },
                             className: `text-gray-400 hover:text-white text-xs px-2 py-1`,
                             children: `取消`,
                           }),
