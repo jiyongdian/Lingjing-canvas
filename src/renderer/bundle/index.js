@@ -38953,17 +38953,38 @@ ${String(l || ``).slice(0, 5e4)}`;
 		                        (updateGlobalTasks((tasks) =>
 		                            tasks.map((task2) =>
 	                              task2.id === task.id ?
-                              {
-                                ...task2,
-                                status: `completed`,
-                                progress: 100,
-                                customOutputType: `image`,
-                                customResultData: existingImageUrl,
-                              } :
-                              task2,
-                            ),
-                          ),
-                          addResource(existingImageUrl, `image`, `generated`),
+                          {
+                            ...task2,
+                            status: `completed`,
+                            progress: 100,
+                            customOutputType: `image`,
+                            customResultData: existingImageUrl,
+                            resultUrl: existingImageUrl,
+                            errorMsg: void 0,
+                          } :
+                          task2,
+                        ),
+                      ),
+                      task.nodeId &&
+                      N((nodes) =>
+                        nodes.map((node) =>
+                          node.id === task.nodeId ?
+                          {
+                            ...node,
+                            data: {
+                              ...node.data,
+                              taskId: task.id,
+                              seedanceTaskId: void 0,
+                              imageUrl: existingImageUrl,
+                              loading: !1,
+                              progress: 100,
+                              errorMessage: void 0,
+                            },
+                          } :
+                          node,
+                        ),
+                      ),
+                      addResource(existingImageUrl, `image`, `generated`),
 		                          notify(`图片结果已同步到节点`));
 	                        return;
 	                      }
@@ -39063,8 +39084,29 @@ ${String(l || ``).slice(0, 5e4)}`;
                                   progress: 100,
                                   customOutputType: `image`,
                                   customResultData: imageUrl,
+                                  resultUrl: imageUrl,
+                                  errorMsg: void 0,
                                 } :
                                 task2,
+                              ),
+                            ),
+                            task.nodeId &&
+                            N((nodes) =>
+                              nodes.map((node) =>
+                                node.id === task.nodeId ?
+                                {
+                                  ...node,
+                                  data: {
+                                    ...node.data,
+                                    taskId: task.id,
+                                    seedanceTaskId: void 0,
+                                    imageUrl: imageUrl,
+                                    loading: !1,
+                                    progress: 100,
+                                    errorMessage: void 0,
+                                  },
+                                } :
+                                node,
                               ),
                             ),
                             addResource(imageUrl, `image`, `generated`),
@@ -39639,7 +39681,12 @@ ${String(l || ``).slice(0, 5e4)}`;
 	                      let provider = String(task.provider || ``).toLowerCase(),
 	                        outputType = String(task.type || task.customOutputType || ``).toLowerCase(),
 	                        modelName = String(task.modelName || ``).toLowerCase();
-	                      return outputType === `video` || provider === `seedance` || provider === `tongyi-wanxiang` || /seedance|doubao|wanx|wan\d|tongyi/.test(modelName);
+	                      return outputType === `video` ||
+	                        provider === `seedance` ||
+	                        provider === `tongyi-wanxiang` ||
+	                        /seedance|doubao|wanx|wan\d|tongyi/.test(modelName) ||
+	                        (outputType === `image` && (task.remoteTaskId || task.requestProfile?.requestType === `gpt-image-2-async`)) ||
+	                        (outputType === `audio` && (task.remoteTaskId || provider === `suno`));
 	                    })
 	                    .sort((taskA, taskB) => (taskB.createdAt || 0) - (taskA.createdAt || 0))
 	                    .slice(0, 5);
