@@ -551,6 +551,65 @@ var TongyiWanxiangLogo = ({
       }),
     ],
   }),
+  WanJuanReplaceImageIcon = ({
+    size: size = 14
+  } = {}) =>
+  jsxs(`svg`, {
+    width: size,
+    height: size,
+    viewBox: `0 0 24 24`,
+    fill: `none`,
+    stroke: `currentColor`,
+    strokeWidth: `2`,
+    strokeLinecap: `round`,
+    strokeLinejoin: `round`,
+    "aria-hidden": `true`,
+    children: [
+      jsx(`path`, {
+        d: `M4 6.5A2.5 2.5 0 0 1 6.5 4H14l4 4v2`
+      }),
+      jsx(`path`, {
+        d: `M14 4v4h4`
+      }),
+      jsx(`path`, {
+        d: `M5 18l3.2-3.2a1.4 1.4 0 0 1 2 0L12 16.6l1-1a1.4 1.4 0 0 1 2 0L17 17.6`
+      }),
+      jsx(`path`, {
+        d: `M6 20h8`
+      }),
+      jsx(`path`, {
+        d: `M18 14a3 3 0 0 1 0 6h-1`
+      }),
+      jsx(`path`, {
+        d: `M18 14v2.5h2.5`
+      }),
+    ],
+  }),
+  WanJuanTianjiPortraitReviewIcon = ({
+    size: size = 14
+  } = {}) =>
+  jsxs(`svg`, {
+    width: size,
+    height: size,
+    viewBox: `0 0 24 24`,
+    fill: `none`,
+    stroke: `currentColor`,
+    strokeWidth: `2`,
+    strokeLinecap: `round`,
+    strokeLinejoin: `round`,
+    "aria-hidden": `true`,
+    children: [
+      jsx(`path`, {
+        d: `M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z`
+      }),
+      jsx(`path`, {
+        d: `M3 21a6 6 0 0 1 10.2-4.3`
+      }),
+      jsx(`path`, {
+        d: `M17.5 21 14 17.7l1.4-1.4 2.1 2 4.1-4.3 1.4 1.4-5.5 5.6Z`
+      }),
+    ],
+  }),
   WanJuanFavoriteModelStoreKey = `wanjuan.favoriteModels.v1`,
   WanJuanReadFavoriteModels = () => {
     try {
@@ -791,7 +850,7 @@ var TongyiWanxiangLogo = ({
                 onClick: (event) => {
                   (event.stopPropagation(), fileInputRef.current?.click());
                 },
-                children: jsx(se, {
+                children: jsx(WanJuanReplaceImageIcon, {
                   size: 14
                 }),
               }),
@@ -844,14 +903,18 @@ var TongyiWanxiangLogo = ({
                   size: 14
                 }),
               }),
+              mediaType === `image` &&
               jsx(`button`, {
-                className: `p-1.5 text-gray-400 hover:text-blue-400 hover:bg-[#333] rounded-md`,
-                title: `发送到左侧网站`,
+                className: `p-1.5 text-gray-400 hover:text-cyan-300 hover:bg-[#333] rounded-md`,
+                title: `天玑人像审核`,
                 onClick: (event) => {
                   (event.stopPropagation(),
-                    data.onSendToActiveTab && imageUrl && data.onSendToActiveTab(imageUrl));
+                    data.onTianjiPortraitReview && imageUrl && data.onTianjiPortraitReview(imageUrl, {
+                      nodeId: nodeId,
+                      label: label || data.name || `虚拟人像素材`,
+                    }));
                 },
-                children: jsx(N, {
+                children: jsx(WanJuanTianjiPortraitReviewIcon, {
                   size: 14
                 }),
               }),
@@ -1287,13 +1350,16 @@ var TongyiWanxiangLogo = ({
                   }),
                 }),
                 jsx(`button`, {
-                  className: `p-1.5 text-gray-300 hover:text-blue-400 hover:bg-white/10 rounded-md transition-colors`,
-                  title: `发送到左侧网站`,
+                  className: `p-1.5 text-gray-300 hover:text-cyan-300 hover:bg-white/10 rounded-md transition-colors`,
+                  title: `天玑人像审核`,
                   onClick: (event) => {
                     (event.stopPropagation(),
-                      data.onSendToActiveTab && data.onSendToActiveTab(imageUrl));
+                      data.onTianjiPortraitReview && data.onTianjiPortraitReview(imageUrl, {
+                        nodeId: nodeId,
+                        label: data.label || `生图结果`,
+                      }));
                   },
-                  children: jsx(N, {
+                  children: jsx(WanJuanTianjiPortraitReviewIcon, {
                     size: 14
                   }),
                 }),
@@ -15797,6 +15863,17 @@ const wanjuanTianjiStorageGet = (keys) =>
     }
   });
 
+const wanjuanTianjiStorageSet = (items) =>
+  new Promise((resolve) => {
+    try {
+      typeof chrome < `u` && chrome.storage?.local ?
+        chrome.storage.local.set(items || {}, () => resolve(!0)) :
+        resolve(!1);
+    } catch {
+      resolve(!1);
+    }
+  });
+
 const wanjuanNormalizeTianjiSeedanceConfig = (config = {}) => ({
   ...wanjuanTianjiSeedanceDefaults,
   ...(config && typeof config == `object` ? config : {}),
@@ -15950,6 +16027,78 @@ const wanjuanTianjiFindVideoUrl = (data) => {
 
 const wanjuanTianjiFindTaskId = (data) =>
   wanjuanTianjiFindDeep(data, [`execute_id`, `executeId`, `task_id`, `taskId`, `id`]);
+
+const wanjuanTianjiCreateLocalUploadAsset = ({ name: name, imageUrl: imageUrl, result: result }) => ({
+  id: wanjuanTianjiFindDeep(result, [`portrait_asset_id`, `asset_id`, `assetId`, `id`, `AssetId`]) || `local-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
+  portrait_asset_id: wanjuanTianjiFindDeep(result, [`portrait_asset_id`, `asset_id`, `assetId`, `id`, `AssetId`]) || ``,
+  name: name || `虚拟人像素材`,
+  image_url: imageUrl || ``,
+  status: wanjuanTianjiFindDeep(result, [`status`, `Status`]) || `已提交`,
+  groupType: `AIGC`,
+  localUploaded: !0,
+  createdAt: Date.now(),
+});
+
+const wanjuanTianjiMergeSubmittedPortraitAsset = async (asset) => {
+  let stored = await wanjuanTianjiStorageGet([`tianjiSeedanceAssets`]),
+    assets = stored.tianjiSeedanceAssets && typeof stored.tianjiSeedanceAssets == `object` ?
+    stored.tianjiSeedanceAssets :
+    {},
+    currentAigc = Array.isArray(assets.AIGC) ? assets.AIGC : [],
+    assetId = String(asset.portrait_asset_id || asset.asset_id || asset.assetId || asset.id || ``).trim(),
+    imageUrl = String(asset.image_url || asset.imageUrl || asset.url || ``).trim(),
+    nextAigc = currentAigc.filter((item) => {
+      let itemAssetId = String(item?.portrait_asset_id || item?.asset_id || item?.assetId || item?.id || ``).trim(),
+        itemImageUrl = String(item?.image_url || item?.imageUrl || item?.url || ``).trim();
+      return !(
+        (assetId && itemAssetId && assetId === itemAssetId) ||
+        (imageUrl && itemImageUrl && imageUrl === itemImageUrl)
+      );
+    });
+  await wanjuanTianjiStorageSet({
+    tianjiSeedanceAssets: {
+      ...assets,
+      AIGC: [asset, ...nextAigc],
+      LivenessFace: Array.isArray(assets.LivenessFace) ? assets.LivenessFace : [],
+    },
+    tianjiSeedanceSettingsMode: `tianji`,
+  });
+};
+
+const wanjuanUploadTianjiVirtualPortrait = async (imageUrl, options = {}) => {
+  let sourceUrl = String(imageUrl || ``).trim();
+  if (!sourceUrl) throw Error(`图片节点没有可上传的人像图片`);
+  if (/^(data:video\/|data:audio\/)/i.test(sourceUrl) || /\.(mp4|webm|ogg|mov|mp3|wav|m4a|aac|flac)(?:$|[?#])/i.test(sourceUrl))
+    throw Error(`天玑人像审核只支持图片素材`);
+  if (!window.wanjuanDesktop?.uploadPublicMedia)
+    throw Error(`当前桌面端缺少公网图片上传能力，请重启应用后再试`);
+  let stored = await wanjuanTianjiStorageGet([`tianjiSeedanceConfig`]),
+    config = wanjuanNormalizeTianjiSeedanceConfig(stored.tianjiSeedanceConfig || {}),
+    label = String(options.name || options.label || `虚拟人像素材`).trim() || `虚拟人像素材`,
+    uploaded = await window.wanjuanDesktop.uploadPublicMedia({
+      url: sourceUrl,
+      kind: `image`,
+      filename: `tianji-portrait-${Date.now()}`,
+    });
+  if (!uploaded?.ok || !uploaded.url) throw Error(uploaded?.error || `图片公网链接上传失败`);
+  let result = await wanjuanTianjiRequest(config, `/api/cut/model/upload-VirtralPortrait`, {
+      params: {
+        image_url: uploaded.url,
+        name: label,
+      },
+    }),
+    asset = wanjuanTianjiCreateLocalUploadAsset({
+      name: label,
+      imageUrl: uploaded.url,
+      result: result,
+    });
+  await wanjuanTianjiMergeSubmittedPortraitAsset(asset);
+  return {
+    result: result,
+    asset: asset,
+    imageUrl: uploaded.url,
+  };
+};
 
 const wanjuanTianjiFindThumbUrl = (data) => {
   let thumbnailUrl = wanjuanTianjiFindDeep(data, [
@@ -25117,6 +25266,23 @@ ${combinedPrompt}`,
         },
         [getNodes, getEdges, setNodes, setEdges, showToast, addGeneratedAsset],
     ),
+    handleTianjiPortraitReview = useCallback(
+      async (imageUrl, meta = {}) => {
+          try {
+            showToast(`正在提交到天玑虚拟人像审核...`);
+            let result = await wanjuanUploadTianjiVirtualPortrait(imageUrl, {
+              name: meta.label || `虚拟人像素材`,
+            });
+            showToast(`已提交天玑虚拟人像审核，可在设置里的天玑模式刷新素材查看`);
+            return result;
+          } catch (error) {
+            (console.error(`Tianji portrait review upload failed`, error),
+              showToast(`天玑人像审核提交失败：${error?.message || error}`));
+            throw error;
+          }
+        },
+        [showToast],
+    ),
     handleExtractFrames = useCallback(
       async (nodeId) => {
           let node = getNodes().find((node2) => node2.id === nodeId);
@@ -25627,6 +25793,7 @@ ${combinedPrompt}`,
               void 0,
             presetPrompts: C,
             onSendToActiveTab: nodeType === `promptNode` || nodeType === `imageNode` ? sendToActiveTab : void 0,
+            onTianjiPortraitReview: nodeType === `promptNode` || nodeType === `imageNode` ? handleTianjiPortraitReview : void 0,
             seedanceNode: nodeType === `seedanceNode` ? !0 : void 0,
             tongyiWanxiangNode: nodeType === `tongyiWanxiangNode` ? !0 : void 0,
             tongyiWanxiangMode: nodeType === `tongyiWanxiangNode` ? `text-to-video` : void 0,
@@ -26579,6 +26746,9 @@ ${combinedPrompt}`,
           (node.type === `promptNode` || node.type === `imageNode`) &&
           nodeData.onSendToActiveTab !== sendToActiveTab &&
           ((nodeData.onSendToActiveTab = sendToActiveTab), (hasChanged = !0)),
+          (node.type === `promptNode` || node.type === `imageNode`) &&
+          nodeData.onTianjiPortraitReview !== handleTianjiPortraitReview &&
+          ((nodeData.onTianjiPortraitReview = handleTianjiPortraitReview), (hasChanged = !0)),
           hasChanged ? {
             ...node,
             data: nodeData
@@ -26608,6 +26778,7 @@ ${combinedPrompt}`,
     openImageEditor,
     openVideoEditor,
     sendToActiveTab,
+    handleTianjiPortraitReview,
     apiConfigs,
     modelProtocolRegistry,
     textModelApiBindings,
@@ -40519,6 +40690,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                     `onStop`,
                     `onShowToast`,
                     `onSendToActiveTab`,
+                    `onTianjiPortraitReview`,
                     `onExtractFrames`,
                     `updateGlobalTasks`,
                   ]),
