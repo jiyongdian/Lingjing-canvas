@@ -14160,6 +14160,30 @@ function wanjuanVideoTaskCanAttachToNode(task, node, projectId) {
       !/seedance|doubao|wanx|wan\d|tongyi/i.test(modelName);
   return !1;
 }
+function wanjuanTaskCreatedAt(task) {
+  let value = Number(task?.createdAt || task?.updatedAt || 0);
+  return Number.isFinite(value) ? value : 0;
+}
+function wanjuanTaskUsesSeedanceSlot(task, node) {
+  let provider = String(task?.provider || ``).toLowerCase(),
+    modelName = String(task?.modelName || task?.model || ``).toLowerCase();
+  return provider.includes(`seedance`) || (node?.type === `seedanceNode` && /seedance|doubao/.test(modelName));
+}
+function wanjuanNewestNodeTask(tasks, node, projectId, currentTask) {
+  if (!Array.isArray(tasks) || !node?.id) return null;
+  let currentTime = wanjuanTaskCreatedAt(currentTask),
+    candidates = tasks
+      .filter((task) =>
+        task?.id &&
+        !task.stoppedByUser &&
+        task.nodeId === node.id &&
+        (task.projectId || `default`) === (projectId || `default`) &&
+        wanjuanVideoTaskCanAttachToNode(task, node, projectId),
+      )
+      .sort((taskA, taskB) => wanjuanTaskCreatedAt(taskB) - wanjuanTaskCreatedAt(taskA));
+  if (!candidates.length) return null;
+  return !currentTask || wanjuanTaskCreatedAt(candidates[0]) > currentTime ? candidates[0] : null;
+}
 function wanjuanResourceKind(mediaItem) {
   let mediaType = String(mediaItem?.type || mediaItem?.mediaKind || ``).toLowerCase(),
     mediaUrl = String(mediaItem?.url || mediaItem?.videoUrl || mediaItem?.resultVideoUrl || mediaItem?.audioUrl || mediaItem?.resultAudioUrl || mediaItem?.imageUrl || mediaItem?.mediaUrl || mediaItem?.resultUrl || mediaItem?.localPath || mediaItem?.path || mediaItem?.thumbnailUrl || ``).toLowerCase();
@@ -17135,8 +17159,8 @@ wan2.7-videoedit-1080P`,
 	        task = typeof taskValue == `string` ? taskValue : ``,
 	        localTaskUrl = task ? wanjuanResourceLocalUrlMap.get(task)?.url || `` : ``;
 	      if (localTaskUrl) return localTaskUrl;
-	      if (/^(file:\/\/|data:video\/|blob:)/i.test(current)) return current;
-	      return task || current;
+	      if (task) return task;
+	      return current;
 	    };
 	  (useEffect(() => {
 	      nodesRef.current = nodes;
@@ -18029,6 +18053,8 @@ wan2.7-videoedit-1080P`,
                           (GlobalTasks || [])
                           .filter((task) => task.id && task.nodeId && task.nodeId === hydratedNode.id)
                           .sort((task, taskA) => (taskA.createdAt || 0) - (task.createdAt || 0))[0];
+                        let newerNodeTask = wanjuanNewestNodeTask(GlobalTasks || [], hydratedNode, projectIdRef.current, activeTask);
+                        newerNodeTask && (activeTask = newerNodeTask);
                         let invalidVideoTaskBinding = !1;
                         if (activeTask && !wanjuanVideoTaskCanAttachToNode(activeTask, hydratedNode, projectIdRef.current))
                           ((activeTask = null), (invalidVideoTaskBinding = !0));
@@ -18066,7 +18092,8 @@ wan2.7-videoedit-1080P`,
                             ...hydratedNode,
                             data: {
                               ...hydratedNode.data,
-                              seedanceTaskId: hydratedNode.data.seedanceTaskId || activeTask.id,
+                              taskId: wanjuanTaskUsesSeedanceSlot(activeTask, hydratedNode) ? void 0 : activeTask.id,
+                              seedanceTaskId: wanjuanTaskUsesSeedanceSlot(activeTask, hydratedNode) ? activeTask.id : void 0,
                               loading: !0,
                               progress: activeTask.progress || hydratedNode.data.progress || 0,
                               errorMessage: void 0,
@@ -18077,12 +18104,14 @@ wan2.7-videoedit-1080P`,
                             ...hydratedNode,
                             data: {
                               ...hydratedNode.data,
+                              taskId: wanjuanTaskUsesSeedanceSlot(activeTask, hydratedNode) ? void 0 : activeTask.id,
+                              seedanceTaskId: wanjuanTaskUsesSeedanceSlot(activeTask, hydratedNode) ? activeTask.id : void 0,
                               resultData: activeTask.customResultData || hydratedNode.data.resultData,
                               text: activeTask.customOutputType === `text` ?
                                 activeTask.customResultData || hydratedNode.data.text :
                                 hydratedNode.data.text,
                               imageUrl: activeTask.customOutputType === `image` ?
-                                activeTask.customResultData || hydratedNode.data.imageUrl :
+                                activeTask.customResultData || activeTask.resultUrl || hydratedNode.data.imageUrl :
                                 hydratedNode.data.imageUrl,
 	                              videoUrl: resolveWanjuanPlayableTaskUrl(hydratedNode.data.videoUrl, activeTask.resultUrl),
                               audioUrl: activeTask.customOutputType === `audio` ?
@@ -18099,6 +18128,8 @@ wan2.7-videoedit-1080P`,
                             ...hydratedNode,
                             data: {
                               ...hydratedNode.data,
+                              taskId: wanjuanTaskUsesSeedanceSlot(activeTask, hydratedNode) ? void 0 : activeTask.id,
+                              seedanceTaskId: wanjuanTaskUsesSeedanceSlot(activeTask, hydratedNode) ? activeTask.id : void 0,
                               loading: !1,
                               errorMessage: activeTask.errorMsg ||
                                 hydratedNode.data.errorMessage ||
@@ -18143,11 +18174,13 @@ wan2.7-videoedit-1080P`,
             let taskId = node.data?.seedanceTaskId || node.data?.taskId;
             if (!taskId && node.data?.loading && (node.type === `seedanceNode` || node.type === `tongyiWanxiangNode` || node.type === `videoNode`))
               return node;
-                        let matchedTask = taskId ?
+            let matchedTask = taskId ?
               GlobalTasks.find((task) => task.id === taskId) :
               GlobalTasks
               .filter((task) => task.id && task.nodeId && task.nodeId === node.id)
               .sort((taskB, taskA) => (taskA.createdAt || 0) - (taskB.createdAt || 0))[0];
+            let newerNodeTask = wanjuanNewestNodeTask(GlobalTasks, node, projectIdRef.current, matchedTask);
+            newerNodeTask && (matchedTask = newerNodeTask);
             let o = !1;
             if (matchedTask && !wanjuanVideoTaskCanAttachToNode(matchedTask, node, projectIdRef.current))
               ((matchedTask = null), (o = !0));
@@ -18182,7 +18215,9 @@ wan2.7-videoedit-1080P`,
             let updatedData = {
               ...node.data
             };
-            matchedTask.provider === `seedance` ? (updatedData.seedanceTaskId ||= matchedTask.id) : (updatedData.taskId ||= matchedTask.id);
+            if (wanjuanTaskUsesSeedanceSlot(matchedTask, node))
+              ((updatedData.seedanceTaskId = matchedTask.id), (updatedData.taskId = void 0));
+            else ((updatedData.taskId = matchedTask.id), (updatedData.seedanceTaskId = void 0));
             if (matchedTask.status === `pending` || matchedTask.status === `running`)
               ((updatedData.loading = !0),
                 (updatedData.progress = matchedTask.progress || updatedData.progress || 0),
@@ -18192,7 +18227,7 @@ wan2.7-videoedit-1080P`,
                 matchedTask.customOutputType === `text` &&
                 (updatedData.text = matchedTask.customResultData || updatedData.text),
                 matchedTask.customOutputType === `image` &&
-                (updatedData.imageUrl = matchedTask.customResultData || updatedData.imageUrl),
+                (updatedData.imageUrl = matchedTask.customResultData || matchedTask.resultUrl || updatedData.imageUrl),
 	                (updatedData.videoUrl = resolveWanjuanPlayableTaskUrl(updatedData.videoUrl, matchedTask.resultUrl)),
                 matchedTask.customOutputType === `video` &&
                 (updatedData.videoUrl = matchedTask.customResultData || updatedData.videoUrl),
