@@ -16644,6 +16644,9 @@ async function wanjuanRunTianjiSeedanceVideo(options) {
                 },
                 data: {
                   ...node.data,
+                  taskId: void 0,
+                  seedanceTaskId: taskId,
+                  tianjiExecuteId: taskId,
                   videoUrl: videoUrl,
                   thumbnailUrl: thumbnailUrl,
                   videoAspectRatio: aspectRatio2,
@@ -16660,6 +16663,9 @@ async function wanjuanRunTianjiSeedanceVideo(options) {
             width: width,
             height: height + 24
           }, {
+            taskId: void 0,
+            seedanceTaskId: taskId,
+            tianjiExecuteId: taskId,
             videoUrl: videoUrl,
             thumbnailUrl: thumbnailUrl,
             videoAspectRatio: aspectRatio2,
@@ -18094,6 +18100,7 @@ wan2.7-videoedit-1080P`,
                               ...hydratedNode.data,
                               taskId: wanjuanTaskUsesSeedanceSlot(activeTask, hydratedNode) ? void 0 : activeTask.id,
                               seedanceTaskId: wanjuanTaskUsesSeedanceSlot(activeTask, hydratedNode) ? activeTask.id : void 0,
+                              tianjiExecuteId: activeTask.provider === `tianji-seedance` ? activeTask.id : hydratedNode.data.tianjiExecuteId,
                               loading: !0,
                               progress: activeTask.progress || hydratedNode.data.progress || 0,
                               errorMessage: void 0,
@@ -18106,6 +18113,7 @@ wan2.7-videoedit-1080P`,
                               ...hydratedNode.data,
                               taskId: wanjuanTaskUsesSeedanceSlot(activeTask, hydratedNode) ? void 0 : activeTask.id,
                               seedanceTaskId: wanjuanTaskUsesSeedanceSlot(activeTask, hydratedNode) ? activeTask.id : void 0,
+                              tianjiExecuteId: activeTask.provider === `tianji-seedance` ? activeTask.id : hydratedNode.data.tianjiExecuteId,
                               resultData: activeTask.customResultData || hydratedNode.data.resultData,
                               text: activeTask.customOutputType === `text` ?
                                 activeTask.customResultData || hydratedNode.data.text :
@@ -18130,6 +18138,7 @@ wan2.7-videoedit-1080P`,
                               ...hydratedNode.data,
                               taskId: wanjuanTaskUsesSeedanceSlot(activeTask, hydratedNode) ? void 0 : activeTask.id,
                               seedanceTaskId: wanjuanTaskUsesSeedanceSlot(activeTask, hydratedNode) ? activeTask.id : void 0,
+                              tianjiExecuteId: activeTask.provider === `tianji-seedance` ? activeTask.id : hydratedNode.data.tianjiExecuteId,
                               loading: !1,
                               errorMessage: activeTask.errorMsg ||
                                 hydratedNode.data.errorMessage ||
@@ -18218,6 +18227,7 @@ wan2.7-videoedit-1080P`,
             if (wanjuanTaskUsesSeedanceSlot(matchedTask, node))
               ((updatedData.seedanceTaskId = matchedTask.id), (updatedData.taskId = void 0));
             else ((updatedData.taskId = matchedTask.id), (updatedData.seedanceTaskId = void 0));
+            matchedTask.provider === `tianji-seedance` && (updatedData.tianjiExecuteId = matchedTask.id);
             if (matchedTask.status === `pending` || matchedTask.status === `running`)
               ((updatedData.loading = !0),
                 (updatedData.progress = matchedTask.progress || updatedData.progress || 0),
@@ -39124,6 +39134,28 @@ ${String(l || ``).slice(0, 5e4)}`;
                               taskItem,
                             ),
                           ),
+                          task.nodeId &&
+                          setNodes((nodes) =>
+                            nodes.map((node) =>
+                              node.id === task.nodeId ?
+                              {
+                                ...node,
+                                data: {
+                                  ...node.data,
+                                  taskId: void 0,
+                                  seedanceTaskId: task.id,
+                                  tianjiExecuteId: task.id,
+                                  videoUrl: videoUrl,
+                                  thumbnailUrl: thumbUrl,
+                                  loading: !1,
+                                  progress: 100,
+                                  errorMessage: void 0,
+                                  loadingText: void 0,
+                                },
+                              } :
+                              node,
+                            ),
+                          ),
                           addResource(videoUrl, `video`, `generated`),
                           notify(`即梦天玑任务已完成，结果已拉回`));
                         return;
@@ -39559,12 +39591,32 @@ ${String(l || ``).slice(0, 5e4)}`;
                               resultUrl: resultUrl,
                               thumbnailUrl: thumbnailUrl,
                             } :
-                            task2,
+                              task2,
                           ),
                         ),
                         isCompleted &&
                         resultUrl &&
-                        (addResource(resultUrl, `video`, `generated`),
+                        (task.nodeId &&
+                          setNodes((nodes) =>
+                            nodes.map((node) =>
+                              node.id === task.nodeId ?
+                              {
+                                ...node,
+                                data: {
+                                  ...node.data,
+                                  taskId: wanjuanTaskUsesSeedanceSlot(task, node) ? void 0 : task.id,
+                                  seedanceTaskId: wanjuanTaskUsesSeedanceSlot(task, node) ? task.id : void 0,
+                                  videoUrl: resultUrl,
+                                  thumbnailUrl: thumbnailUrl,
+                                  loading: !1,
+                                  progress: 100,
+                                  errorMessage: void 0,
+                                },
+                              } :
+                              node,
+                            ),
+                          ),
+                          addResource(resultUrl, `video`, `generated`),
                           thumbnailUrl && addResource(thumbnailUrl, `image`, `generated`)),
 	                        notify(isCompleted ? resultUrl ? `任务已完成，结果已拉回` : `任务已完成，但接口没有返回视频地址` : `状态已刷新`));
 	                    } else notify(`刷新失败: ${response.status}`);
