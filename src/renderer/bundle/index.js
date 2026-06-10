@@ -4078,6 +4078,7 @@ var Le = reactMemo(({
       [seedancePortraitPickerOpen, setSeedancePortraitPickerOpen] = useState(!1),
       seedancePortraitPickerRef = useRef(null),
       [tianjiNodePortraitAssets, setTianjiNodePortraitAssets] = useState([]),
+      [tianjiPortraitPickerRefreshing, setTianjiPortraitPickerRefreshing] = useState(!1),
       seedanceNodeVirtualPortraits = wanjuanNormalizeSeedanceVirtualPortraits(data.seedanceVirtualPortraits || []);
     let applyPreferredVideoModel = (favoritesOverride = favoriteModels.favorites) => {
       if (!data.videoModel) return;
@@ -4438,6 +4439,28 @@ var Le = reactMemo(({
     let seedancePortraitPickerIsTianji = seedanceModeValue === `tianji`,
       seedancePortraitPickerTitle = seedancePortraitPickerIsTianji ? `天玑人像库` : `虚拟人像库`,
       seedancePortraitPickerItems = seedancePortraitPickerIsTianji ? tianjiNodePortraitAssets : seedanceNodeVirtualPortraits;
+    let refreshTianjiPortraitPicker = async () => {
+      if (!seedancePortraitPickerIsTianji || tianjiPortraitPickerRefreshing) return;
+      try {
+        setTianjiPortraitPickerRefreshing(!0);
+        data.onShowToast?.(`正在刷新天玑人像库...`);
+        let stored = await wanjuanTianjiStorageGet([`tianjiSeedanceConfig`]),
+          config = wanjuanNormalizeTianjiSeedanceConfig(stored.tianjiSeedanceConfig || {}),
+          refresh = await wanjuanTianjiRefreshPortraitAssets(config, {
+            preferredType: `AIGC`,
+            retries: 1,
+            delayMs: 1200,
+          }),
+          nextAssets = wanjuanNormalizeTianjiPortraitAssets(refresh?.assets || {});
+        (setTianjiNodePortraitAssets(nextAssets),
+          data.onShowToast?.(`天玑人像库已刷新：${nextAssets.length} 个可用素材`));
+      } catch (error) {
+        (console.error(`Refresh Tianji portrait picker failed`, error),
+          data.onShowToast?.(`刷新天玑人像库失败：${error?.message || error}`));
+      } finally {
+        setTianjiPortraitPickerRefreshing(!1);
+      }
+    };
     (useEffect(() => {
         data.prompt !== void 0 && data.prompt !== prompt && setPrompt(data.prompt);
       }, [data.prompt]),
@@ -5791,12 +5814,27 @@ var Le = reactMemo(({
                                       }),
                                     ],
                                   }),
-                                  jsx(`button`, {
-                                    onClick: () => setSeedancePortraitPickerOpen(!1),
-                                    className: `text-gray-500 hover:text-white p-1`,
-                                    children: jsx(F, {
-                                      size: 12
-                                    }),
+                                  jsxs(`div`, {
+                                    className: `flex items-center gap-1`,
+                                    children: [
+                                      seedancePortraitPickerIsTianji &&
+                                      jsx(`button`, {
+                                        type: `button`,
+                                        disabled: tianjiPortraitPickerRefreshing,
+                                        onClick: (event) => {
+                                          (event.preventDefault(), event.stopPropagation(), refreshTianjiPortraitPicker());
+                                        },
+                                        className: `h-6 px-2 rounded-md border border-[#333] bg-[#202020] text-[10px] text-gray-300 hover:text-white hover:border-cyan-500 hover:bg-[#263238] disabled:opacity-60 disabled:cursor-not-allowed transition-colors`,
+                                        children: tianjiPortraitPickerRefreshing ? `刷新中` : `刷新素材`,
+                                      }),
+                                      jsx(`button`, {
+                                        onClick: () => setSeedancePortraitPickerOpen(!1),
+                                        className: `text-gray-500 hover:text-white p-1`,
+                                        children: jsx(F, {
+                                          size: 12
+                                        }),
+                                      }),
+                                    ],
                                   }),
                                 ],
                               }),
