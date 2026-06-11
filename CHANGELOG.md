@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.13 - 2026-06-11
+
+- Fixed Jimeng/Seedance video nodes sometimes showing the first generated result after a later generation completed.
+- Cleared stale local project media bindings when video generation starts, completes, or is refreshed from the task list.
+- Made project reopen and global task recovery treat the latest completed video task as authoritative instead of reviving older local media bindings.
+- Synced the fix into the macOS app build and updated the desktop package version to 1.2.13.
+
 ## 1.2.12 - 2026-06-10
 
 - Fixed Jimeng/Tianji video nodes reopening with stale earlier results after multiple generations on the same node.

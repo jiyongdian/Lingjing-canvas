@@ -14184,6 +14184,29 @@ function wanjuanNewestNodeTask(tasks, node, projectId, currentTask) {
   if (!candidates.length) return null;
   return !currentTask || wanjuanTaskCreatedAt(candidates[0]) > currentTime ? candidates[0] : null;
 }
+function wanjuanClearProjectAssetBindingsFromData(data, fields = []) {
+  if (!data || typeof data != `object` || !Array.isArray(fields) || !fields.length) return data;
+  let bindings = data.projectAssetBindings;
+  if (!bindings || typeof bindings != `object`) return data;
+  let nextBindings = {
+      ...bindings
+    },
+    changed = !1;
+  fields.forEach((field) => {
+    if (Object.prototype.hasOwnProperty.call(nextBindings, field)) {
+      delete nextBindings[field];
+      changed = !0;
+    }
+  });
+  if (!changed) return data;
+  let nextData = {
+    ...data
+  };
+  Object.keys(nextBindings).length > 0 ?
+    (nextData.projectAssetBindings = nextBindings) :
+    delete nextData.projectAssetBindings;
+  return nextData;
+}
 function wanjuanResourceKind(mediaItem) {
   let mediaType = String(mediaItem?.type || mediaItem?.mediaKind || ``).toLowerCase(),
     mediaUrl = String(mediaItem?.url || mediaItem?.videoUrl || mediaItem?.resultVideoUrl || mediaItem?.audioUrl || mediaItem?.resultAudioUrl || mediaItem?.imageUrl || mediaItem?.mediaUrl || mediaItem?.resultUrl || mediaItem?.localPath || mediaItem?.path || mediaItem?.thumbnailUrl || ``).toLowerCase();
@@ -16670,7 +16693,7 @@ async function wanjuanRunTianjiSeedanceVideo(options) {
         {
           ...node,
           data: {
-            ...node.data,
+            ...wanjuanClearProjectAssetBindingsFromData(node.data, [`videoUrl`, `thumbnailUrl`, `resultData`]),
             seedanceTaskId: taskId,
             tianjiExecuteId: taskId,
             videoUrl: void 0,
@@ -16695,6 +16718,8 @@ async function wanjuanRunTianjiSeedanceVideo(options) {
       progress: 1,
       errorMessage: void 0,
       loadingText: `任务已提交，等待查询...`
+    }, {
+      clearProjectAssetBindings: [`videoUrl`, `thumbnailUrl`, `resultData`]
     }),
     localStorage.setItem(options.dailyKey, (options.dailyCount + 1).toString()),
     options.setDailyCount(options.dailyCount + 1),
@@ -16770,7 +16795,7 @@ async function wanjuanRunTianjiSeedanceVideo(options) {
                   height: height + 24
                 },
                 data: {
-                  ...node.data,
+                  ...wanjuanClearProjectAssetBindingsFromData(node.data, [`videoUrl`, `thumbnailUrl`, `resultData`]),
                   taskId: void 0,
                   seedanceTaskId: taskId,
                   tianjiExecuteId: taskId,
@@ -16800,6 +16825,8 @@ async function wanjuanRunTianjiSeedanceVideo(options) {
             progress: 100,
             errorMessage: void 0,
             loadingText: void 0,
+          }, {
+            clearProjectAssetBindings: [`videoUrl`, `thumbnailUrl`, `resultData`]
           }),
           options.updateEdges((edges) =>
             edges.map((edge) => (edge.target === options.nodeId ? {
@@ -18203,12 +18230,12 @@ wan2.7-videoedit-1080P`,
                         }
                         invalidVideoTaskBinding &&
                           (hydratedNode.type === `seedanceNode` || hydratedNode.type === `tongyiWanxiangNode`) &&
-                          (hydratedNode = {
-                            ...hydratedNode,
-                            data: {
-                              ...hydratedNode.data,
-                              taskId: void 0,
-                              seedanceTaskId: void 0,
+	                          (hydratedNode = {
+	                            ...hydratedNode,
+	                            data: {
+	                              ...wanjuanClearProjectAssetBindingsFromData(hydratedNode.data, [`videoUrl`, `thumbnailUrl`, `resultData`]),
+	                              taskId: void 0,
+	                              seedanceTaskId: void 0,
                               videoUrl: void 0,
                               thumbnailUrl: void 0,
                               resultData: void 0,
@@ -18222,15 +18249,18 @@ wan2.7-videoedit-1080P`,
                           (activeTask.status === `pending` ||
                             activeTask.status === `running`)
                         )
-                          hydratedNode = {
-                            ...hydratedNode,
-                            data: {
-                              ...hydratedNode.data,
-                              taskId: wanjuanTaskUsesSeedanceSlot(activeTask, hydratedNode) ? void 0 : activeTask.id,
-                              seedanceTaskId: wanjuanTaskUsesSeedanceSlot(activeTask, hydratedNode) ? activeTask.id : void 0,
-                              tianjiExecuteId: activeTask.provider === `tianji-seedance` ? activeTask.id : hydratedNode.data.tianjiExecuteId,
-                              loading: !0,
-                              progress: activeTask.progress || hydratedNode.data.progress || 0,
+	                          hydratedNode = {
+	                            ...hydratedNode,
+	                            data: {
+	                              ...wanjuanClearProjectAssetBindingsFromData(hydratedNode.data, [`videoUrl`, `thumbnailUrl`, `resultData`]),
+	                              taskId: wanjuanTaskUsesSeedanceSlot(activeTask, hydratedNode) ? void 0 : activeTask.id,
+	                              seedanceTaskId: wanjuanTaskUsesSeedanceSlot(activeTask, hydratedNode) ? activeTask.id : void 0,
+	                              tianjiExecuteId: activeTask.provider === `tianji-seedance` ? activeTask.id : hydratedNode.data.tianjiExecuteId,
+	                              videoUrl: void 0,
+	                              thumbnailUrl: void 0,
+	                              resultData: void 0,
+	                              loading: !0,
+	                              progress: activeTask.progress || hydratedNode.data.progress || 0,
                               errorMessage: void 0,
                             },
                           };
@@ -18277,12 +18307,12 @@ wan2.7-videoedit-1080P`,
                           !activeTask &&
                           !LoadOnceRef.current &&
                           !abortControllersRef.current.has(hydratedNode.id) &&
-                          (hydratedNode = {
-                            ...hydratedNode,
-                            data: {
-                              ...hydratedNode.data,
-                              loading: !1,
-                              errorMessage: hydratedNode.data.errorMessage ||
+	                          (hydratedNode = {
+	                            ...hydratedNode,
+	                            data: {
+	                              ...wanjuanClearProjectAssetBindingsFromData(hydratedNode.data, [`videoUrl`, `thumbnailUrl`, `resultData`]),
+	                              loading: !1,
+	                              errorMessage: hydratedNode.data.errorMessage ||
                                 `任务状态待确认，请在任务清单刷新或重新生成`,
                             },
                           });
@@ -18357,11 +18387,16 @@ wan2.7-videoedit-1080P`,
             else ((updatedData.taskId = matchedTask.id), (updatedData.seedanceTaskId = void 0));
             matchedTask.provider === `tianji-seedance` && (updatedData.tianjiExecuteId = matchedTask.id);
             if (matchedTask.status === `pending` || matchedTask.status === `running`)
-              ((updatedData.loading = !0),
+              ((updatedData = wanjuanClearProjectAssetBindingsFromData(updatedData, [`videoUrl`, `thumbnailUrl`, `resultData`])),
+                (updatedData.videoUrl = void 0),
+                (updatedData.thumbnailUrl = void 0),
+                (updatedData.resultData = void 0),
+                (updatedData.loading = !0),
                 (updatedData.progress = matchedTask.progress || updatedData.progress || 0),
                 (updatedData.errorMessage = void 0));
             else if (matchedTask.status === `completed`)
-              ((updatedData.resultData = matchedTask.customResultData || updatedData.resultData),
+              ((updatedData = wanjuanClearProjectAssetBindingsFromData(updatedData, [`videoUrl`, `thumbnailUrl`, `resultData`])),
+                (updatedData.resultData = matchedTask.customResultData || updatedData.resultData),
                 matchedTask.customOutputType === `text` &&
                 (updatedData.text = matchedTask.customResultData || updatedData.text),
                 matchedTask.customOutputType === `image` &&
@@ -20857,16 +20892,20 @@ ${combinedPrompt}`,
             /^grok-video/i.test(modelName) && /xpclaw\.ai/i.test(videoBaseUrl),
             videoKey = videoConfig?.key || videoApiKey,
             projectIdAtStart = projectIdRef.current,
-            persistVideoNodeState = async (styleUpdates = {}, dataUpdates = {}) => {
+            persistVideoNodeState = async (styleUpdates = {}, dataUpdates = {}, options = {}) => {
               try {
                 let storageKey = `${canvasStateKeyPrefix}${projectIdAtStart}`,
                   projectData = await X.default.getItem(storageKey);
                 projectData?.nodes &&
                   ((projectData = {
                       ...projectData,
-                      nodes: projectData.nodes.map((node) =>
-                        node.id === nodeId ?
-                        {
+                      nodes: projectData.nodes.map((node) => {
+                        if (node.id !== nodeId) return node;
+                        let baseData = wanjuanClearProjectAssetBindingsFromData(
+                          node.data,
+                          options.clearProjectAssetBindings || [],
+                        );
+                        return {
                           ...node,
                           style: Object.keys(styleUpdates).length > 0 ?
                             {
@@ -20875,12 +20914,11 @@ ${combinedPrompt}`,
                             } :
                             node.style,
                           data: {
-                            ...node.data,
+                            ...baseData,
                             ...dataUpdates
                           },
-                        } :
-                        node,
-                      ),
+                        };
+                      }),
                     }),
                     await X.default.setItem(storageKey, projectData));
               } catch (error) {
@@ -20995,12 +21033,12 @@ ${combinedPrompt}`,
           (setNodes((nodes2) =>
               nodes2.map((node) =>
                 node.id === nodeId ?
-                {
-                  ...node,
-                  data: {
-                    ...node.data,
-                    loading: !0,
-                    manuallyStopped: !1,
+	                {
+	                  ...node,
+	                  data: {
+	                    ...wanjuanClearProjectAssetBindingsFromData(node.data, [`videoUrl`, `thumbnailUrl`, `resultData`]),
+	                    loading: !0,
+	                    manuallyStopped: !1,
                     progress: 0,
                     taskId: void 0,
                     seedanceTaskId: void 0,
@@ -21451,19 +21489,27 @@ ${combinedPrompt}`,
                 setNodes((nodes3) =>
                   nodes3.map((node) =>
                     node.id === nodeId ?
-                    {
-                      ...node,
-                      data: {
-                        ...node.data,
-                        taskId: taskId
-                      }
-                    } :
+	                    {
+	                      ...node,
+	                      data: {
+	                        ...wanjuanClearProjectAssetBindingsFromData(node.data, [`videoUrl`, `thumbnailUrl`, `resultData`]),
+	                        taskId: taskId,
+	                        videoUrl: void 0,
+	                        thumbnailUrl: void 0,
+	                        resultData: void 0
+	                      }
+	                    } :
                     node,
                   ),
-                ),
-                await persistVideoNodeState({}, {
-                  taskId: taskId
-                }),
+	                ),
+	                await persistVideoNodeState({}, {
+	                  taskId: taskId,
+	                  videoUrl: void 0,
+	                  thumbnailUrl: void 0,
+	                  resultData: void 0
+	                }, {
+	                  clearProjectAssetBindings: [`videoUrl`, `thumbnailUrl`, `resultData`]
+	                }),
                 localStorage.setItem(dailyLimitKey, (l + 1).toString()),
                 setDailyGenerationCount(l + 1),
                 showToast(`通义万相任务提交成功，正在生成中...`));
@@ -21563,10 +21609,10 @@ ${combinedPrompt}`,
                               ...node.style,
                               width: width,
                               height: height + 24
-                            },
-                            data: {
-                              ...node.data,
-                              videoUrl: videoUrl,
+	                            },
+	                            data: {
+	                              ...wanjuanClearProjectAssetBindingsFromData(node.data, [`videoUrl`, `thumbnailUrl`, `resultData`]),
+	                              videoUrl: videoUrl,
                               videoAspectRatio: tongyiNodeRatio,
                               loading: !1,
                               progress: 100,
@@ -21583,9 +21629,11 @@ ${combinedPrompt}`,
                         videoUrl: videoUrl,
                         videoAspectRatio: tongyiNodeRatio,
                         loading: !1,
-                        progress: 100,
-                        errorMessage: void 0,
-                      }, ),
+	                        progress: 100,
+	                        errorMessage: void 0,
+	                      }, {
+	                        clearProjectAssetBindings: [`videoUrl`, `thumbnailUrl`, `resultData`]
+	                      }),
                       setEdges((edges2) =>
                         edges2.map((edge) => (edge.target === nodeId ? {
                           ...edge,
@@ -22184,17 +22232,28 @@ ${combinedPrompt}`,
                 setNodes((nodes3) =>
                   nodes3.map((node) =>
                     node.id === nodeId ?
-                    {
-                      ...node,
-                      data: {
-                        ...node.data,
-                        seedanceTaskId: taskId
-                      }
-                    } :
+	                    {
+	                      ...node,
+	                      data: {
+	                        ...wanjuanClearProjectAssetBindingsFromData(node.data, [`videoUrl`, `thumbnailUrl`, `resultData`]),
+	                        seedanceTaskId: taskId,
+	                        videoUrl: void 0,
+	                        thumbnailUrl: void 0,
+	                        resultData: void 0
+	                      }
+	                    } :
                     node,
                   ),
-                ),
-                localStorage.setItem(dailyLimitKey, (l + 1).toString()),
+	                ),
+	                await persistVideoNodeState({}, {
+	                  seedanceTaskId: taskId,
+	                  videoUrl: void 0,
+	                  thumbnailUrl: void 0,
+	                  resultData: void 0
+	                }, {
+	                  clearProjectAssetBindings: [`videoUrl`, `thumbnailUrl`, `resultData`]
+	                }),
+	                localStorage.setItem(dailyLimitKey, (l + 1).toString()),
                 setDailyGenerationCount(l + 1),
                 showToast(`Seedance 任务提交成功，正在生成中...`));
               let done = !1,
@@ -22459,10 +22518,10 @@ ${combinedPrompt}`,
                                 ...node.style,
                                 width: width,
                                 height: height + 24
-                              },
-                              data: {
-                                ...node.data,
-                                videoUrl: videoUrl,
+	                              },
+	                              data: {
+	                                ...wanjuanClearProjectAssetBindingsFromData(node.data, [`videoUrl`, `thumbnailUrl`, `resultData`]),
+	                                videoUrl: videoUrl,
                                 thumbnailUrl: thumbUrl,
                                 videoAspectRatio: seedanceNodeRatio,
                                 loading: !1,
@@ -22481,9 +22540,11 @@ ${combinedPrompt}`,
                           thumbnailUrl: thumbUrl,
                           videoAspectRatio: seedanceNodeRatio,
                           loading: !1,
-                          progress: 100,
-                          errorMessage: void 0,
-                        }, ),
+	                          progress: 100,
+	                          errorMessage: void 0,
+	                        }, {
+	                          clearProjectAssetBindings: [`videoUrl`, `thumbnailUrl`, `resultData`]
+	                        }),
                         setEdges((edges2) =>
                           edges2.map((edge) => (edge.target === nodeId ? {
                             ...edge,
@@ -23180,19 +23241,27 @@ ${combinedPrompt}`,
                 setNodes((nodes3) =>
                   nodes3.map((node) =>
                     node.id === nodeId ?
-                    {
-                      ...node,
-                      data: {
-                        ...node.data,
-                        taskId: taskId
-                      }
-                    } :
+	                    {
+	                      ...node,
+	                      data: {
+	                        ...wanjuanClearProjectAssetBindingsFromData(node.data, [`videoUrl`, `thumbnailUrl`, `resultData`]),
+	                        taskId: taskId,
+	                        videoUrl: void 0,
+	                        thumbnailUrl: void 0,
+	                        resultData: void 0
+	                      }
+	                    } :
                     node,
                   ),
-                ),
-                await persistVideoNodeState({}, {
-                  taskId: taskId
-                }),
+	                ),
+	                await persistVideoNodeState({}, {
+	                  taskId: taskId,
+	                  videoUrl: void 0,
+	                  thumbnailUrl: void 0,
+	                  resultData: void 0
+	                }, {
+	                  clearProjectAssetBindings: [`videoUrl`, `thumbnailUrl`, `resultData`]
+	                }),
                 localStorage.setItem(dailyLimitKey, (l + 1).toString()),
                 setDailyGenerationCount(l + 1),
                 showToast(`任务提交成功，正在生成中...`));
@@ -23340,10 +23409,10 @@ ${combinedPrompt}`,
                               ...node.style,
                               width: width,
                               height: height + 24
-                            },
-                            data: {
-                              ...node.data,
-                              videoUrl: videoUrl,
+	                            },
+	                            data: {
+	                              ...wanjuanClearProjectAssetBindingsFromData(node.data, [`videoUrl`, `thumbnailUrl`, `resultData`]),
+	                              videoUrl: videoUrl,
                               thumbnailUrl: thumbUrl,
                               videoAspectRatio: aspectRatio2,
                               loading: !1,
@@ -23360,9 +23429,11 @@ ${combinedPrompt}`,
                         videoUrl: videoUrl,
                         thumbnailUrl: thumbUrl,
                         videoAspectRatio: aspectRatio2,
-                        loading: !1,
-                        progress: 100,
-                      }, ),
+	                        loading: !1,
+	                        progress: 100,
+	                      }, {
+	                        clearProjectAssetBindings: [`videoUrl`, `thumbnailUrl`, `resultData`]
+	                      }),
                       addGeneratedAsset && videoUrl && addGeneratedAsset(videoUrl, `video`, `generated`),
                       showToast(`视频生成成功！`));
                     break;
@@ -23674,19 +23745,27 @@ ${combinedPrompt}`,
               setNodes((nodes3) =>
                 nodes3.map((node) =>
                   node.id === nodeId ?
-                  {
-                    ...node,
-                    data: {
-                      ...node.data,
-                      taskId: taskId
-                    }
-                  } :
+	                  {
+	                    ...node,
+	                    data: {
+	                      ...wanjuanClearProjectAssetBindingsFromData(node.data, [`videoUrl`, `thumbnailUrl`, `resultData`]),
+	                      taskId: taskId,
+	                      videoUrl: void 0,
+	                      thumbnailUrl: void 0,
+	                      resultData: void 0
+	                    }
+	                  } :
                   node,
                 ),
-              ),
-              await persistVideoNodeState({}, {
-                taskId: taskId
-              }),
+	              ),
+	              await persistVideoNodeState({}, {
+	                taskId: taskId,
+	                videoUrl: void 0,
+	                thumbnailUrl: void 0,
+	                resultData: void 0
+	              }, {
+	                clearProjectAssetBindings: [`videoUrl`, `thumbnailUrl`, `resultData`]
+	              }),
               localStorage.setItem(dailyLimitKey, (l + 1).toString()),
               setDailyGenerationCount(l + 1),
               showToast(`任务提交成功，正在生成中...`));
@@ -23794,10 +23873,10 @@ ${combinedPrompt}`,
                               ...node.style,
                               width: width,
                               height: height + 24
-                            },
-                            data: {
-                              ...node.data,
-                              videoUrl: videoUrl,
+	                            },
+	                            data: {
+	                              ...wanjuanClearProjectAssetBindingsFromData(node.data, [`videoUrl`, `thumbnailUrl`, `resultData`]),
+	                              videoUrl: videoUrl,
                               thumbnailUrl: thumbnailUrl,
                               videoAspectRatio: seedanceNodeRatio,
                               loading: !1,
@@ -23814,9 +23893,11 @@ ${combinedPrompt}`,
                         videoUrl: videoUrl,
                         thumbnailUrl: thumbnailUrl,
                         videoAspectRatio: seedanceNodeRatio,
-                        loading: !1,
-                        progress: 100,
-                      }, ),
+	                        loading: !1,
+	                        progress: 100,
+	                      }, {
+	                        clearProjectAssetBindings: [`videoUrl`, `thumbnailUrl`, `resultData`]
+	                      }),
                       addGeneratedAsset && videoUrl && addGeneratedAsset(videoUrl, `video`, `generated`),
                       showToast(`视频生成成功！`));
                     break;
@@ -39339,7 +39420,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                               {
                                 ...node,
                                 data: {
-                                  ...node.data,
+                                  ...wanjuanClearProjectAssetBindingsFromData(node.data, [`videoUrl`, `thumbnailUrl`, `resultData`]),
                                   taskId: void 0,
                                   seedanceTaskId: task.id,
                                   tianjiExecuteId: task.id,
@@ -39801,7 +39882,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                               {
                                 ...node,
                                 data: {
-                                  ...node.data,
+                                  ...wanjuanClearProjectAssetBindingsFromData(node.data, [`videoUrl`, `thumbnailUrl`, `resultData`]),
                                   taskId: wanjuanTaskUsesSeedanceSlot(task, node) ? void 0 : task.id,
                                   seedanceTaskId: wanjuanTaskUsesSeedanceSlot(task, node) ? task.id : void 0,
                                   videoUrl: resultUrl,
