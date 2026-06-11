@@ -14411,6 +14411,133 @@ function wanjuanResourceLooksLikeImageUrl(value) {
 function wanjuanResourceLooksLikeVideoUrl(value) {
   return /^data:video\//i.test(String(value || ``)) || /\.(mp4|webm|mov|m4v|mpeg|mpg|avi|mkv)(?:$|[?#])/i.test(String(value || ``));
 }
+function wanjuanGetTransitResourcePageSize(gridCols) {
+  let cols = parseInt(gridCols, 10);
+  if (!Number.isFinite(cols) || cols <= 0) cols = 4;
+  return Math.max(20, cols * 5);
+}
+function wanjuanStableResourceIdPart(value) {
+  let text = String(value || ``),
+    hash = 0;
+  for (let index = 0; index < text.length; index++) hash = (hash * 31 + text.charCodeAt(index)) >>> 0;
+  return hash.toString(16);
+}
+function wanjuanCollectResourceSignatures(resource) {
+  let signatures = [];
+  [
+    resource?.url,
+    resource?.originalUrl,
+    resource?.remoteUrl,
+    resource?.sourceUrl,
+    resource?.resultUrl,
+    resource?.mediaUrl,
+    resource?.videoUrl,
+    resource?.resultVideoUrl,
+    resource?.localPath,
+    resource?.path,
+    resource?.projectAssetBinding?.localPath,
+    resource?.projectAssetBinding?.sourceSignature,
+  ].forEach((value) => {
+    typeof value == `string` && value.trim() && signatures.push(value.trim());
+  });
+  return signatures;
+}
+function wanjuanExtractVideoUrlFromValue(value) {
+  if (!value) return ``;
+  if (typeof value == `string`) {
+    let trimmed = value.trim();
+    if (!trimmed) return ``;
+    if (/^(https?:\/\/|file:\/\/|blob:|data:video\/)/i.test(trimmed) || wanjuanResourceLooksLikeVideoUrl(trimmed)) return trimmed;
+    try {
+      let parsed = JSON.parse(trimmed);
+      return wanjuanExtractVideoUrlFromValue(parsed);
+    } catch {
+      let match = trimmed.match(/(?:https?:\/\/|file:\/\/)[^\s"'<>]+?\.(?:mp4|webm|mov|m4v|mpeg|mpg|avi|mkv)(?:[?#][^\s"'<>]*)?/i);
+      return match?.[0] || ``;
+    }
+  }
+  if (Array.isArray(value)) {
+    for (let item of value) {
+      let url = wanjuanExtractVideoUrlFromValue(item);
+      if (url) return url;
+    }
+    return ``;
+  }
+  if (typeof value == `object`) {
+    for (let key of [
+        `videoUrl`,
+        `resultVideoUrl`,
+        `outputVideoUrl`,
+        `video_url`,
+        `result_video_url`,
+        `output_video_url`,
+        `mediaUrl`,
+        `resultUrl`,
+        `url`,
+        `downloadUrl`,
+      ]) {
+      let url = wanjuanExtractVideoUrlFromValue(value[key]);
+      if (url) return url;
+    }
+  }
+  return ``;
+}
+function wanjuanBuildGeneratedVideoResourcesFromNodes(nodes, existingResources, projectId) {
+  let existingSignatures = new Set();
+  (Array.isArray(existingResources) ? existingResources : []).forEach((resource) =>
+    wanjuanCollectResourceSignatures(resource).forEach((signature) => existingSignatures.add(signature)),
+  );
+  let generatedResources = [],
+    generatedSignatures = new Set(),
+    generatedNodeTypes = new Set([`videoNode`, `seedanceNode`, `tongyiWanxiangNode`, `videoFaceBlurNode`]);
+  (Array.isArray(nodes) ? nodes : []).forEach((node) => {
+    let nodeData = node?.data || {},
+      nodeType = String(node?.type || ``),
+      sourceText = [
+        nodeData.source,
+        nodeData.sourceOrigin,
+        nodeData.mediaSourceOrigin,
+        nodeData.origin,
+        nodeData.provider,
+      ].map((value) => String(value || ``).toLowerCase()).join(` `),
+      isGeneratedVideo =
+      generatedNodeTypes.has(nodeType) ||
+      nodeData.mediaKind === `video` && /\bgenerated\b|ai|seedance|doubao|tongyi|wanxiang|task|video-editor/.test(sourceText);
+    if (!isGeneratedVideo) return;
+    let videoUrl =
+      wanjuanExtractVideoUrlFromValue(nodeData.videoUrl) ||
+      wanjuanExtractVideoUrlFromValue(nodeData.resultVideoUrl) ||
+      wanjuanExtractVideoUrlFromValue(nodeData.outputVideoUrl) ||
+      wanjuanExtractVideoUrlFromValue(nodeData.mediaUrl) ||
+      wanjuanExtractVideoUrlFromValue(nodeData.resultUrl) ||
+      wanjuanExtractVideoUrlFromValue(nodeData.resultData) ||
+      (nodeData.mediaKind === `video` ? wanjuanExtractVideoUrlFromValue(nodeData.imageUrl) : ``);
+    if (!videoUrl || existingSignatures.has(videoUrl) || generatedSignatures.has(videoUrl)) return;
+    generatedSignatures.add(videoUrl);
+    let posterUrl = String(nodeData.thumbnailUrl || nodeData.posterUrl || nodeData.coverUrl || nodeData.previewImageUrl || ``).trim(),
+      resourceName = String(
+        nodeData.videoName ||
+        nodeData.originalName ||
+        nodeData.label ||
+        nodeData.name ||
+        (nodeType === `seedanceNode` ? `即梦视频结果` : nodeType === `tongyiWanxiangNode` ? `通义万相视频结果` : `AI生成视频`),
+      ).trim();
+    generatedResources.push({
+      id: `generated-video-${node?.id || `node`}-${wanjuanStableResourceIdPart(videoUrl)}`,
+      url: videoUrl,
+      videoUrl: videoUrl,
+      thumbnailUrl: posterUrl,
+      type: `video/mp4`,
+      timestamp: Date.now(),
+      pageUrl: `canvas:${projectId || `default`}`,
+      pageTitle: resourceName || `AI生成视频`,
+      source: `generated`,
+      sourceOrigin: `generated`,
+      originalName: resourceName || ``,
+    });
+  });
+  return generatedResources;
+}
 function wanjuanCanFallbackImageToVideo(resource, mediaUrl, posterUrl) {
   if (!mediaUrl || wanjuanResourceLooksLikeImageUrl(mediaUrl) || wanjuanResourceLooksLikeImageUrl(posterUrl)) return !1;
   if (wanjuanResourceLooksLikeVideoUrl(mediaUrl) || resource?.videoUrl || resource?.resultVideoUrl) return !0;
@@ -16960,9 +17087,9 @@ wan2.7-videoedit-1080P`,
 	  seedanceUploadMode: seedanceUploadMode = `public`,
 	  tosConfig: tosConfig = {},
 	  customPublicUploadConfig: customPublicUploadConfig = {},
-	  qiniuConfig: qiniuConfig = {},
-	  initialEmptyProject: initialEmptyProject = !1,
-	  onInitialEmptyProjectReady: onInitialEmptyProjectReady,
+  qiniuConfig: qiniuConfig = {},
+  initialEmptyProject: initialEmptyProject = !1,
+  onInitialEmptyProjectReady: onInitialEmptyProjectReady,
 	}) {
   let [nodes, setNodes, onNodesChange] = le([]),
 		    [edges, setEdges, onEdgesChange] = te(ct),
@@ -17170,6 +17297,7 @@ wan2.7-videoedit-1080P`,
 	    };
 	  (useEffect(() => {
 	      nodesRef.current = nodes;
+	      try { globalThis.__wanjuanCanvasNodesSnapshot = nodes; } catch {}
 	    }, [nodes]),
 	    useEffect(() => {
 	      edgesRef.current = edges;
@@ -30872,6 +31000,28 @@ time=1h`,
           });
         }, 250));
     };
+  useEffect(() => {
+    if (activeView !== `transit`) return;
+    let canvasNodesSnapshot = typeof globalThis !== `undefined` && Array.isArray(globalThis.__wanjuanCanvasNodesSnapshot) ?
+      globalThis.__wanjuanCanvasNodesSnapshot :
+      [];
+    let generatedVideoResources = wanjuanBuildGeneratedVideoResourcesFromNodes(canvasNodesSnapshot, transitResources, activeProjectId);
+    if (!generatedVideoResources.length) return;
+    setTransitResources((resources) => {
+      let existingSignatures = new Set();
+      resources.forEach((resource) => wanjuanCollectResourceSignatures(resource).forEach((signature) => existingSignatures.add(signature)));
+      let missingResources = generatedVideoResources.filter((resource) => !wanjuanCollectResourceSignatures(resource).some((signature) => existingSignatures.has(signature)));
+      if (!missingResources.length) return resources;
+      let updatedResources = [...missingResources, ...resources];
+      return (
+        X.default.setItem(`transitResources`, updatedResources),
+        _ && chrome.storage.local.set({
+          transitResources: updatedResources
+        }),
+        updatedResources
+      );
+    });
+  }, [activeView, transitResources, activeProjectId]);
   let persistSeedanceVirtualPortraits = (portraits) => {
       let normalizedPortraits = wanjuanNormalizeSeedanceVirtualPortraits(portraits);
       (setSeedanceVirtualPortraits(normalizedPortraits),
@@ -35016,6 +35166,12 @@ ${docText}`;
                 setResourceCleanupBusy(!1);
               }
             };
+  let filteredTransitResources = transitResources.filter((resource) => wanjuanResourceMatchesFilter(resource, resourceTypeFilter, resourceSourceFilter, resourceFavoriteOnly)),
+    transitResourcePageSize = wanjuanGetTransitResourcePageSize(transitGridCols),
+    transitResourceTotalPages = Math.max(1, Math.ceil(filteredTransitResources.length / transitResourcePageSize));
+  useEffect(() => {
+    setCurrentPage((page) => Math.min(Math.max(1, page), transitResourceTotalPages));
+  }, [transitResourceTotalPages]);
   useEffect(() => {
     let handlePaste = async (event) => {
       if (activeView !== `transit`) return;
@@ -42379,7 +42535,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                       ],
                     }),
                     transitResources.length > 0 &&
-                    transitResources.filter((resource) => wanjuanResourceMatchesFilter(resource, resourceTypeFilter, resourceSourceFilter, resourceFavoriteOnly)).length === 0 &&
+                    filteredTransitResources.length === 0 &&
                     jsxs(`div`, {
                       className: `wanjuan-resource-empty-filter text-center text-gray-500 py-20 text-sm flex flex-col items-center`,
                       children: [
@@ -42401,8 +42557,8 @@ ${String(l || ``).slice(0, 5e4)}`;
                       style: {
                         gridTemplateColumns: `repeat(${transitGridCols}, minmax(0, 1fr))`,
                       },
-	                      children: transitResources.filter((resource) => wanjuanResourceMatchesFilter(resource, resourceTypeFilter, resourceSourceFilter, resourceFavoriteOnly))
-                        .slice((currentPage - 1) * 20, currentPage * 20)
+                      children: filteredTransitResources
+                        .slice((currentPage - 1) * transitResourcePageSize, currentPage * transitResourcePageSize)
                         .map((resource) =>
                           jsxs(
                             `div`, {
@@ -42570,12 +42726,11 @@ ${String(l || ``).slice(0, 5e4)}`;
                       className: `wanjuan-resource-footer flex justify-between items-center mt-4 pt-4 border-t border-[#333]`,
                       children: [
                         jsxs(`div`, {
-                          className: `text-sm font-bold text-gray-200`,
-	                          children: [wanjuanT(`资源`), ` (`, transitResources.filter((resource) => wanjuanResourceMatchesFilter(resource, resourceTypeFilter, resourceSourceFilter, resourceFavoriteOnly)).length, `)`],
+	                          className: `text-sm font-bold text-gray-200`,
+	                          children: [wanjuanT(`资源`), ` (`, filteredTransitResources.length, `)`],
                         }),
                         (() => {
-	                          let filteredResources = transitResources.filter((resource) => wanjuanResourceMatchesFilter(resource, resourceTypeFilter, resourceSourceFilter, resourceFavoriteOnly)).length,
-                            totalPages = Math.ceil(filteredResources / 20);
+	                          let totalPages = transitResourceTotalPages;
                           return totalPages <= 1 ?
                             jsx(`div`, {
                               className: `flex-1`
