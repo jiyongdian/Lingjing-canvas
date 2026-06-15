@@ -1875,6 +1875,9 @@ function installDesktopPatches() {
       .wanjuan-tianji-settings-card label{display:grid;gap:6px;min-width:0;font-size:11px;color:var(--wj-muted,#6b7280)}
       .wanjuan-tianji-settings-card input,.wanjuan-tianji-settings-card textarea,.wanjuan-tianji-settings-card select{width:100%;min-width:0;max-width:100%;background:color-mix(in srgb,var(--wj-surface-2,#121212) 82%,var(--wj-bg,#0f0f0f) 18%);border:1px solid color-mix(in srgb,var(--wj-border,#333) 72%,transparent);border-radius:8px;color:var(--wj-text,#e5e7eb);padding:9px 10px;font-size:12px;outline:none}
       .wanjuan-tianji-settings-card input:focus,.wanjuan-tianji-settings-card textarea:focus,.wanjuan-tianji-settings-card select:focus{border-color:color-mix(in srgb,var(--wj-accent,#60a5fa) 68%,var(--wj-border,#333))}
+      .wanjuan-tianji-secret-field{position:relative;display:block;min-width:0}
+      .wanjuan-tianji-secret-field input{padding-right:56px}
+      .wanjuan-tianji-secret-toggle{position:absolute;right:6px;bottom:6px;height:26px;min-width:44px;padding:0 8px!important;border-radius:6px!important;font-size:10px!important;line-height:1!important}
       .wanjuan-tianji-settings-card textarea{min-height:76px;resize:vertical}
       .wanjuan-tianji-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
       .wanjuan-tianji-settings-card button{border:1px solid color-mix(in srgb,var(--wj-border,#333) 72%,transparent);background:color-mix(in srgb,var(--wj-surface-3,#222) 86%,transparent);color:var(--wj-text,#d1d5db);border-radius:7px;padding:7px 10px;font-size:11px;cursor:pointer}
@@ -1946,7 +1949,7 @@ function installDesktopPatches() {
         </div>
         <div class="wanjuan-tianji-row">
           <label>接口地址<input data-tianji-field="baseUrl" value="${tianjiSettingsState.baseUrl}"></label>
-          <label>Authorization Token<input data-tianji-field="token" type="password" value="${tianjiSettingsState.token || ""}"></label>
+          <label>Authorization Token<span class="wanjuan-tianji-secret-field"><input data-tianji-field="token" type="password" value="${tianjiEscapeHtml(tianjiSettingsState.token || "")}"><button type="button" class="wanjuan-tianji-secret-toggle" data-tianji-toggle-secret aria-pressed="false">显示</button></span></label>
           <label>平台标识<input data-tianji-field="platform" value="${tianjiSettingsState.platform}"></label>
           <label>Sass ID<input data-tianji-field="sassId" value="${tianjiSettingsState.sassId}"></label>
           <label>真人组 ID<input data-tianji-field="liveGroupId" value="${tianjiGroupsState.LivenessFace || ""}"></label>
@@ -1996,6 +1999,17 @@ function installDesktopPatches() {
       if (event.target?.hasAttribute?.("data-tianji-field")) tianjiSaveConfigFromPanel(panel).catch(console.warn);
     });
     panel.addEventListener("click", async (event) => {
+      const secretToggle = event.target?.closest?.("[data-tianji-toggle-secret]");
+      if (secretToggle) {
+        event.preventDefault();
+        event.stopPropagation();
+        const tokenInput = panel.querySelector("[data-tianji-field='token']");
+        const isVisible = tokenInput?.type === "text";
+        if (tokenInput) tokenInput.type = isVisible ? "password" : "text";
+        secretToggle.textContent = isVisible ? "显示" : "隐藏";
+        secretToggle.setAttribute("aria-pressed", isVisible ? "false" : "true");
+        return;
+      }
       const action = event.target?.getAttribute?.("data-tianji-action");
       if (!action) return;
       try {
