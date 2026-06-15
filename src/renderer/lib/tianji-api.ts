@@ -76,11 +76,11 @@ interface RunTianjiSeedanceVideoOptions {
 
 /** 即梦天玑默认配置（base 地址、可选模型 / 时长 / 分辨率 / 画幅比例等）。 */
 export const wanjuanTianjiSeedanceDefaults: TianjiSeedanceConfig = {
-  baseUrl: `https://ai.kulunli.cn`,
+  baseUrl: ``,
   token: ``,
   sassId: `1`,
   platform: `web`,
-  models: `doubao-seedance-2-0-260128\ndoubao-seedance-2-0-fast-260128`,
+  models: ``,
   durations: `5\n10`,
   resolutions: `720p\n1080p`,
   ratios: `16:9\n9:16\n1:1\n4:3\n3:4\n21:9`,
@@ -105,9 +105,9 @@ export const wanjuanNormalizeTianjiSeedanceConfig = (config: any = {}): TianjiSe
   ...wanjuanTianjiSeedanceDefaults,
   ...(config && typeof config == `object` ? config : {}),
   baseUrl:
-    String(config?.baseUrl || wanjuanTianjiSeedanceDefaults.baseUrl)
+    String(config?.baseUrl || ``)
       .replace(/\s+/g, ``)
-      .replace(/\/+$/, ``) || wanjuanTianjiSeedanceDefaults.baseUrl,
+      .replace(/\/+$/, ``),
   token: String(config?.token || ``).trim(),
   sassId: String(config?.sassId || `1`).trim() || `1`,
   platform: String(config?.platform || `web`).trim() || `web`,
@@ -116,7 +116,7 @@ export const wanjuanNormalizeTianjiSeedanceConfig = (config: any = {}): TianjiSe
 });
 
 /** 把以空白 / 逗号 / 顿号分隔的字符串拆为列表，返回首个非空项，无则返回 fallback。 */
-export const wanjuanTianjiFirstListValue = (list: any, fallback: string): string =>
+export const wanjuanTianjiFirstListValue = (list: any, fallback = ``): string =>
   String(list || ``)
     .split(/[\s,，、]+/)
     .map((item) => item.trim())
@@ -447,10 +447,7 @@ export async function wanjuanRunTianjiSeedanceVideo(options: RunTianjiSeedanceVi
         ? `${options.extraPrompts.join(`\n`)}\n${options.prompt || ``}`
         : options.prompt || ``
     ).trim(),
-    model = wanjuanTianjiFirstListValue(
-      nodeData.tianjiSelectedModel || nodeData.selectedModel || nodeData.videoModel || config.models,
-      `doubao-seedance-2-0-fast-260128`,
-    ),
+    model = wanjuanTianjiFirstListValue(nodeData.tianjiSelectedModel || nodeData.selectedModel || nodeData.videoModel || config.models),
     resolution = String(
       nodeData.selectedResolution ||
         wanjuanTianjiFirstListValue(nodeData.seedanceResolutions || config.resolutions, `720p`),
@@ -466,6 +463,7 @@ export async function wanjuanRunTianjiSeedanceVideo(options: RunTianjiSeedanceVi
         wanjuanTianjiFirstListValue(nodeData.seedanceRatios || nodeData.videoResolutions || config.ratios, `16:9`),
     ).trim();
   if (!ratio.includes(`:`)) ratio = normalizeVideoAspectRatioValue(ratio, `1280x720`);
+  if (!model) throw Error(`请先在设置中配置天玑 Seedance 模型`);
   let generationMode = nodeData.tianjiSeedanceGenerationMode || `text-to-video`,
     payload: any = {
       duration,

@@ -6287,7 +6287,7 @@ var Le = reactMemo(({
 	          fieldName && value !== void 0 && value !== null && value !== `` && formData.append(fieldName, wanJuanCoerceAudioValue(fieldName, value));
 	        };
 	      (wanJuanAppendAudioField(wanJuanAudioFieldMapping.file, audioFile),
-	        wanJuanAppendAudioField(wanJuanAudioFieldMapping.model, model || `whisper-1`),
+	        wanJuanAppendAudioField(wanJuanAudioFieldMapping.model, model),
 	        wanJuanAppendAudioField(wanJuanAudioFieldMapping.responseFormat, `verbose_json`),
 	        wanJuanAppendAudioField(wanJuanAudioFieldMapping.timestampGranularity, `word`),
 	        prompt && wanJuanAppendAudioField(wanJuanAudioFieldMapping.prompt, prompt),
@@ -6581,7 +6581,7 @@ var Le = reactMemo(({
         data = nodeData,
       [mode, setMode] = useState(nodeData.mode || (nodeData.nodeKind === `music` ? `suno` : `tts`)),
       [prompt, setPrompt] = useState(nodeData.prompt || ``),
-      [ttsModel, setTtsModel] = useState(nodeData.ttsModel || `tts-1`),
+      [ttsModel, setTtsModel] = useState(nodeData.ttsModel || ``),
       [voice, setVoice] = useState(nodeData.voice || `alloy`),
       [wanJuanTtsFormat, setWanJuanTtsFormat] = useState(nodeData.responseFormat || `mp3`),
       [wanJuanTtsSpeed, setWanJuanTtsSpeed] = useState(nodeData.speed || `1`),
@@ -6589,7 +6589,7 @@ var Le = reactMemo(({
       [wanJuanTtsReferenceAudioUrl, setWanJuanTtsReferenceAudioUrl] = useState(nodeData.referenceAudioUrl || ``),
       [wanJuanTtsExtraJson, setWanJuanTtsExtraJson] = useState(nodeData.extraJson || ``),
         [wanJuanTtsModelOpen, setWanJuanTtsModelOpen] = useState(!1),
-        [sunoModel, _] = useState(nodeData.sunoModel || `suno_music`),
+        [sunoModel, _] = useState(nodeData.sunoModel || ``),
         [wanJuanSunoMv, setWanJuanSunoMv] = useState(nodeData.sunoMv || nodeData.mv || `chirp-v3-5`),
         [title, setTitle] = useState(nodeData.title || `AI Music`),
         [tags, setTags] = useState(nodeData.tags || `pop, cinematic`),
@@ -6635,14 +6635,7 @@ var Le = reactMemo(({
         });
       }, [nodeId, updateNodeData, mode, wanJuanNodeKind, prompt, ttsModel, voice, wanJuanTtsFormat, wanJuanTtsSpeed, wanJuanTtsInstructions, wanJuanTtsReferenceAudioUrl, wanJuanTtsExtraJson, sunoModel, wanJuanSunoMv, title, tags, instrumental, wanJuanMusicAction, wanJuanRemoteTaskId, wanJuanClipId, wanJuanBatchIds, wanJuanSunoExtraJson, wanJuanSunoIsInfill, data.audioUrl, data.videoUrl, data.resultData]);
       let wanJuanAllTtsMusicModels = String(`${data.ttsMusicModels || ``}
-${data.audioModel || ``}` || `tts-1
-tts-1-hd
-gpt-4o-mini-tts
-qwen-tts-flash
-qwen3-tts-flash
-cosyvoice-v3-flash
-cosyvoice-v3-plus
-suno_music`)
+${data.audioModel || ``}`)
           .split(/[\n,，、]+/)
           .map((model) => model.trim())
           .filter((model, index, array) => model && array.indexOf(model) === index),
@@ -6650,10 +6643,8 @@ suno_music`)
 `), !1),
         wanJuanMusicModels = WanJuanFilterModelList(wanJuanAllTtsMusicModels.join(`
 `), !0);
-      wanJuanTtsMusicModels.length || (wanJuanTtsMusicModels = [`tts-1`, `tts-1-hd`, `gpt-4o-mini-tts`, `qwen-tts-flash`, `qwen3-tts-flash`, `cosyvoice-v3-flash`]);
-      wanJuanMusicModels.length || (wanJuanMusicModels = [`suno_music`, `suno_lyrics`, `suno_concat`, `suno_act_wav`]);
       let wanJuanTtsMusicModelsForDropdown = wanJuanIsMusicNode ? wanJuanMusicModels : wanJuanTtsMusicModels,
-        wanJuanEffectiveSunoModel = wanJuanMusicAction === `lyrics` ? `suno_lyrics` : wanJuanMusicAction === `concat` ? `suno_concat` : `suno_music`,
+        wanJuanEffectiveSunoModel = sunoModel || (wanJuanMusicAction === `lyrics` ? `suno_lyrics` : wanJuanMusicAction === `concat` ? `suno_concat` : ``),
         wanJuanApplyPreferredTtsModel = (favoritesOverride = favoriteModels.favorites) => {
           let ttsModelText = wanJuanTtsMusicModels.join(`
 `);
@@ -6746,7 +6737,7 @@ suno_music`)
 	        },
 	        runWanJuanTtsMusic = async () => {
 		          let inputText = gatherInputText();
-			          let wanJuanAudioModelForBinding = mode === `tts` ? ttsModel || data.audioModel || `tts-1` : wanJuanEffectiveSunoModel,
+			          let wanJuanAudioModelForBinding = mode === `tts` ? ttsModel || data.audioModel || `` : wanJuanEffectiveSunoModel,
 			            wanJuanAudioConfigs = Array.isArray(data.apiConfigs) ? data.apiConfigs : [],
 			            wanJuanBoundAudioConfigId = resolveModelApiBindingIdHelper(data.audioModelApiBindings, wanJuanAudioModelForBinding, ``),
 			            wanJuanUsableAudioConfigs = wanJuanAudioConfigs.filter((item) => item?.url && item?.key),
@@ -6898,7 +6889,7 @@ suno_music`)
 	                wanJuanTtsMusicProtocolProfile.fieldValueTypes :
 	                {},
 	                wanJuanTtsBody = {},
-	                wanJuanRawTtsModel = ttsModel || data.audioModel || `tts-1`,
+	                wanJuanRawTtsModel = ttsModel || data.audioModel || ``,
 	                wanJuanEffectiveTtsModel = /^qwen-voice-enrollment$/i.test(String(wanJuanRawTtsModel || ``).trim()) ?
 	                `qwen3-tts-vc-realtime-2026-01-15` :
 	                wanJuanRawTtsModel,
@@ -8095,7 +8086,7 @@ suno_music`)
             });
             return;
           }
-		          let wanJuanAudioModelName = data.audioModel || `whisper-1`,
+		          let wanJuanAudioModelName = data.audioModel || ``,
 		            wanJuanBoundAudioConfigId = resolveModelApiBindingIdHelper(data.audioModelApiBindings, wanJuanAudioModelName, ``),
 		            wanJuanBoundAudioConfig = wanJuanBoundAudioConfigId && Array.isArray(data.apiConfigs) ?
 		            data.apiConfigs.find((task) => task.id === wanJuanBoundAudioConfigId) :
@@ -16057,12 +16048,11 @@ var at = {
   };
 
 const wanjuanTianjiSeedanceDefaults = {
-  baseUrl: `https://ai.kulunli.cn`,
+  baseUrl: ``,
   token: ``,
   sassId: `1`,
   platform: `web`,
-  models: `doubao-seedance-2-0-260128
-doubao-seedance-2-0-fast-260128`,
+  models: ``,
   durations: `5
 10`,
   resolutions: `720p
@@ -16102,9 +16092,9 @@ const wanjuanTianjiStorageSet = (items) =>
 const wanjuanNormalizeTianjiSeedanceConfig = (config = {}) => ({
   ...wanjuanTianjiSeedanceDefaults,
   ...(config && typeof config == `object` ? config : {}),
-  baseUrl: String(config?.baseUrl || wanjuanTianjiSeedanceDefaults.baseUrl)
+  baseUrl: String(config?.baseUrl || ``)
     .replace(/\s+/g, ``)
-    .replace(/\/+$/, ``) || wanjuanTianjiSeedanceDefaults.baseUrl,
+    .replace(/\/+$/, ``),
   token: String(config?.token || ``).trim(),
   sassId: String(config?.sassId || `1`).trim() || `1`,
   platform: String(config?.platform || `web`).trim() || `web`,
@@ -16608,7 +16598,7 @@ async function wanjuanRunTianjiSeedanceVideo(options) {
       `${options.extraPrompts.join(`
 `)}\n${options.prompt || ``}` :
       options.prompt || ``).trim(),
-    model = wanjuanTianjiFirstListValue(sourceData.tianjiSelectedModel || sourceData.selectedModel || sourceData.videoModel || config.models, `doubao-seedance-2-0-fast-260128`),
+    model = wanjuanTianjiFirstListValue(sourceData.tianjiSelectedModel || sourceData.selectedModel || sourceData.videoModel || config.models),
     resolution = String(
       sourceData.selectedResolution ||
       wanjuanTianjiFirstListValue(sourceData.seedanceResolutions || config.resolutions, `720p`),
@@ -16620,6 +16610,7 @@ async function wanjuanRunTianjiSeedanceVideo(options) {
     ).trim(),
     aspectRatio = String(sourceData.size || options.selectedSize || wanjuanTianjiFirstListValue(sourceData.seedanceRatios || sourceData.videoResolutions || config.ratios, `16:9`)).trim();
   if (!aspectRatio.includes(`:`)) aspectRatio = normalizeVideoAspectRatioValue(aspectRatio, `1280x720`);
+  if (!model) throw Error(`请先在设置中配置天玑 Seedance 模型`);
   let generationMode = sourceData.tianjiSeedanceGenerationMode || `text-to-video`,
     requestParams = {
       duration: duration,
@@ -17019,8 +17010,8 @@ function dt({
   videoApiKey: videoApiKey,
   audioApiUrl: c,
 	  audioApiKey: l,
-	  textModel: textModel = `gpt-3.5-turbo`,
-	  drawingModel: drawingModel = `gemini-3.1-flash-image-preview`,
+	  textModel: textModel = ``,
+	  drawingModel: drawingModel = ``,
 	  imageCompatResolutions: imageCompatResolutions = `1024x1024
 1280x720
 720x1280
@@ -17029,7 +17020,7 @@ function dt({
 1440x2560
 3840x2160
 2160x3840`,
-	  videoModel: videoModel = `grok-video-3-pro`,
+	  videoModel: videoModel = ``,
   videoDurations: g = `10
 15`,
   videoResolutions: Rr = `1280x720
@@ -17042,8 +17033,7 @@ function dt({
 	1:1
 	3:2
 	2:3`,
-  seedanceModel: seedanceModel = `doubao-seedance-2-0-260128
-doubao-seedance-2-0-fast-260128`,
+  seedanceModel: seedanceModel = ``,
   seedanceDurations: seedanceDurations = `5
 10
 11`,
@@ -17059,14 +17049,10 @@ doubao-seedance-2-0-fast-260128`,
   seedanceWatermark: seedanceWatermark = !1,
   seedanceEnableWebSearch: seedanceEnableWebSearch = !1,
   seedanceVirtualPortraits: seedanceVirtualPortraits = [],
-  tongyiWanxiangTextModels: tongyiWanxiangTextModels = `wan2.7-t2v-720P
-wan2.7-t2v-1080P`,
-  tongyiWanxiangReferenceImageModels: tongyiWanxiangReferenceImageModels = `wan2.7-r2v-720P
-wan2.7-r2v-1080P`,
-  tongyiWanxiangImageModels: tongyiWanxiangImageModels = `wan2.7-r2v-720P
-wan2.7-r2v-1080P`,
-  tongyiWanxiangEditModels: tongyiWanxiangEditModels = `wan2.7-videoedit-720P
-wan2.7-videoedit-1080P`,
+  tongyiWanxiangTextModels: tongyiWanxiangTextModels = ``,
+  tongyiWanxiangReferenceImageModels: tongyiWanxiangReferenceImageModels = ``,
+  tongyiWanxiangImageModels: tongyiWanxiangImageModels = ``,
+  tongyiWanxiangEditModels: tongyiWanxiangEditModels = ``,
   tongyiWanxiangDurations: tongyiWanxiangDurations = `2
 5
 10
@@ -17078,7 +17064,7 @@ wan2.7-videoedit-1080P`,
 1:1
 4:3
 3:4`,
-  audioModel: _ = `whisper-1`,
+  audioModel: _ = ``,
   ttsMusicModel: ttsMusicModel = ``,
   showToast: showToast,
   transitResources: resources = [],
@@ -18939,7 +18925,7 @@ wan2.7-videoedit-1080P`,
           let updateGlobalTaskList = updateTaskList,
             imageModels = drawingModel ?
             WanJuanParseModelList(drawingModel) :
-            [`gemini-3.1-flash-image-preview`],
+            [],
             imageModelName =
             WanJuanGetPreferredModel(imageModels, modelName || ``),
             imageSourceNode = getNodes().find((node) => node.id === nodeId),
@@ -19026,6 +19012,10 @@ wan2.7-videoedit-1080P`,
               (/ark\.cn-beijing\.volces\.com$/i.test(imageApiHost) ||
                 /\/api\/v3$/i.test(imageApiBaseUrl)) &&
               (imageRequestProtocol = `ark-image-generation`));
+          if (!imageModelName) {
+            showToast(`请先在设置中配置图像大模型`);
+            return;
+          }
           if (!imageApiKey) {
             showToast(`请先在设置中配置图像大模型 API Key`);
             return;
@@ -21020,9 +21010,7 @@ ${combinedPrompt}`,
             isSeedanceNode &&
             !videoConfig
           ) {
-            videoBaseUrl = normalizeApiBase(
-              arkConfig?.url || `https://ark.cn-beijing.volces.com/api/v3`,
-            );
+            videoBaseUrl = normalizeApiBase(arkConfig?.url || ``);
             videoKey = arkConfig?.key || videoKey;
           }
           if (!videoKey && !(isSeedanceNode && seedanceSourceNode?.data?.seedanceMode === `tianji`)) {
@@ -29546,7 +29534,7 @@ ${combinedPrompt}`,
   );
 }
 var ft = `MUTIWINDOW_SECRET_SALT_2024`,
-  pt = `http://154.219.102.152:3010`,
+  pt = ``,
   mt = (str) => {
     let hash = 0;
     for (let index = 0; index < str.length; index++) {
@@ -29556,6 +29544,10 @@ var ft = `MUTIWINDOW_SECRET_SALT_2024`,
     return Math.abs(hash).toString(16);
   },
   ht = async (code, deviceId) => {
+      if (!pt) return {
+        valid: !1,
+        error: `连接服务器失败，请检查网络`
+      };
       try {
         let result = await (
           await fetch(`${pt}/api/verify`, {
@@ -29589,7 +29581,10 @@ var ft = `MUTIWINDOW_SECRET_SALT_2024`,
       }
     },
     gt = async (currentVersion) => {
-        try {
+      try {
+          if (!pt) return {
+            hasUpdate: !1
+          };
           let response = await fetch(`${pt}/api/version`).catch(() => null);
           if (!response || !response.ok) return {
             hasUpdate: !1
@@ -29716,497 +29711,23 @@ function St() {
   [currentPlatform, setCurrentPlatform] = useState(null),
   [showToast, setShowToast] = useState(!1),
   [toastMessage, setToastMessage] = useState(``),
-  [textApiUrl, setTextApiUrl] = useState(`https://s.lconai.com`),
+  [textApiUrl, setTextApiUrl] = useState(``),
   [textApiKey, setTextApiKey] = useState(``),
-  [textModels, _e] = useState(`chatgpt-4o-latest
-claude-4-opus-thinking
-claude-4-sonnet-thinking
-claude-haiku-4-5-20251001
-claude-haiku-4-5-20251001-reasoning
-claude-haiku-4-5-20251001-thinking
-claude-opus-4-1-20250805
-claude-opus-4-1-20250805-thinking
-claude-opus-4-20250514
-claude-opus-4-20250514-thinking
-claude-opus-4-5-20251101
-claude-opus-4-5-20251101-thinking
-claude-opus-4-5-all
-claude-opus-4-6
-claude-opus-4-6-20260203
-claude-opus-4-6-20260203-c
-claude-opus-4-6-c
-claude-opus-4-6-net
-claude-opus-4-6-thinking
-claude-opus-4-6-thinking-c
-claude-opus-4-7
-claude-opus-4-7-c
-claude-opus-4-7-thinking
-claude-opus-4-7-thinking-c
-claude-opus-4-all-c
-claude-opus-4-thinking
-claude-opus-4-thinking-all-c
-claude-sonnet-4-20250514
-claude-sonnet-4-20250514-thinking
-claude-sonnet-4-5-20250929
-claude-sonnet-4-5-20250929-thinking
-claude-sonnet-4-5-all
-claude-sonnet-4-5-thinking-all
-claude-sonnet-4-6
-claude-sonnet-4-6-c
-claude-sonnet-4-6-thinking
-claude-sonnet-4-6-thinking-c
-codex-mini
-cs-claude-3-7-sonnet-all
-cs-claude-3-7-sonnet-thinking-all
-cs-claude-4-sonnet
-cs-claude-opus-4
-cs-claude-opus-4-1-20250805
-cs-claude-opus-4-1-20250805-thinking
-cs-claude-opus-4-1-all
-cs-claude-opus-4-1-thinking-all
-cs-claude-opus-4-20250514
-cs-claude-opus-4-20250514-thinking
-cs-claude-opus-4-5-20251101
-cs-claude-opus-4-5-20251101-thinking
-cs-claude-opus-4-all
-cs-claude-opus-4-thinking
-cs-claude-opus-4-thinking-all
-cs-claude-sonnet-4-20250514
-cs-claude-sonnet-4-20250514-thinking
-cs-claude-sonnet-4-5-20250929
-cs-claude-sonnet-4-5-20250929-thinking
-cs-claude-sonnet-4-5-all
-cs-claude-sonnet-4-5-thinking-all
-cs-claude-sonnet-4-all
-cs-claude-sonnet-4-thinking-all
-cs-gemini-2.5-flash-all
-cs-gemini-2.5-flash-deepsearch
-cs-gemini-2.5-pro-all
-cs-gemini-3-pro-all
-cs-gemini-3-pro-preview
-cs-gpt-4.1
-cs-gpt-4.1-mini
-cs-gpt-4.1-nano
-cs-gpt-4o
-cs-grok-3
-cs-grok-4
-cs-grok-4-1
-cs-grok-4-1-fast
-cs-grok-4-1-thinking-1129
-cs-o3
-cs-o3-all
-cs-o3-pro
-cs-o3-pro-all
-cs-qwq-32b
-deepseek-ai/DeepSeek-V3.2-Exp
-deepseek-chat
-deepseek-ocr
-deepseek-r1
-deepseek-r1-0528
-deepseek-r1-2025-01-20
-deepseek-r1-250120
-deepseek-r1-250528
-deepseek-r1-distill-qwen-32b
-deepseek-reasoner
-deepseek-v3
-deepseek-v3-0324
-deepseek-v3-1
-deepseek-v3-1-250821
-deepseek-v3-1-terminus
-deepseek-v3-250324
-deepseek-v3.1
-deepseek-v3.1-search
-deepseek-v3.1-search-thinking
-deepseek-v3.1-searching
-deepseek-v3.1-terminus
-deepseek-v3.1-think
-deepseek-v3.1-thinking
-deepseek-v3.2
-deepseek-v3.2-exp
-deepseek-v3.2-search
-deepseek-v3.2-search-thinking
-deepseek-v3.2-speciale
-deepseek-v3.2-think
-deepseek-v3.2-thinking
-deepseek-v4-flash
-deepseek-v4-pro
-fun-asr-realtime
-gemini-2.0-flash
-gemini-2.0-flash-lite
-gemini-2.0-flash-search
-gemini-2.5-flash
-gemini-2.5-flash-deepsearch
-gemini-2.5-flash-lite
-gemini-2.5-flash-lite-preview-06-17-thinking
-gemini-2.5-flash-lite-preview-09-2025
-gemini-2.5-flash-nothinking
-gemini-2.5-flash-preview-09-2025
-gemini-2.5-flash-thinking
-gemini-2.5-pro
-gemini-2.5-pro-all
-gemini-2.5-pro-c
-gemini-2.5-pro-nothinking
-gemini-2.5-pro-thinking
-gemini-2.5-pro-thinking-128
-gemini-2.5-pro-thinking-512
-gemini-3-flash-c
-gemini-3-flash-preview
-gemini-3-flash-preview-c
-gemini-3-flash-preview-thinking-128
-gemini-3-pro
-gemini-3-pro-high
-gemini-3-pro-high-c
-gemini-3-pro-low
-gemini-3-pro-low-c
-gemini-3-pro-preview
-gemini-3-pro-preview_vertex-c
-gemini-3-pro-preview-c
-gemini-3-pro-preview-thinking
-gemini-3-pro-preview-thinking-128
-gemini-3-pro-preview-thinking-c
-gemini-3.1-flash-lite-preview
-gemini-3.1-pro
-gemini-3.1-pro-high
-gemini-3.1-pro-low
-gemini-3.1-pro-preview
-gemini-3.1-pro-preview_vertex-c
-gemini-3.1-pro-preview-c
-gemini-3.1-pro-preview-customtools
-gemini-3.1-pro-preview-thinking-128
-gemini-3.1-pro-preview-thinking-high
-gemini-3.1-pro-preview-thinking-low
-glm-5
-glm-5-search
-glm-5.1
-gpt-3.5-turbo
-gpt-3.5-turbo-0125
-gpt-3.5-turbo-0301
-gpt-3.5-turbo-0613
-gpt-3.5-turbo-1106
-gpt-3.5-turbo-16k
-gpt-3.5-turbo-16k-0613
-gpt-3.5-turbo-instruct
-gpt-4
-gpt-4-0125-preview
-gpt-4-0613
-gpt-4-1106-preview
-gpt-4-32k
-gpt-4-32k-0613
-gpt-4-all
-gpt-4-turbo
-gpt-4-turbo-2024-04-09
-gpt-4-turbo-preview
-gpt-4-vision-preview
-gpt-4.1
-gpt-4.1-2025-04-14
-gpt-4.1-mini
-gpt-4.1-mini-2025-04-14
-gpt-4.1-nano
-gpt-4.1-nano-2025-04-14
-gpt-4.5-preview
-gpt-4.5-preview-2025-02-27
-gpt-4o
-gpt-4o-2024-05-13
-gpt-4o-2024-08-06
-gpt-4o-2024-11-20
-gpt-4o-all
-gpt-4o-mini
-gpt-4o-mini-2024-07-18
-gpt-4o-mini-transcribe
-gpt-4o-realtime-preview-2024-10-01
-gpt-4o-realtime-preview-2024-12-17
-gpt-4o-realtime-preview-2025-06-03
-gpt-4o-search
-gpt-4o-transcribe
-gpt-5.2
-gpt-5.2-2025-12-11
-gpt-5.2-chat
-gpt-5.2-chat-latest
-gpt-5.2-high
-gpt-5.2-low
-gpt-5.2-medium
-gpt-5.2-xhigh
-gpt-5.3-codex
-gpt-5.3-codex-high
-gpt-5.3-codex-low
-gpt-5.3-codex-medium
-gpt-5.3-codex-openai-compact
-gpt-5.3-codex-xhigh
-gpt-5.4
-gpt-5.4-high
-gpt-5.4-medium
-gpt-5.4-mini
-gpt-5.4-nano
-gpt-5.4-xhigh
-gpt-5.5
-grok-2
-grok-2-1212
-grok-3
-grok-3-deepsearch
-grok-3-mini
-grok-3-reasoner
-grok-3-search
-grok-4
-grok-4-0709
-grok-4-1-non-thinking-w-tool
-grok-4-1-thinking-1108b
-grok-4-1-thinking-1129
-grok-4-fast-non-reasoning
-grok-4-fast-reasoning
-grok-420-agents
-grok-420-fast
-grok-420-thinking
-KAT-Coder-Air-V1
-KAT-Coder-Exp-72B-1010
-KAT-Coder-Pro-V1
-Kimi-K2-Instruct
-Kimi-K2-Thinking
-kimi-k2.5
-kimi-k2.5-search
-kimi-k2.5-thinking
-MiniMax-M2
-MiniMax-M2.1
-MiniMax-M2.1-Lightning
-MiniMax-M2.5
-MiniMax-M2.5-Search
-Moonshot-Kimi-K2-Instruct
-Moonshot-Kimi-K2-Instruct-search
-moonshotai/Kimi-K2-Instruct-0905
-net-gpt-3.5-turbo
-net-gpt-4o
-net-gpt-4o-mini
-net-o1-mini
-net-o1-mini-2024-09-12
-net-o1-mini-all
-net-o1-preview
-net-o1-preview-2024-09-12
-net-o1-preview-all
-nt-deepseek-r1
-o1
-o1-2024-12-17
-o1-all
-o1-mini
-o1-mini-2024-09-12
-o1-mini-all
-o1-preview
-o1-preview-2024-09-12
-o1-preview-all
-o1-pro
-o1-pro-all
-o3
-o3-2025-04-16
-o3-all
-o3-deep-research
-o3-deep-research-2025-06-26
-o3-mini
-o3-mini-2025-01-31
-o3-mini-all
-o3-mini-high
-o3-mini-high-all
-o3-mini-low
-o3-mini-medium
-o3-pro
-o3-pro-2025-06-10
-o4-mini
-o4-mini-2025-04-16
-o4-mini-all
-o4-mini-dr
-o4-mini-high-all
-qwen-3.5-plus
-qwen-deep-research
-qwen-flash
-qwen-flash-search
-qwen-flash-search-thinking
-qwen-flash-thinking
-qwen-long
-qwen-long-2025-01-25
-qwen-long-latest
-qwen-max-latest
-qwen-plus
-qwen-plus-latest
-qwen-plus-latest-search-thinking
-qwen-plus-latest-thinking
-qwen-plus-search
-qwen-plus-search-thinking
-qwen-plus-thinking
-qwen-turbo
-qwen-turbo-2025-04-28
-qwen-turbo-2025-04-28-search
-qwen-turbo-2025-04-28-search-thinking
-qwen-turbo-2025-04-28-thinking
-qwen-turbo-latest
-qwen-turbo-latest-search-thinking
-qwen-turbo-latest-thinking
-qwen-turbo-search
-qwen-turbo-search-thinking
-qwen-turbo-thinking
-qwen-vl-max
-qwen-vl-ocr
-qwen-vl-ocr-latest
-Qwen/Qwen2.5-VL-72B-Instruct
-Qwen/Qwen3-235B-A22B
-Qwen/Qwen3-Next-80B-A3B-Instruct
-Qwen/Qwen3-Next-80B-A3B-Thinking
-Qwen/Qwen3-Omni-30B-A3B-Captioner
-Qwen/Qwen3-Omni-30B-A3B-Instruct
-Qwen/Qwen3-Omni-30B-A3B-Thinking
-qwen2.5-32b-instruct
-qwen2.5-72b-instruct
-Qwen2.5-7B-Instruct
-qwen3-235b-a22b
-Qwen3-235B-A22B-Instruct-2507
-qwen3-30b-a3b
-Qwen3-30B-A3B-Instruct-2507
-qwen3-30b-a3b-thinking
-Qwen3-30B-A3B-Thinking-2507
-qwen3-32b
-qwen3-32b-think
-Qwen3-8B
-qwen3-coder-flash
-qwen3-coder-plus
-qwen3-max
-qwen3-max-2025-09-23
-qwen3-max-2025-09-23-search
-qwen3-max-2025-09-23-search-thinking
-qwen3-max-2025-09-23-thinking
-qwen3-max-preview
-qwen3-max-preview-search
-qwen3-max-preview-search-thinking
-qwen3-max-preview-thinking
-qwen3-max-search
-qwen3-max-search-thinking
-qwen3-max-thinking
-qwen3-omni-30b-a3b-captioner
-Qwen3-VL-235B-A22B-Instruct
-Qwen3-VL-235B-A22B-Thinking
-qwen3-vl-flash
-qwen3-vl-flash-2025-10-15
-qwen3-vl-flash-2025-10-15-search
-qwen3-vl-flash-2025-10-15-search-thinking
-qwen3-vl-flash-2025-10-15-thinking
-qwen3-vl-flash-search
-qwen3-vl-flash-search-thinking
-qwen3-vl-flash-thinking
-qwen3-vl-plus
-qwen3-vl-plus-2025-12-19
-qwen3-vl-plus-2025-12-19-search
-qwen3-vl-plus-2025-12-19-search-thinking
-qwen3-vl-plus-2025-12-19-thinking
-qwen3-vl-plus-search
-qwen3-vl-plus-search-thinking
-qwen3-vl-plus-thinking
-qwen3.5-omni-flash
-qwen3.5-omni-plus
-qwen3.5-plus
-qwen3.5-plus-2026-02-15
-qwen3.5-plus-2026-02-15-search
-qwen3.5-plus-2026-02-15-search-thinking
-qwen3.5-plus-2026-02-15-thinking
-qwen3.5-plus-search
-qwen3.5-plus-search-thinking
-qwen3.5-plus-thinking
-qwen3.6-plus
-qwen3.6-plus-2026-04-02
-qwen3.6-plus-2026-04-02-search
-qwen3.6-plus-2026-04-02-search-thinking
-qwen3.6-plus-2026-04-02-thinking
-qwen3.6-plus-search
-qwen3.6-plus-search-thinking
-qwen3.6-plus-thinking
-qwq-plus
-qwq-plus-2025-03-05
-qwq-plus-latest
-s1-deepsearch
-s1-pro-deepsearch`),
-  [imageApiUrl, setImageApiUrl] = useState(`https://s.lconai.com`),
+  [textModels, _e] = useState(``),
+  [imageApiUrl, setImageApiUrl] = useState(``),
   [imageApiKey, setImageApiKey] = useState(``),
-  [imageModels, setImageModels] = useState(`doubao-seedream-5-0
-gemini-2.5-flash-image
-gemini-2.5-flash-image-preview
-gemini-3-pro-image
-gemini-3-pro-image-preview
-gemini-3-pro-image-preview-2k
-gemini-3-pro-image-preview-4k
-gemini-3.1-flash-image-preview
-gemini-3.1-flash-image-preview-2k
-gemini-3.1-flash-image-preview-4k
-gpt-image-1.5
-gpt-image-2
-gpt-image-2-pro
-nano-banana
-nano-banana-2
-qwen-image-2.0
-qwen-image-2.0-2026-03-03
-qwen-image-2.0-pro
-qwen-image-2.0-pro-2026-03-03
-qwen-image-max-2025-12-30
-wan2.6-image
-wan2.7-image
-wan2.7-image-pro
-Z-Image-Turbo`),
-  [videoApiUrl, setVideoApiUrl] = useState(`https://s.lconai.com`),
+  [imageModels, setImageModels] = useState(``),
+  [videoApiUrl, setVideoApiUrl] = useState(``),
   [videoApiKey, setVideoApiKey] = useState(``),
-  [videoModels, setVideoModels] = useState(`grok-video-3
-grok-video-3-max
-grok-video-3-pro
-grok-video-4.2
-veo_3_1-fast
-veo_3_1-fast-fl
-veo_3_1-fast-fl-hd
-veo_3_1-fast-hd
-veo3.1-fast
-wan2.2-kf2v-flash-1080P
-wan2.2-kf2v-flash-480P
-wan2.2-kf2v-flash-720P
-wan2.6-i2v-1080P
-wan2.6-i2v-720P
-wan2.6-i2v-flash-1080P
-wan2.6-i2v-flash-720P
-wan2.6-r2v-1080P
-wan2.6-r2v-720P
-wan2.6-r2v-flash-1080P
-wan2.6-r2v-flash-720P
-wan2.6-t2v-1080P
-wan2.6-t2v-720P
-wan2.7-i2v-1080P
-wan2.7-i2v-720P
-wan2.7-r2v-1080P
-wan2.7-r2v-720P
-wan2.7-t2v-1080P
-wan2.7-t2v-720P
-wan2.7-videoedit-1080P
-wan2.7-videoedit-720P`),
+  [videoModels, setVideoModels] = useState(``),
   [je, setVideoDurations] = useState(`5
 10
 11
 15`),
-  [audioApiUrl, setAudioApiUrl] = useState(`https://s.lconai.com`),
+  [audioApiUrl, setAudioApiUrl] = useState(``),
   [audioApiKey, setAudioApiKey] = useState(``),
-  [audioModels, setAudioModels] = useState(`cosyvoice-v3-flash
-cosyvoice-v3-plus
-gpt-4o-mini-tts
-qwen-tts-flash
-qwen-tts-realtime
-qwen-voice-enrollment
-qwen3-tts-flash
-qwen3-tts-flash-realtime
-qwen3-tts-vc-realtime-2026-01-15
-qwen3-tts-vd-realtime-2025-12-16
-tts-1
-tts-1-1106
-tts-1-hd
-tts-1-hd-1106
-whisper
-whisper-1`),
-  [ttsMusicModel, setTtsMusicModel] = useState(`suno_music
-suno_lyrics
-suno_concat
-suno_uploads
-suno_persona_create
-suno_act_mp4
-suno_act_stems
-suno_act_timing
-suno_act_wav`),
+  [audioModels, setAudioModels] = useState(``),
+  [ttsMusicModel, setTtsMusicModel] = useState(``),
   [modelProtocolRegistry, setModelProtocolRegistry] = useState(() => ({
     "Gemini 文本原生": {
       category: `text`,
@@ -30361,24 +29882,18 @@ Suno 音乐生成`,
   "requestType": "gemini-generate-content"
 }`,
   ),
-	  [configButlerApiUrl, setConfigButlerApiUrl] = useState(
-	    `https://s.lconai.com`,
-	  ),
+	  [configButlerApiUrl, setConfigButlerApiUrl] = useState(``),
 	  [configButlerApiKey, setConfigButlerApiKey] = useState(``),
 	  [configButlerProtocol, setConfigButlerProtocol] = useState(
 	    `openai`,
 	  ),
-	  [configButlerModel, setConfigButlerModel] = useState(
-	    `gpt-5.5`,
-  ),
+	  [configButlerModel, setConfigButlerModel] = useState(``),
   [configButlerDocUrl, setConfigButlerDocUrl] = useState(``),
   [configButlerTargetModel, setConfigButlerTargetModel] = useState(``),
   [configButlerTargetCategory, setConfigButlerTargetCategory] = useState(
     `text`,
   ),
-	  [configButlerTargetApiConfigId, setConfigButlerTargetApiConfigId] = useState(
-	    `default`,
-	  ),
+	  [configButlerTargetApiConfigId, setConfigButlerTargetApiConfigId] = useState(``),
   [configButlerTargetApiUrl, setConfigButlerTargetApiUrl] = useState(
     ``,
   ),
@@ -30447,8 +29962,7 @@ Suno 音乐生成`,
 3840x2160
 2160x3840`),
 	  [videoModelRequestProfilesText, setVideoModelRequestProfilesText] = useState(`{}`),
-  [seedanceModel, setSeedanceModel] = useState(`doubao-seedance-2-0-260128
-	doubao-seedance-2-0-fast-260128`),
+  [seedanceModel, setSeedanceModel] = useState(``),
   [seedanceDurations, setSeedanceDurations] = useState(`5
 10
 11`),
@@ -30474,14 +29988,10 @@ Suno 音乐生成`,
     projectName: ``,
     notes: ``,
   }),
-  [tongyiWanxiangTextModels, setTongyiWanxiangTextModels] = useState(`wan2.7-t2v-720P
-wan2.7-t2v-1080P`),
-  [tongyiWanxiangReferenceImageModels, setTongyiWanxiangReferenceImageModels] = useState(`wan2.7-r2v-720P
-wan2.7-r2v-1080P`),
-  [tongyiWanxiangImageModels, setTongyiWanxiangImageModels] = useState(`wan2.7-r2v-720P
-wan2.7-r2v-1080P`),
-  [tongyiWanxiangEditModels, setTongyiWanxiangEditModels] = useState(`wan2.7-videoedit-720P
-wan2.7-videoedit-1080P`),
+  [tongyiWanxiangTextModels, setTongyiWanxiangTextModels] = useState(``),
+  [tongyiWanxiangReferenceImageModels, setTongyiWanxiangReferenceImageModels] = useState(``),
+  [tongyiWanxiangImageModels, setTongyiWanxiangImageModels] = useState(``),
+  [tongyiWanxiangEditModels, setTongyiWanxiangEditModels] = useState(``),
   [tongyiWanxiangDurations, setTongyiWanxiangDurations] = useState(`2
 5
 10
@@ -30534,46 +30044,11 @@ time=1h`,
   [layeredRunMaxConcurrency, setLayeredRunMaxConcurrency] =
   useState(2),
   [edges, setEdges] = useState([]),
-  [apiConfigs, setApiConfigs] = useState([{
-      id: `default`,
-      name: `lconai`,
-      url: `https://s.lconai.com`,
-      key: ``,
-      protocolFormat: `auto`
-    },
-    {
-      id: `vectorengine`,
-      name: `向量引擎`,
-      url: `https://api.vectorengine.ai`,
-      key: ``,
-      protocolFormat: `auto`
-    },
-    {
-      id: `volcengine-ark`,
-      name: `Volcengine Ark`,
-      url: `https://ark.cn-beijing.volces.com/api/v3`,
-      key: ``,
-      protocolFormat: `auto`
-    },
-    {
-      id: `api-studio`,
-      name: `API Studio`,
-      url: `https://apistudio.cc`,
-      key: ``,
-      protocolFormat: `auto`
-    },
-    {
-      id: `xpclaw`,
-      name: `xpclaw`,
-      url: `https://xpclaw.ai`,
-      key: ``,
-      protocolFormat: `auto`
-    },
-  ]),
-  [textApiConfigId, setTextApiConfigId] = useState(`default`),
-  [imageApiConfigId, setImageApiConfigId] = useState(`default`),
-  [videoApiConfigId, setVideoApiConfigId] = useState(`default`),
-  [audioApiConfigId, setAudioApiConfigId] = useState(`default`),
+  [apiConfigs, setApiConfigs] = useState([]),
+  [textApiConfigId, setTextApiConfigId] = useState(``),
+  [imageApiConfigId, setImageApiConfigId] = useState(``),
+  [videoApiConfigId, setVideoApiConfigId] = useState(``),
+  [audioApiConfigId, setAudioApiConfigId] = useState(``),
   [textModelApiBindings, setTextModelApiBindings] = useState({}),
   [textModelProtocolBindings, setTextModelProtocolBindings] = useState({}, ),
   [imageModelApiBindings, setImageModelApiBindings] = useState({}),
@@ -30581,10 +30056,7 @@ time=1h`,
 	  [videoModelProtocolBindings, setVideoModelProtocolBindings] = useState({}, ),
 	  [audioModelProtocolBindings, setAudioModelProtocolBindings] = useState({}, ),
 	  [audioModelApiBindings, setAudioModelApiBindings] = useState({}),
-	  [videoModelApiBindings, setVideoModelApiBindings] = useState({
-    "doubao-seedance-2-0-260128": `volcengine-ark`,
-    "doubao-seedance-2-0-fast-260128": `volcengine-ark`,
-  }),
+	  [videoModelApiBindings, setVideoModelApiBindings] = useState({}),
   [$, setIsReady] = useState(!1),
   normalizeThemeMode = (themeName) => ({
     "mist-blue": `light`,
@@ -30823,6 +30295,7 @@ time=1h`,
   [membershipCode, setMembershipCode] = useState(``),
   [deviceId, setDeviceId] = useState(``),
   [updateInfo, setUpdateInfo] = useState(null),
+  [recommendedRelayExpanded, setRecommendedRelayExpanded] = useState(!1),
   membershipLimits = {
       FREE: {
         accounts: 999999,
@@ -30844,6 +30317,42 @@ time=1h`,
       },
     },
     currentLimits = membershipLimits[$e.type] || membershipLimits.FREE,
+    recommendedRelaySites = [{
+        name: `一站式中心`,
+        url: `https://newapi.guancn.uk`,
+        note: `应用内一站式中心入口`,
+      },
+      {
+        name: `lconai`,
+        url: `https://s.lconai.com`,
+        note: `统一 API Base URL`,
+      },
+      {
+        name: `向量引擎`,
+        url: `https://api.vectorengine.ai`,
+        note: `统一 API Base URL`,
+      },
+      {
+        name: `Volcengine Ark`,
+        url: `https://ark.cn-beijing.volces.com/api/v3`,
+        note: `Seedance / Ark 兼容接口`,
+      },
+      {
+        name: `API Studio`,
+        url: `https://apistudio.cc`,
+        note: `统一 API Base URL`,
+      },
+      {
+        name: `xpclaw`,
+        url: `https://xpclaw.ai`,
+        note: `视频模型兼容接口`,
+      },
+      {
+        name: `即梦天玑`,
+        url: `https://ai.kulunli.cn`,
+        note: `即梦 / 天玑工作流接口`,
+      },
+    ],
     [dailyUsageCount, setDailyUsageCount] = useState(0),
 	    [projects, setProjects] = useState([{
 	      id: `default`,
@@ -30882,7 +30391,7 @@ time=1h`,
       knowledge: `适合处理文生图、文生视频、角色设定、分镜拆分、风格统一等任务。`,
       knowledgeFiles: [],
       memoryEnabled: !1,
-      memoryBaseUrl: `http://localhost:8888`,
+      memoryBaseUrl: ``,
       memoryApiKey: ``,
       memoryUserId: `default-user`,
       memoryTopK: `6`,
@@ -34662,11 +34171,7 @@ ${docText}`;
 		                        }));
 		                    })(),
 	                    settings.configButlerApiUrl &&
-	                    setConfigButlerApiUrl(
-	                      settings.configButlerApiUrl === `https://api.vectorengine.ai` ?
-	                      `https://s.lconai.com` :
-	                      settings.configButlerApiUrl,
-	                    ),
+                    setConfigButlerApiUrl(settings.configButlerApiUrl),
                     settings.configButlerApiKey &&
                     setConfigButlerApiKey(settings.configButlerApiKey),
 	                    settings.configButlerProtocol &&
@@ -36387,7 +35892,7 @@ ${docText}`;
         },
         searchAgentLongTermMemory = async (agent, query) => {
           if (!agent?.memoryEnabled) return ``;
-          let baseUrl = normalizeMem0BaseUrl(agent.memoryBaseUrl || `http://localhost:8888`);
+          let baseUrl = normalizeMem0BaseUrl(agent.memoryBaseUrl || ``);
           if (!baseUrl || !String(query || ``).trim()) return ``;
           let userId = String(agent.memoryUserId || `default-user`).trim() || `default-user`,
             agentId = String(agent.id || `agent-default`).trim() || `agent-default`,
@@ -36434,7 +35939,7 @@ ${docText}`;
         },
         storeAgentLongTermMemory = async (agent, userMessage, assistantMessage) => {
           if (!agent?.memoryEnabled) return;
-          let baseUrl = normalizeMem0BaseUrl(agent.memoryBaseUrl || `http://localhost:8888`);
+          let baseUrl = normalizeMem0BaseUrl(agent.memoryBaseUrl || ``);
           if (!baseUrl || !String(userMessage || ``).trim() || !String(assistantMessage || ``).trim()) return;
           let userId = String(agent.memoryUserId || `default-user`).trim() || `default-user`,
             agentId = String(agent.id || `agent-default`).trim() || `agent-default`,
@@ -37632,7 +37137,7 @@ ${docText}`;
                 knowledge: ``,
                 knowledgeFiles: [],
                 memoryEnabled: !1,
-                memoryBaseUrl: `http://localhost:8888`,
+                memoryBaseUrl: ``,
                 memoryApiKey: ``,
                 memoryUserId: `default-user`,
                 memoryTopK: `6`,
@@ -39512,7 +39017,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                         videoTaskConfig?.url ||
                         apiBaseMatchedConfig?.url ||
                         seedanceConfig?.url ||
-                        `https://ark.cn-beijing.volces.com/api/v3`).replace(/\s+/g, ``).replace(/\/$/, ``) :
+                        ``).replace(/\s+/g, ``).replace(/\/$/, ``) :
                       (task.apiBaseUrl || videoTaskConfig?.url || apiBaseMatchedConfig?.url || videoApiUrl).replace(/\s+/g, ``).replace(/\/$/, ``),
                       taskBaseUrlForRequest = baseUrl,
                       isXpclawSoraCompatTask = !isSeedanceTask &&
@@ -45478,12 +44983,12 @@ ${String(l || ``).slice(0, 5e4)}`;
                                           children: `Mem0 服务地址`,
                                         }),
                                         jsx(`input`, {
-                                          value: selectedAgent.memoryBaseUrl || `http://localhost:8888`,
+                                        value: selectedAgent.memoryBaseUrl || ``,
                                           onChange: (event) =>
                                             updateSelectedAgent({
                                               memoryBaseUrl: event.target.value,
                                             }),
-                                          placeholder: `http://localhost:8888`,
+                                          placeholder: `请输入可选的 Mem0 服务地址`,
                                           className: `w-full rounded-xl px-3 py-2 text-sm focus:outline-none`,
                                           style: {
                                             border: `1px solid ${agentTheme.inputBorder}`,
@@ -45968,6 +45473,17 @@ ${String(l || ``).slice(0, 5e4)}`;
                       children: `模型服务`,
                     }),
                     jsxs(`button`, {
+                      onClick: () => setActiveSettingsTab(`oneStop`),
+                      className: `text-left px-3 py-2.5 rounded-lg text-sm transition-colors mb-1.5 flex items-center gap-2 wanjuan-settings-nav-item ${activeSettingsTab === `oneStop` ? `wanjuan-settings-nav-item-active bg-[#252525] text-emerald-300 font-bold border border-[#333] shadow-sm` : `text-gray-300 hover:bg-[#222] hover:text-gray-100 border border-transparent`}`,
+                      children: [
+                        jsx(`span`, {
+                          className: `wanjuan-skeuo-icon wanjuan-skeuo-icon-one-stop`,
+                          children: `🌐`,
+                        }),
+                        ` 一站式中心`,
+                      ],
+                    }),
+                    jsxs(`button`, {
                       onClick: () => setActiveSettingsTab(`api`),
                       className: `text-left px-3 py-2.5 rounded-lg text-sm transition-colors mb-1.5 flex items-center gap-2 wanjuan-settings-nav-item ${activeSettingsTab === `api` ? `wanjuan-settings-nav-item-active bg-[#252525] text-cyan-300 font-bold border border-[#333] shadow-sm` : `text-gray-300 hover:bg-[#222] hover:text-gray-100 border border-transparent`}`,
                       children: [
@@ -46034,7 +45550,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                 jsx(`div`, {
                   className: `flex-1 overflow-y-auto p-6 relative pb-24 custom-scrollbar bg-[#121212] wanjuan-settings-content`,
                   children: jsxs(`div`, {
-                    className: `max-w-4xl mx-auto flex flex-col gap-6 wanjuan-settings-content-inner`,
+                    className: `${activeSettingsTab === `oneStop` ? `max-w-none` : `max-w-4xl mx-auto`} flex flex-col gap-6 wanjuan-settings-content-inner`,
                     children: [
                       updateInfo?.hasUpdate &&
                       jsxs(`div`, {
@@ -46367,21 +45883,81 @@ ${String(l || ``).slice(0, 5e4)}`;
 	                                      className: `block text-xs font-bold text-gray-300 mb-2 wanjuan-settings-field-label`,
 	                                      children: wanjuanT(`当前版本`),
 	                                    }),
-	                                    jsxs(`div`, {
-	                                      className: `flex items-center justify-between gap-3 bg-[#121212] border border-[#333] rounded-lg px-3 py-2.5 wanjuan-settings-readonly-row`,
-	                                      children: [
-	                                        jsx(`span`, {
-	                                          className: `text-sm font-semibold text-gray-100`,
+                                    jsxs(`div`, {
+                                      className: `flex items-center justify-between gap-3 bg-[#121212] border border-[#333] rounded-lg px-3 py-2.5 wanjuan-settings-readonly-row`,
+                                      children: [
+                                        jsx(`span`, {
+                                          className: `text-sm font-semibold text-gray-100`,
 		                                          children: `1.2.13`,
 	                                        }),
 	                                        jsx(`span`, {
 	                                          className: `text-[10px] text-gray-500`,
 	                                          children: wanjuanT(`当前已启用全局统一API配置`),
-	                                        }),
-	                                      ],
-	                                    }),
-	                                  ],
-	                                }),
+                                        }),
+                                      ],
+                                    }),
+                                    jsxs(`div`, {
+                                      className: `mt-3 bg-[#121212] border border-[#333] rounded-lg overflow-hidden wanjuan-settings-recommended-relay`,
+                                      children: [
+                                        jsxs(`button`, {
+                                          type: `button`,
+                                          onClick: () => setRecommendedRelayExpanded(!recommendedRelayExpanded),
+                                          className: `w-full flex items-center justify-between gap-3 px-3 py-2.5 text-left hover:bg-[#1a1a1a] transition-colors`,
+                                          children: [
+                                            jsxs(`span`, {
+                                              className: `flex items-center gap-2 text-sm font-semibold text-gray-100`,
+                                              children: [
+                                                jsx(`span`, {
+                                                  className: `text-cyan-300`,
+                                                  children: `🔗`,
+                                                }),
+                                                ` 推荐中转`,
+                                              ],
+                                            }),
+                                            jsx(`span`, {
+                                              className: `text-[10px] text-gray-500`,
+                                              children: recommendedRelayExpanded ? `收起` : `展开`,
+                                            }),
+                                          ],
+                                        }),
+                                        recommendedRelayExpanded &&
+                                        jsx(`div`, {
+                                          className: `border-t border-[#262626] p-3 grid grid-cols-1 md:grid-cols-2 gap-2`,
+                                          children: recommendedRelaySites.map((site) =>
+                                            jsxs(
+                                              `a`, {
+                                                href: site.url,
+                                                target: `_blank`,
+                                                rel: `noreferrer`,
+                                                className: `block rounded-lg border border-[#2f3742] bg-[#171b21] px-3 py-2 hover:border-cyan-500/50 hover:bg-[#1d242c] transition-colors`,
+                                                children: [
+                                                  jsxs(`div`, {
+                                                    className: `flex items-center justify-between gap-2`,
+                                                    children: [
+                                                      jsx(`span`, {
+                                                        className: `text-xs font-semibold text-gray-200`,
+                                                        children: site.name,
+                                                      }),
+                                                      jsx(`span`, {
+                                                        className: `text-[10px] text-gray-500`,
+                                                        children: site.note,
+                                                      }),
+                                                    ],
+                                                  }),
+                                                  jsx(`div`, {
+                                                    className: `mt-1 text-[11px] text-cyan-300 break-all font-mono`,
+                                                    children: site.url,
+                                                  }),
+                                                ],
+                                              },
+                                              site.url,
+                                            ),
+                                          ),
+                                        }),
+                                      ],
+                                    }),
+                                  ],
+                                }),
 	                              ],
 	                            }),
 	                          }),
@@ -46537,6 +46113,60 @@ ${String(l || ``).slice(0, 5e4)}`;
                                       children: `已达当前版本预设上限，请升级会员`,
                                     }),
                                   ],
+                                }),
+                              }),
+                            ],
+                          }),
+                        ],
+                      }),
+                      activeSettingsTab === `oneStop` &&
+                      jsxs(`div`, {
+                        className: `space-y-4 animate-fade-in wanjuan-settings-section`,
+                        children: [
+                          jsxs(`div`, {
+                            className: `group bg-[#1a1a1a] rounded-xl overflow-hidden transition-all duration-300 shadow-sm border border-[#222] wanjuan-settings-card`,
+                            children: [
+                              jsxs(`div`, {
+                                className: `flex justify-between items-center gap-3 p-4 border-b border-[#222] wanjuan-settings-card-header`,
+                                children: [
+                                  jsxs(`div`, {
+                                    children: [
+                                      jsxs(`h2`, {
+                                        className: `font-bold text-gray-200 text-sm flex items-center gap-2 wanjuan-settings-card-title`,
+                                        children: [
+                                          jsx(`span`, {
+                                            className: `wanjuan-skeuo-icon wanjuan-skeuo-icon-one-stop`,
+                                            children: `🌐`,
+                                          }),
+                                          ` 一站式中心`,
+                                        ],
+                                      }),
+                                      jsx(`p`, {
+                                        className: `text-[11px] text-gray-500 mt-1 wanjuan-settings-help`,
+                                        children: `在应用内打开 newapi.guancn.uk，集中管理模型服务相关能力。`,
+                                      }),
+                                    ],
+                                  }),
+                                  jsx(`a`, {
+                                    href: `https://newapi.guancn.uk`,
+                                    target: `_blank`,
+                                    rel: `noreferrer`,
+                                    className: `px-3 py-2 rounded-lg border border-[#333] bg-[#222] text-xs text-gray-300 hover:bg-[#2a2a2a] hover:text-white transition-colors whitespace-nowrap`,
+                                    children: `外部打开`,
+                                  }),
+                                ],
+                              }),
+                              jsx(`div`, {
+                                className: `bg-[#0f0f0f]`,
+                                style: {
+                                  height: `calc(100vh - 220px)`,
+                                  minHeight: 600,
+                                },
+                                children: jsx(`webview`, {
+                                  src: `https://newapi.guancn.uk`,
+                                  className: `w-full h-full bg-white`,
+                                  allowpopups: `true`,
+                                  partition: `persist:wanjuan-one-stop-center`,
                                 }),
                               }),
                             ],
@@ -48117,7 +47747,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                                               setConfigButlerDocUrl(
                                                 event.target.value,
                                               ),
-                                            placeholder: `https://example.com/docs/...`,
+                                            placeholder: `粘贴服务商 API 文档链接`,
                                           }),
                                         ],
                                       }),
@@ -48174,7 +47804,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                                               setConfigButlerTargetModel(
                                                 event.target.value,
                                               ),
-                                            placeholder: `doubao-seedream-5-0-260128`,
+                                            placeholder: `填写模型名称`,
                                           }),
                                         ],
                                       }),
@@ -48262,20 +47892,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                                             event.target.value,
                                           ),
                                         className: `w-full bg-[#121212] border border-[#333] rounded-lg p-3 text-xs text-gray-200 focus:outline-none focus:border-blue-500 transition-all min-h-[220px] resize-y font-mono`,
-                                        placeholder: `{
-  "modelName": "...",
-  "category": "image",
-  "apiConfig": { "name": "..." },
-  "protocol": {
-    "name": "Ark 图片原生",
-    "config": {
-      "category": "image",
-      "requestType": "vectorengine-image-generation",
-      "submitPath": "/v1/images/generations",
-      "fieldValueTypes": {}
-    }
-  }
-}`,
+                                        placeholder: `配置管家生成的 JSON 会显示在这里`,
                                       }),
                                     ],
                                   }),
@@ -48320,8 +47937,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                                     value: textModels,
                                     onChange: (event) => _e(event.target.value),
                                     className: `w-full bg-[#121212] border border-[#333] rounded-lg p-3 text-sm text-gray-200 focus:outline-none focus:border-blue-500 transition-all min-h-[80px] resize-y`,
-                                    placeholder: `gpt-3.5-turbo
-gpt-4o`,
+                                    placeholder: `请输入文本模型名称`,
                                   }),
                                   jsxs(`div`, {
                                     children: [
@@ -48369,7 +47985,7 @@ gpt-4o`,
                                                       jsx(
                                                         `option`, {
                                                           value: ``,
-                                                          children: `未指定（使用默认配置）`,
+                                                          children: `未指定`,
                                                         },
                                                         `__default`,
                                                       ),
@@ -48393,7 +48009,7 @@ gpt-4o`,
                                       }),
                                       jsx(`p`, {
                                         className: `text-[10px] text-gray-500 mt-1 wanjuan-settings-help`,
-                                        children: `建议为每个文本模型选择可调用它的 API 配置，未指定时会使用当前默认配置。`,
+                                        children: `建议为每个文本模型选择可调用它的 API 配置。`,
                                       }),
                                     ],
                                   }),
@@ -48438,8 +48054,7 @@ gpt-4o`,
 	                                    value: imageModels,
 	                                    onChange: (event) => setImageModels(event.target.value),
 	                                    className: `w-full bg-[#121212] border border-[#333] rounded-lg p-3 text-sm text-gray-200 focus:outline-none focus:border-blue-500 transition-all min-h-[80px] resize-y`,
-	                                    placeholder: `gemini-3.1-flash-image-preview
-	dall-e-3`,
+	                                    placeholder: `请输入图像模型名称`,
 	                                  }),
 	                                  jsxs(`div`, {
 	                                    children: [
@@ -48512,7 +48127,7 @@ gpt-4o`,
                                                       jsx(
                                                         `option`, {
                                                           value: ``,
-                                                          children: `未指定（使用默认配置）`,
+                                                          children: `未指定`,
                                                         },
                                                         `__default`,
                                                       ),
@@ -48536,7 +48151,7 @@ gpt-4o`,
                                       }),
                                       jsx(`p`, {
                                         className: `text-[10px] text-gray-500 mt-1 wanjuan-settings-help`,
-                                        children: `建议为每个图像模型选择可调用它的 API 配置，未指定时会使用当前默认配置。`,
+                                        children: `建议为每个图像模型选择可调用它的 API 配置。`,
                                       }),
                                     ],
                                   }),
@@ -48584,8 +48199,7 @@ gpt-4o`,
                                         onChange: (event) =>
                                           setVideoModels(event.target.value),
                                         className: `w-full bg-[#121212] border border-[#333] rounded-lg p-3 text-sm text-gray-200 focus:outline-none focus:border-blue-500 transition-all min-h-[80px] resize-y`,
-                                        placeholder: `grok-video-3-pro
-sora`,
+                                        placeholder: `请输入视频模型名称`,
                                       }),
                                     ],
                                   }),
@@ -48635,7 +48249,7 @@ sora`,
                                                       jsx(
                                                         `option`, {
                                                           value: ``,
-                                                          children: `未指定（使用默认配置）`,
+                                                          children: `未指定`,
                                                         },
                                                         `__default`,
                                                       ),
@@ -48659,7 +48273,7 @@ sora`,
                                       }),
                                       jsx(`p`, {
                                         className: `text-[10px] text-gray-500 mt-1 wanjuan-settings-help`,
-                                        children: `建议为每个视频模型选择可调用它的 API 配置，未指定时会使用当前默认配置。`,
+                                        children: `建议为每个视频模型选择可调用它的 API 配置。`,
                                       }),
                                     ],
                                   }),
@@ -48772,29 +48386,25 @@ sora`,
                                         label: `文生视频模型`,
                                         value: tongyiWanxiangTextModels,
                                         onChange: setTongyiWanxiangTextModels,
-                                        placeholder: `wan2.7-t2v-720P
-wan2.7-t2v-1080P`,
+                                        placeholder: `每行一个文生视频模型 ID`,
                                       },
                                       {
                                         label: `参考图生视频模型`,
                                         value: tongyiWanxiangReferenceImageModels,
                                         onChange: setTongyiWanxiangReferenceImageModels,
-                                        placeholder: `wan2.7-r2v-720P
-wan2.7-r2v-1080P`,
+                                        placeholder: `每行一个参考图生视频模型 ID`,
                                       },
                                       {
                                         label: `图生视频模型`,
                                         value: tongyiWanxiangImageModels,
                                         onChange: setTongyiWanxiangImageModels,
-                                        placeholder: `wan2.7-r2v-720P
-wan2.7-r2v-1080P`,
+                                        placeholder: `每行一个图生视频模型 ID`,
                                       },
                                       {
                                         label: `视频编辑模型`,
                                         value: tongyiWanxiangEditModels,
                                         onChange: setTongyiWanxiangEditModels,
-                                        placeholder: `wan2.7-videoedit-720P
-wan2.7-videoedit-1080P`,
+                                        placeholder: `每行一个视频编辑模型 ID`,
                                       },
                                     ].map((field) =>
                                       jsxs(
@@ -48868,7 +48478,7 @@ wan2.7-videoedit-1080P`,
                                                       jsx(
                                                         `option`, {
                                                           value: ``,
-                                                          children: `未指定（使用默认配置）`,
+                                                          children: `未指定`,
                                                         },
                                                         `__default`,
                                                       ),
@@ -49062,8 +48672,7 @@ wan2.7-videoedit-1080P`,
                                             event.target.value,
                                           ),
                                         className: `w-full bg-[#121212] border border-[#333] rounded-lg p-3 text-sm text-gray-200 focus:outline-none focus:border-blue-500 transition-all min-h-[72px] resize-y`,
-                                        placeholder: `doubao-seedance-2-0-260128
-doubao-seedance-2-0-fast-260128`,
+                                        placeholder: `每行一个即梦模型 ID`,
                                       }),
                                     ],
                                   }),
@@ -49113,7 +48722,7 @@ doubao-seedance-2-0-fast-260128`,
                                                       jsx(
                                                         `option`, {
                                                           value: ``,
-                                                          children: `未指定（使用默认配置）`,
+                                                          children: `未指定`,
                                                         },
                                                         `__default`,
                                                       ),
@@ -49550,7 +49159,7 @@ doubao-seedance-2-0-fast-260128`,
 	                                      value: audioModels,
 	                                      onChange: (event) => setAudioModels(event.target.value),
 	                                      className: `w-full bg-[#121212] border border-[#333] rounded-lg p-3 text-sm text-gray-200 focus:outline-none focus:border-blue-500 transition-all min-h-[80px] resize-y`,
-	                                      placeholder: `whisper-1`,
+	                                      placeholder: `请输入音频模型名称`,
 	                                    })],
 	                                  }),
 	                                  jsxs(`div`, {
@@ -49577,7 +49186,7 @@ doubao-seedance-2-0-fast-260128`,
 	                                          },
 	                                          children: [jsx(`option`, {
 	                                            value: ``,
-	                                            children: `未指定（使用默认配置）`,
+	                                            children: `未指定`,
 	                                          }, `__default`), ...apiConfigs.map((option) => jsx(`option`, {
 	                                            value: option.id,
 	                                            children: option.name || option.url,
@@ -49586,7 +49195,7 @@ doubao-seedance-2-0-fast-260128`,
 	                                      }, modelName)),
 	                                    }), jsx(`p`, {
 	                                      className: `text-[10px] text-gray-500 mt-1 wanjuan-settings-help`,
-	                                      children: `建议为每个音频模型选择可调用它的 API 配置，未指定时会使用当前音频默认配置。`,
+	                                      children: `建议为每个音频模型选择可调用它的 API 配置。`,
 	                                    })],
 	                                  }),
 	                                ],
@@ -49851,10 +49460,7 @@ doubao-seedance-2-0-fast-260128`,
 	                                    value: ttsMusicModel,
 	                                    onChange: (event) => setTtsMusicModel(event.target.value),
 	                                    className: `w-full bg-[#121212] border border-[#333] rounded-lg p-3 text-sm text-gray-200 focus:outline-none focus:border-blue-500 transition-all min-h-[96px] resize-y`,
-	                                    placeholder: `tts-1
-	gpt-4o-mini-tts
-	suno_lyrics
-	suno_concat`,
+	                                    placeholder: `请输入音乐模型名称`,
 	                                  }),
 		                                  jsx(`p`, {
 		                                    className: `text-[10px] text-gray-500 leading-relaxed`,

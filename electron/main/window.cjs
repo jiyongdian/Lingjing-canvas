@@ -53,7 +53,8 @@ function createMainWindow(baseUrl) {
       contextIsolation: TEST_CONTEXT_ISOLATION,
       nodeIntegration: false,
       sandbox: false,
-      webSecurity: false
+      webSecurity: false,
+      webviewTag: true
     }
   });
 

@@ -1213,11 +1213,11 @@ function installDesktopPatches() {
   let projectNameSynced = false;
 
   const TIANJI_DEFAULT_CONFIG = {
-    baseUrl: "https://ai.kulunli.cn",
+    baseUrl: "",
     token: "",
     sassId: "1",
     platform: "web",
-    models: "doubao-seedance-2-0-260128\ndoubao-seedance-2-0-fast-260128",
+    models: "",
     durations: "5\n10",
     resolutions: "720p\n1080p",
     ratios: "16:9\n9:16\n1:1\n4:3\n3:4\n21:9",
@@ -1262,7 +1262,7 @@ function installDesktopPatches() {
   const tianjiNormalizeConfig = (value = {}) => ({
     ...TIANJI_DEFAULT_CONFIG,
     ...(value && typeof value === "object" ? value : {}),
-    baseUrl: String(value?.baseUrl || TIANJI_DEFAULT_CONFIG.baseUrl).replace(/\s+/g, "").replace(/\/+$/, "") || TIANJI_DEFAULT_CONFIG.baseUrl,
+    baseUrl: String(value?.baseUrl || "").replace(/\s+/g, "").replace(/\/+$/, ""),
     sassId: String(value?.sassId || "1").trim() || "1",
     platform: String(value?.platform || "web").trim() || "web",
     generateAudio: value?.generateAudio !== false,
