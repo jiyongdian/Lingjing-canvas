@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.14 - 2026-06-15
+
+- Added the One-stop Center in model services with an embedded browser entry for the configured relay portal.
+- Added a Recommended Relay section under Current Version so relay URLs are discoverable without shipping them as active default model/API configuration.
+- Removed bundled default model/API presets from the visible configuration defaults while preserving manual setup through the configuration manager.
+- Added a show/hide toggle for the Jimeng Tianji Authorization Token field.
+- Published macOS and Windows x86 release packages for 1.2.14.
+
 ## 1.2.13 - 2026-06-11
 
 - Fixed Jimeng/Seedance video nodes sometimes showing the first generated result after a later generation completed.
