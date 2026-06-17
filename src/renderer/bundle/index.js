@@ -44077,6 +44077,21 @@ ${String(l || ``).slice(0, 5e4)}`;
                                               message.createdAt,
                                             ),
                                           }),
+                                          jsx(`button`, {
+                                            onClick: async () => {
+                                              try {
+                                                await navigator.clipboard.writeText(
+                                                    message.content ||
+                                                    ``,
+                                                  ),
+                                                  showToast2(`已复制消息`);
+                                              } catch {
+                                                showToast2(`复制失败`);
+                                              }
+                                            },
+                                            className: `inline-flex items-center gap-1 rounded-lg border border-transparent px-2 py-0.5 transition-colors hover:border-[#6a6c70]/40 hover:bg-[#2e3033] hover:text-[#eef0f2]`,
+                                            children: `复制`,
+                                          }),
                                         ],
                                       }),
                                       jsx(`div`, {
