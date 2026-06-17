@@ -9,6 +9,7 @@
   "scripts": {
     "build:web": "vite build --config vite.config.mjs",
     "start": "electron .",
+    "start:dev": "node scripts/start-dev.cjs",
     "debug": "cross-env WANJUAN_DEBUG=1 electron .",
     "build": "vite build --config vite.config.mjs && electron-builder",
     "build:win": "vite build --config vite.config.mjs && electron-builder --win --x64 --ia32",

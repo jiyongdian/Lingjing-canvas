@@ -859,6 +859,8 @@ function installDesktopPatches() {
   let autoDownloadObserverInstalled = false;
 
   const isAutoDownloadEnabledValue = (value) => value === true || value === "true" || value === 1;
+  const AUTO_DOWNLOAD_ACTIVE_TEXT_RE =
+    /生成中|排队中|请求中|正在处理|处理中|等待中|正在生成|提交中|上传中|loading|queued|queue|pending|waiting|submitted|running|processing|generating|in[_ -]?progress/i;
 
   const inferGeneratedResultMime = (element, url) => {
     const raw = String(url || "");
@@ -893,10 +895,45 @@ function installDesktopPatches() {
   const markGeneratingNodes = () => {
     for (const node of document.querySelectorAll(".react-flow__node")) {
       const text = (node.textContent || "").replace(/\s+/g, " ");
-      if (/生成中|排队中|请求中|正在处理/.test(text)) {
+      if (AUTO_DOWNLOAD_ACTIVE_TEXT_RE.test(text)) {
         node.dataset.wanjuanWasGenerating = "true";
       }
     }
+  };
+
+  const autoDownloadMediaElementFor = (element) => {
+    if (element instanceof HTMLSourceElement) {
+      const parent = element.parentElement;
+      if (parent instanceof HTMLVideoElement || parent instanceof HTMLAudioElement) return parent;
+    }
+    return element;
+  };
+
+  const autoDownloadUrlFor = (element) => {
+    if (element instanceof HTMLSourceElement) return element.getAttribute("src") || "";
+    if (element instanceof HTMLMediaElement) {
+      return element.currentSrc || element.getAttribute("src") || element.querySelector("source[src]")?.getAttribute("src") || "";
+    }
+    return element.currentSrc || element.getAttribute("src") || "";
+  };
+
+  const autoDownloadResultKey = (element, node, url) =>
+    `${node?.getAttribute("data-id") || ""}|${autoDownloadMediaElementFor(element).tagName}|${url.length}|${url.slice(0, 96)}|${url.slice(-96)}`;
+
+  const getAutoDownloadMediaElements = () =>
+    Array.from(document.querySelectorAll(
+      ".react-flow__node img[src], .react-flow__node video, .react-flow__node audio, .react-flow__node source[src]"
+    ));
+
+  const seedAutoDownloadBaseline = () => {
+    markGeneratingNodes();
+    for (const element of getAutoDownloadMediaElements()) {
+      const node = element.closest(".react-flow__node");
+      const url = autoDownloadUrlFor(element);
+      if (!url) continue;
+      autoDownloadSeenResults.add(autoDownloadResultKey(element, node, url));
+    }
+    autoDownloadBaselineReady = true;
   };
 
   const shouldAutoDownloadMedia = (element, node, url) => {
@@ -944,20 +981,19 @@ function installDesktopPatches() {
       return;
     }
     markGeneratingNodes();
-    const mediaElements = document.querySelectorAll(
-      ".react-flow__node img[src], .react-flow__node video[src], .react-flow__node audio[src]"
-    );
+    const mediaElements = getAutoDownloadMediaElements();
     for (const element of mediaElements) {
       const node = element.closest(".react-flow__node");
-      const url = element.currentSrc || element.getAttribute("src") || "";
+      const mediaElement = autoDownloadMediaElementFor(element);
+      const url = autoDownloadUrlFor(element);
       if (!url) continue;
-      const key = `${node?.getAttribute("data-id") || ""}|${element.tagName}|${url.length}|${url.slice(0, 96)}|${url.slice(-96)}`;
+      const key = autoDownloadResultKey(element, node, url);
       if (autoDownloadSeenResults.has(key)) continue;
       if (!autoDownloadBaselineReady || !autoDownloadEnabled) continue;
-      if (!shouldAutoDownloadMedia(element, node, url)) continue;
+      if (!shouldAutoDownloadMedia(mediaElement, node, url)) continue;
       autoDownloadSeenResults.add(key);
       if (autoDownloadSeenResults.size > 2000) autoDownloadSeenResults.clear();
-      autoDownloadGeneratedResult(element, url).catch((error) => {
+      autoDownloadGeneratedResult(mediaElement, url).catch((error) => {
         autoDownloadSeenResults.delete(key);
         console.warn("auto download generated result skipped", error);
       });
@@ -979,6 +1015,7 @@ function installDesktopPatches() {
     new MutationObserver(queueAutoDownloadScan).observe(document.documentElement, {
       childList: true,
       subtree: true,
+      characterData: true,
       attributes: true,
       attributeFilter: ["src"]
     });
@@ -989,8 +1026,8 @@ function installDesktopPatches() {
     await setDesktopStorageItems({ [AUTO_DOWNLOAD_KEY]: autoDownloadEnabled });
     updateAutoDownloadControls();
     if (autoDownloadEnabled) {
-      autoDownloadBaselineReady = false;
       autoDownloadSeenResults.clear();
+      seedAutoDownloadBaseline();
       installAutoDownloadObserver();
       queueAutoDownloadScan();
     }
@@ -1008,6 +1045,11 @@ function installDesktopPatches() {
   const installAutoDownloadSettingRow = async () => {
     const store = await getDesktopStorageItems([AUTO_DOWNLOAD_KEY]);
     autoDownloadEnabled = isAutoDownloadEnabledValue(store[AUTO_DOWNLOAD_KEY]);
+    if (autoDownloadEnabled && !autoDownloadObserverInstalled) {
+      seedAutoDownloadBaseline();
+      installAutoDownloadObserver();
+      queueAutoDownloadScan();
+    }
 
     const labels = Array.from(document.querySelectorAll("label, div, span"))
       .filter((item) => (item.textContent || "").trim() === "文件下载地址");
