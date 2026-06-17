@@ -1,7 +1,7 @@
 // 路径与文件名工具：文件名/路径段净化、下载目录解析、file URL 与 dataURL 解析等。
 const fs = require("fs");
 const path = require("path");
-const { fileURLToPath } = require("url");
+const { fileURLToPath, pathToFileURL } = require("url");
 const { app } = require("../electron-refs.cjs");
 const { appendDesktopLog } = require("../logging.cjs");
 
@@ -54,7 +54,32 @@ function mediaLibraryRoot(directory) {
 function localPathFromFileUrl(value) {
   if (typeof value !== "string" || !/^file:\/\//i.test(value)) return "";
   try {
+    const parsed = new URL(value);
+    const hostname = decodeURIComponent(parsed.hostname || "");
+    const pathname = decodeURIComponent(parsed.pathname || "");
+    if (hostname && hostname !== "localhost") return `\\\\${hostname}${pathname.replace(/\//g, "\\")}`;
+    if (/^\/[A-Za-z]:[\\/]/.test(pathname)) return pathname.slice(1).replace(/\//g, "\\");
     return fileURLToPath(value);
+  } catch {
+    return "";
+  }
+}
+
+function fileUrlFromLocalPath(value) {
+  if (typeof value !== "string" || !value) return "";
+  try {
+    const normalized = value.replace(/\\/g, "/");
+    if (/^[A-Za-z]:\//.test(normalized)) {
+      return `file:///${encodeURI(normalized).replace(/#/g, "%23")}`;
+    }
+    if (normalized.startsWith("//")) {
+      const match = normalized.match(/^\/\/([^/]+)\/?(.*)$/);
+      if (match?.[1]) {
+        const sharePath = match[2] ? `/${match[2]}` : "/";
+        return `file://${encodeURIComponent(match[1])}${encodeURI(sharePath).replace(/#/g, "%23")}`;
+      }
+    }
+    return pathToFileURL(value).href;
   } catch {
     return "";
   }
@@ -84,6 +109,7 @@ module.exports = {
   resolveWritableDownloadDirectory,
   mediaLibraryRoot,
   localPathFromFileUrl,
+  fileUrlFromLocalPath,
   basenameWithoutExt,
   bufferFromDataUrlValue
 };

@@ -965,7 +965,7 @@ function installDesktopPatches() {
     };
     if (typeof nextUrl === "string" && /^file:\/\//i.test(nextUrl)) {
       try {
-        payload.localPath = decodeURIComponent(new URL(nextUrl).pathname);
+        payload.localPath = localPathFromFileUrl(nextUrl) || "";
       } catch {
         payload.url = nextUrl;
       }
@@ -2214,6 +2214,6 @@ module.exports = { installDesktopPatches };
 
 // 跨域 late-require（放在 module.exports 之后，利用 var 提升，避免循环依赖在 require 时取到 undefined）
 var { installChromeShim } = require("./chrome-shim.cjs");
-var { dataUrlFromBlobUrl, extensionFromMime, saveProjectName } = require("./media-utils.cjs");
+var { dataUrlFromBlobUrl, extensionFromMime, localPathFromFileUrl, saveProjectName } = require("./media-utils.cjs");
 var { ensureProjectSafetyAutoBackupStarted, installProjectSafetyBackupCenter, prewarmProjectSafetyCenter } = require("./safety-center.cjs");
 var { getDesktopStorageItems, getPerformanceSettings, normalizePerformanceProfileKey, persistPerformanceProfile, setDesktopStorageItems } = require("./storage.cjs");

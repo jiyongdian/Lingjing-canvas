@@ -9,7 +9,7 @@ const { pipeline } = require("stream/promises");
 const { app, shell } = require("../electron-refs.cjs");
 const { formatErrorMessage } = require("../logging.cjs");
 const { extensionFromMime } = require("../utils/mime.cjs");
-const { sanitizeFilename } = require("../utils/paths.cjs");
+const { fileUrlFromLocalPath, localPathFromFileUrl, sanitizeFilename } = require("../utils/paths.cjs");
 const { bufferFromMediaPayload } = require("../media/payload.cjs");
 
 function execFileWithTimeout(command, args, options = {}) {
@@ -921,7 +921,7 @@ async function upscaleVideoWithRealEsrgan(payload = {}, context = {}) {
   emitProgress(100, "完成");
   return {
     ok: true,
-    url: `file://${encodeURI(outputPath).replace(/#/g, "%23")}`,
+    url: fileUrlFromLocalPath(outputPath) || outputPath,
     localPath: outputPath,
     filename: path.basename(outputPath),
     mime: "video/mp4",
@@ -1043,7 +1043,7 @@ async function cloneVoiceWithQwenTts(payload = {}) {
   }
   return {
     ok: true,
-    url: `file://${encodeURI(finalOutputPath).replace(/#/g, "%23")}`,
+    url: fileUrlFromLocalPath(finalOutputPath) || finalOutputPath,
     localPath: finalOutputPath,
     filename: path.basename(finalOutputPath),
     mime: finalOutputFormat === "wav" ? "audio/wav" : "audio/mpeg",
@@ -1172,7 +1172,7 @@ async function blurVideoFaces(payload = {}) {
   }
   return {
     ok: true,
-    url: `file://${encodeURI(outputPath).replace(/#/g, "%23")}`,
+    url: fileUrlFromLocalPath(outputPath) || outputPath,
     localPath: outputPath,
     filename: path.basename(outputPath),
     mime: "video/mp4",
@@ -1200,7 +1200,7 @@ async function trimVideoSegment(payload = {}) {
     "";
   if (!inputPath && /^file:\/\//i.test(url)) {
     try {
-      const candidate = decodeURIComponent(new URL(url).pathname);
+      const candidate = localPathFromFileUrl(url) || decodeURIComponent(new URL(url).pathname);
       if (fs.existsSync(candidate)) inputPath = candidate;
     } catch {}
   }
@@ -1256,7 +1256,7 @@ async function trimVideoSegment(payload = {}) {
   }
   return {
     ok: true,
-    url: `file://${encodeURI(outputPath).replace(/#/g, "%23")}`,
+    url: fileUrlFromLocalPath(outputPath) || outputPath,
     localPath: outputPath,
     filename: path.basename(outputPath),
     mime: "video/mp4",

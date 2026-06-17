@@ -796,9 +796,7 @@ var TongyiWanxiangLogo = ({
             directory: ``,
           });
           if (cancelled || !result?.ok || !result.localPath) return;
-          let fileUrl = /^file:\/\//i.test(result.localPath) ?
-            result.localPath :
-            `file://${encodeURI(result.localPath).replace(/#/g, `%23`)}`;
+          let fileUrl = buildProjectMediaFileUrl(result.localPath);
           updateNodeData(nodeId, {
             imageUrl: fileUrl,
             thumbnailUrl: data.thumbnailUrl || fileUrl,
@@ -6440,11 +6438,7 @@ var Le = reactMemo(({
     WanJuanTtsMusicIsPlayableAudioUrl = (value) =>
       typeof value == `string` && /^(https?:\/\/|blob:|file:\/\/|data:audio\/)/i.test(value.trim()),
     WanJuanTtsMusicFileUrl = (filePath) =>
-      typeof filePath == `string` && filePath ?
-      /^file:\/\//i.test(filePath) ?
-      filePath :
-      `file://${encodeURI(filePath).replace(/#/g, `%23`)}` :
-      ``,
+      buildProjectMediaFileUrl(filePath),
     WanJuanTtsMusicBindingAudioUrl = (data) => {
       let audioBinding = data?.projectAssetBindings?.audioUrl || data?.data?.projectAssetBindings?.audioUrl;
       if (!audioBinding || typeof audioBinding != `object`) return ``;
@@ -13833,12 +13827,31 @@ function videoEditorModal({
 }
 
 const wanjuanBrokenResourceImage = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#151a22"/><stop offset="1" stop-color="#0b0f15"/></linearGradient></defs><rect width="96" height="96" rx="10" fill="url(#g)"/><rect x="16" y="18" width="64" height="44" rx="6" fill="#111827" stroke="#2f3847"/><circle cx="33" cy="33" r="5" fill="#4b5563"/><path d="M22 55l15-16 10 10 7-8 20 14H22z" fill="#334155"/><text x="48" y="78" text-anchor="middle" font-size="10" font-family="Arial, sans-serif" fill="#9ca3af">素材失效</text></svg>`)}`;
+function localPathFromProjectFileUrl(value) {
+  if (typeof value != `string` || !/^file:\/\//i.test(value)) return ``;
+  try {
+    const parsed = new URL(value);
+    const hostname = decodeURIComponent(parsed.hostname || ``);
+    const pathname = decodeURIComponent(parsed.pathname || ``);
+    if (hostname && hostname !== `localhost`) return `\\\\${hostname}${pathname.replace(/\//g, `\\`)}`;
+    if (/^\/[A-Za-z]:[\\/]/.test(pathname)) return pathname.slice(1).replace(/\//g, `\\`);
+    return pathname;
+  } catch {
+    return ``;
+  }
+}
 function buildProjectMediaFileUrl(filePath) {
-  return typeof filePath == `string` && filePath ?
-    /^file:\/\//i.test(filePath) ?
-    filePath :
-    `file://${encodeURI(filePath).replace(/#/g, `%23`)}` :
-    ``;
+  if (typeof filePath != `string` || !filePath) return ``;
+  if (/^file:\/\//i.test(filePath)) return filePath;
+  const normalized = filePath.replace(/\\/g, `/`);
+  const encoded = encodeURI(
+    /^[A-Za-z]:\//.test(normalized) ?
+      `/${normalized}` :
+      /^\/[A-Za-z]:\//.test(normalized) || normalized.startsWith(`//`) ?
+      normalized :
+      filePath
+  ).replace(/#/g, `%23`);
+  return normalized.startsWith(`//`) ? `file:${encoded}` : `file://${encoded}`;
 }
 function wanjuanThemeTransitionPalette(themeName) {
   return ({
@@ -15190,7 +15203,7 @@ X.default.config({
 	                filename: filename
 	              });
 	              if (saved?.ok) {
-	                let savedUrl = saved.path ? `file://${encodeURI(saved.path).replace(/#/g, `%23`)}` : nodeData.videoUrl;
+	                let savedUrl = saved.path ? buildProjectMediaFileUrl(saved.path) : nodeData.videoUrl;
 	                (nodeData.addTransitResource?.(savedUrl, `video`, filename, `face-blur-download`),
 	                  nodeData.onShowToast?.(saved.path ? `打码视频已保存：${saved.path}` : `打码视频已保存到下载目录`));
 	                return;
@@ -30044,7 +30057,13 @@ time=1h`,
   [layeredRunMaxConcurrency, setLayeredRunMaxConcurrency] =
   useState(2),
   [edges, setEdges] = useState([]),
-  [apiConfigs, setApiConfigs] = useState([]),
+  [apiConfigs, setApiConfigs] = useState([{
+    id: `jixin-default`,
+    name: `极鑫`,
+    url: `https://newapi.guancn.uk`,
+    key: ``,
+    protocolFormat: `auto`,
+  }]),
   [textApiConfigId, setTextApiConfigId] = useState(``),
   [imageApiConfigId, setImageApiConfigId] = useState(``),
   [videoApiConfigId, setVideoApiConfigId] = useState(``),
@@ -30295,7 +30314,6 @@ time=1h`,
   [membershipCode, setMembershipCode] = useState(``),
   [deviceId, setDeviceId] = useState(``),
   [updateInfo, setUpdateInfo] = useState(null),
-  [recommendedRelayExpanded, setRecommendedRelayExpanded] = useState(!1),
   membershipLimits = {
       FREE: {
         accounts: 999999,
@@ -30317,42 +30335,6 @@ time=1h`,
       },
     },
     currentLimits = membershipLimits[$e.type] || membershipLimits.FREE,
-    recommendedRelaySites = [{
-        name: `一站式中心`,
-        url: `https://newapi.guancn.uk`,
-        note: `应用内一站式中心入口`,
-      },
-      {
-        name: `lconai`,
-        url: `https://s.lconai.com`,
-        note: `统一 API Base URL`,
-      },
-      {
-        name: `向量引擎`,
-        url: `https://api.vectorengine.ai`,
-        note: `统一 API Base URL`,
-      },
-      {
-        name: `Volcengine Ark`,
-        url: `https://ark.cn-beijing.volces.com/api/v3`,
-        note: `Seedance / Ark 兼容接口`,
-      },
-      {
-        name: `API Studio`,
-        url: `https://apistudio.cc`,
-        note: `统一 API Base URL`,
-      },
-      {
-        name: `xpclaw`,
-        url: `https://xpclaw.ai`,
-        note: `视频模型兼容接口`,
-      },
-      {
-        name: `即梦天玑`,
-        url: `https://ai.kulunli.cn`,
-        note: `即梦 / 天玑工作流接口`,
-      },
-    ],
     [dailyUsageCount, setDailyUsageCount] = useState(0),
 	    [projects, setProjects] = useState([{
 	      id: `default`,
@@ -30451,7 +30433,7 @@ time=1h`,
         "当前已启用全局统一API配置": "目前已啟用全域統一 API 配置",
         "切换石墨灰、曜石黑、晴空蓝、暖砂白、樱雾粉、薄荷绿或跟随系统外观，不改变现有布局结构": "切換石墨灰、曜石黑、晴空藍、暖砂白、櫻霧粉、薄荷綠或跟隨系統外觀，不改變現有布局結構",
         "选择界面语言偏好，后续多语言文案将按此设置展示": "選擇介面語言偏好，介面文案會依此設定顯示",
-        "1.2.14：新增一站式中心、推荐中转入口，清理默认模型/API预设，并为即梦天玑 Authorization Token 增加显示/隐藏按钮。": "1.2.14：新增一站式中心、推薦中轉入口，清理預設模型/API 預設，並為即夢天璣 Authorization Token 增加顯示/隱藏按鈕。",
+        "1.2.15：修复 Windows 导入外部素材后路径失效的问题；新增首次安装默认统一 API 配置“极鑫”，并移除当前版本下方的推荐中转模块。": "1.2.15：修復 Windows 匯入外部素材後路徑失效的問題；新增首次安裝預設統一 API 配置「極鑫」，並移除目前版本下方的推薦中轉模組。",
         "1.2.13：修复即梦/Seedance 视频节点多次生成后仍显示第一次生成结果的问题；新任务、任务刷新和项目重开都会清理旧媒体绑定并优先回填最新结果。": "1.2.13：修復即夢/Seedance 影片節點多次生成後仍顯示第一次生成結果的問題；新任務、任務刷新和專案重開都會清理舊媒體綁定並優先回填最新結果。",
         "1.2.11：修复部分视频节点已下载到资源库但重新打开仍显示过期云端链接的问题；任务刷新会优先回填本地资源副本，并修正旧设备路径误判为有效文件的情况。": "1.2.11：修復部分影片節點已下載到資源庫但重新開啟仍顯示過期雲端連結的問題；任務刷新會優先回填本地資源副本，並修正舊裝置路徑誤判為有效檔案的情況。",
         "1.2.9：优化大画布渲染流畅度；改进选择素材弹窗布局、筛选选中态和音视频素材预览；修复部分生成视频下载路径不一致；整理项目、备份中心和即梦节点菜单图标等界面细节。": "1.2.9：優化大畫布渲染流暢度；改進選擇素材彈窗布局、篩選選中態和音影片素材預覽；修復部分生成影片下載路徑不一致；整理專案、備份中心和即夢節點選單圖示等介面細節。",
@@ -30510,7 +30492,7 @@ time=1h`,
         "当前已启用全局统一API配置": "Global unified API config is enabled",
         "切换石墨灰、曜石黑、晴空蓝、暖砂白、樱雾粉、薄荷绿或跟随系统外观，不改变现有布局结构": "Switch the visual theme without changing the current layout.",
         "选择界面语言偏好，后续多语言文案将按此设置展示": "Choose the interface language. Supported interface text follows this setting.",
-        "1.2.14：新增一站式中心、推荐中转入口，清理默认模型/API预设，并为即梦天玑 Authorization Token 增加显示/隐藏按钮。": "1.2.14: Added the One-stop Center and Recommended Relay entry, removed default model/API presets, and added a show/hide button for the Jimeng Tianji Authorization Token.",
+        "1.2.15：修复 Windows 导入外部素材后路径失效的问题；新增首次安装默认统一 API 配置“极鑫”，并移除当前版本下方的推荐中转模块。": "1.2.15: Fixed invalid paths after importing external assets on Windows; added the default unified API config “Jixin” for first install, and removed the Recommended Relay module under Current Version.",
         "1.2.13：修复即梦/Seedance 视频节点多次生成后仍显示第一次生成结果的问题；新任务、任务刷新和项目重开都会清理旧媒体绑定并优先回填最新结果。": "1.2.13: Fixed Jimeng/Seedance video nodes still showing the first generated result after repeated generations; new tasks, task refresh, and project reopen now clear stale media bindings and prefer the latest result.",
         "1.2.11：修复部分视频节点已下载到资源库但重新打开仍显示过期云端链接的问题；任务刷新会优先回填本地资源副本，并修正旧设备路径误判为有效文件的情况。": "1.2.11: Fixed video nodes that had already downloaded results into the resource library but reopened with expired cloud links; task refresh now prefers local resource copies and stale paths from older devices are no longer treated as valid files.",
         "1.2.9：优化大画布渲染流畅度；改进选择素材弹窗布局、筛选选中态和音视频素材预览；修复部分生成视频下载路径不一致；整理项目、备份中心和即梦节点菜单图标等界面细节。": "1.2.9: Improved large-canvas rendering responsiveness; polished the asset picker layout, selected filter state, and audio/video previews; fixed inconsistent save paths for some generated videos; refined project, Backup Center, and Jimeng node menu icon details.",
@@ -35003,7 +34985,7 @@ ${docText}`;
           directory: ``,
         });
       if (!persisted?.ok || !persisted.localPath) return null;
-      let localUrl = buildProjectMediaFileUrl(persisted.localPath) || `file://${encodeURI(persisted.localPath).replace(/#/g, `%23`)}`;
+      let localUrl = buildProjectMediaFileUrl(persisted.localPath);
       return {
         ...resource,
         url: localUrl,
@@ -40211,11 +40193,21 @@ ${String(l || ``).slice(0, 5e4)}`;
                   JSON.stringify(value) :
                   String(value ?? ``),
                   buildProjectMediaFileUrl = (value) =>
-                  typeof value == `string` && value ?
+                  typeof value != `string` || !value ?
+                  `` :
                   /^file:\/\//i.test(value) ?
                   value :
-                  `file://${encodeURI(value).replace(/#/g, `%23`)}` :
-                  ``,
+                  (() => {
+                    let normalized = value.replace(/\\/g, `/`),
+                      encoded = encodeURI(
+                        /^[A-Za-z]:\//.test(normalized) ?
+                        `/${normalized}` :
+                        /^\/[A-Za-z]:\//.test(normalized) || normalized.startsWith(`//`) ?
+                        normalized :
+                        value
+                      ).replace(/#/g, `%23`);
+                    return normalized.startsWith(`//`) ? `file:${encoded}` : `file://${encoded}`;
+                  })(),
                   reviveProjectMediaBindingValue = (binding) => {
                     if (!binding) return void 0;
                     let portableData = binding.portableData;
@@ -40565,7 +40557,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                   collectProjectFileReferences = (value, references = new Set()) => {
                     if (typeof value == `string` && value.startsWith(`file://`)) {
                       try {
-                        references.add(decodeURIComponent(new URL(value).pathname));
+                        references.add(localPathFromProjectFileUrl(value) || decodeURIComponent(new URL(value).pathname));
                       } catch {}
                       return references;
                     }
@@ -41363,7 +41355,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                           [],
                         ),
                         buildBackupPayload = async (e, t, n, r = {}) => ({
-		                            version: `1.2.14`,
+		                            version: `1.2.15`,
                             backupFormat: `4`,
                             exportedAt: new Date().toISOString(),
                             modules: await buildBackupModules(e, t, n, r),
@@ -41948,7 +41940,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                 }),
                 jsx(`span`, {
                   className: `absolute bottom-1 right-2 text-[8px] text-gray-600 font-normal`,
-			                  children: `v1.2.14`,
+			                  children: `v1.2.15`,
                 }),
                 updateInfo?.hasUpdate &&
                 jsx(`span`, {
@@ -45873,7 +45865,7 @@ ${String(l || ``).slice(0, 5e4)}`;
 	                                        }),
 	                                        jsx(`div`, {
 	                                          className: `pt-2 border-t border-[#262626] text-[11px] text-gray-500`,
-		                                          children: wanjuanT(`1.2.14：新增一站式中心、推荐中转入口，清理默认模型/API预设，并为即梦天玑 Authorization Token 增加显示/隐藏按钮。`),
+		                                          children: wanjuanT(`1.2.15：修复 Windows 导入外部素材后路径失效的问题；新增首次安装默认统一 API 配置“极鑫”，并移除当前版本下方的推荐中转模块。`),
 	                                        }),
 	                                      ],
 	                                    }),
@@ -45890,71 +45882,11 @@ ${String(l || ``).slice(0, 5e4)}`;
                                       children: [
                                         jsx(`span`, {
                                           className: `text-sm font-semibold text-gray-100`,
-		                                          children: `1.2.14`,
+		                                          children: `1.2.15`,
 	                                        }),
 	                                        jsx(`span`, {
 	                                          className: `text-[10px] text-gray-500`,
 	                                          children: wanjuanT(`当前已启用全局统一API配置`),
-                                        }),
-                                      ],
-                                    }),
-                                    jsxs(`div`, {
-                                      className: `mt-3 bg-[#121212] border border-[#333] rounded-lg overflow-hidden wanjuan-settings-recommended-relay`,
-                                      children: [
-                                        jsxs(`button`, {
-                                          type: `button`,
-                                          onClick: () => setRecommendedRelayExpanded(!recommendedRelayExpanded),
-                                          className: `w-full flex items-center justify-between gap-3 px-3 py-2.5 text-left hover:bg-[#1a1a1a] transition-colors`,
-                                          children: [
-                                            jsxs(`span`, {
-                                              className: `flex items-center gap-2 text-sm font-semibold text-gray-100`,
-                                              children: [
-                                                jsx(`span`, {
-                                                  className: `text-cyan-300`,
-                                                  children: `🔗`,
-                                                }),
-                                                ` 推荐中转`,
-                                              ],
-                                            }),
-                                            jsx(`span`, {
-                                              className: `text-[10px] text-gray-500`,
-                                              children: recommendedRelayExpanded ? `收起` : `展开`,
-                                            }),
-                                          ],
-                                        }),
-                                        recommendedRelayExpanded &&
-                                        jsx(`div`, {
-                                          className: `border-t border-[#262626] p-3 grid grid-cols-1 md:grid-cols-2 gap-2`,
-                                          children: recommendedRelaySites.map((site) =>
-                                            jsxs(
-                                              `a`, {
-                                                href: site.url,
-                                                target: `_blank`,
-                                                rel: `noreferrer`,
-                                                className: `block rounded-lg border border-[#2f3742] bg-[#171b21] px-3 py-2 hover:border-cyan-500/50 hover:bg-[#1d242c] transition-colors`,
-                                                children: [
-                                                  jsxs(`div`, {
-                                                    className: `flex items-center justify-between gap-2`,
-                                                    children: [
-                                                      jsx(`span`, {
-                                                        className: `text-xs font-semibold text-gray-200`,
-                                                        children: site.name,
-                                                      }),
-                                                      jsx(`span`, {
-                                                        className: `text-[10px] text-gray-500`,
-                                                        children: site.note,
-                                                      }),
-                                                    ],
-                                                  }),
-                                                  jsx(`div`, {
-                                                    className: `mt-1 text-[11px] text-cyan-300 break-all font-mono`,
-                                                    children: site.url,
-                                                  }),
-                                                ],
-                                              },
-                                              site.url,
-                                            ),
-                                          ),
                                         }),
                                       ],
                                     }),
@@ -47393,10 +47325,6 @@ ${String(l || ``).slice(0, 5e4)}`;
                                           }),
                                           jsx(`button`, {
                                             onClick: () => {
-                                              if (apiConfigs.length <= 1) {
-                                                showToast2(`至少保留一个配置`);
-                                                return;
-                                              }
                                               let next = [...apiConfigs];
                                               (next.splice(index, 1), setApiConfigs(next));
                                             },

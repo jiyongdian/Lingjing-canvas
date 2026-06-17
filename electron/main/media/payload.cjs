@@ -130,7 +130,7 @@ async function bufferFromDownloadPayload(payload) {
     };
   }
   if (/^file:\/\//i.test(url)) {
-    const file = readLocalFilePayload(decodeURIComponent(new URL(url).pathname));
+    const file = readLocalFilePayload(localPathFromFileUrl(url) || decodeURIComponent(new URL(url).pathname));
     emitProgress({ percent: 100, receivedBytes: file.buffer.length, totalBytes: file.buffer.length });
     return file;
   }
@@ -177,9 +177,9 @@ async function bufferFromMediaPayload(payload) {
   const localPath =
     (typeof payload?.localPath === "string" && payload.localPath) ||
     (typeof payload?.path === "string" && payload.path) ||
-    (/^file:\/\//i.test(url) ? new URL(url).pathname : "");
+    (/^file:\/\//i.test(url) ? localPathFromFileUrl(url) : "");
   if (localPath) {
-    return readLocalFilePayload(decodeURIComponent(localPath));
+    return readLocalFilePayload(localPath);
   }
   if (payload?.arrayBuffer) {
     return {

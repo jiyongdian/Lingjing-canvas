@@ -11,6 +11,7 @@ const {
 } = require("./fetch-proxy.cjs");
 const {
   arrayBufferFromBlobUrl,
+  localPathFromFileUrl,
   localFileToDataUrl,
   uploadPayloadWithReadableBytes,
 } = require("./media-utils.cjs");
@@ -165,7 +166,7 @@ exposeGlobal("wanjuanDesktop", {
 	      try {
 	        nextPayload = {
 	          ...nextPayload,
-	          localPath: decodeURIComponent(new URL(nextPayload.url).pathname),
+	          localPath: localPathFromFileUrl(nextPayload.url) || nextPayload.localPath || "",
 	          url: ""
 	        };
 	      } catch {}
@@ -194,7 +195,7 @@ exposeGlobal("wanjuanDesktop", {
 	      try {
 	        nextPayload = {
 	          ...nextPayload,
-	          localPath: decodeURIComponent(new URL(nextPayload.url).pathname),
+	          localPath: localPathFromFileUrl(nextPayload.url) || nextPayload.localPath || "",
 	          url: ""
 	        };
 	      } catch {}

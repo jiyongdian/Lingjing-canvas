@@ -1,5 +1,6 @@
 // 职责：preload 渲染进程的媒体/下载工具集 —— 项目名保存、回调转换、文件名与 MIME 推断、blob/本地文件转 dataUrl、上传载荷预处理、字节格式化与下载进度浮层 UI。
 var { fs, path } = require("./runtime.cjs");
+const { fileURLToPath } = require("url");
 
 async function saveProjectName(projectId, name) {
   const store = await getDesktopStorageItems(["projects"]);
@@ -70,9 +71,23 @@ function mimeFromFilename(filename) {
   }[ext] || "application/octet-stream";
 }
 
+function localPathFromFileUrl(value) {
+  if (typeof value !== "string" || !/^file:\/\//i.test(value)) return "";
+  try {
+    const parsed = new URL(value);
+    const hostname = decodeURIComponent(parsed.hostname || "");
+    const pathname = decodeURIComponent(parsed.pathname || "");
+    if (hostname && hostname !== "localhost") return `\\\\${hostname}${pathname.replace(/\//g, "\\")}`;
+    if (/^\/[A-Za-z]:[\\/]/.test(pathname)) return pathname.slice(1).replace(/\//g, "\\");
+    return fileURLToPath(value);
+  } catch {
+    return "";
+  }
+}
+
 function localFileToDataUrl(filePath) {
   const rawPath = String(filePath || "");
-  const resolvedPath = /^file:\/\//i.test(rawPath) ? decodeURIComponent(new URL(rawPath).pathname) : rawPath;
+  const resolvedPath = localPathFromFileUrl(rawPath) || rawPath;
   const buffer = fs.readFileSync(resolvedPath);
   const mime = mimeFromFilename(resolvedPath);
   return {
@@ -122,7 +137,7 @@ async function uploadPayloadWithReadableBytes(payload = {}) {
     try {
       nextPayload = {
         ...nextPayload,
-        localPath: decodeURIComponent(new URL(nextPayload.url).pathname),
+        localPath: localPathFromFileUrl(nextPayload.url) || nextPayload.localPath || "",
         url: ""
       };
     } catch {}
@@ -321,6 +336,7 @@ module.exports = {
   filenameFromDownloadOptions,
   extensionFromMime,
   mimeFromFilename,
+  localPathFromFileUrl,
   localFileToDataUrl,
   dataUrlFromBlobUrl,
   arrayBufferFromBlobUrl,
