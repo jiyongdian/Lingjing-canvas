@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.17 - 2026-06-17
+
+- Added a copy action for user messages in the Agents chat view.
+- Fixed Windows extension-tool installation failures caused by PowerShell `Expand-Archive` argument binding.
+- Reused the corrected archive extraction path for uv, Qwen-TTS source archives, ffmpeg, and Real-ESRGAN packages.
+- Updated Qwen-TTS runtime dependency pins to satisfy `qwen-tts==0.1.1`.
+- Published macOS and Windows release packages for 1.2.17.
+
 ## 1.2.16 - 2026-06-17
 
 - Improved extension tool installation with bundled/portable runtime lookup and managed per-user tool installs.
