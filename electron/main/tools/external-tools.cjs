@@ -329,6 +329,20 @@ function extractTarGzCommand() {
   return hasCommand("/usr/bin/tar", ["--version"]) ? "/usr/bin/tar" : hasCommand("tar", ["--version"]) ? "tar" : "";
 }
 
+function powershellSingleQuotedLiteral(value) {
+  return `'${String(value).replace(/'/g, "''")}'`;
+}
+
+function windowsExpandArchiveArgs(zipPath, destination) {
+  return [
+    "-NoProfile",
+    "-ExecutionPolicy",
+    "Bypass",
+    "-Command",
+    `Expand-Archive -LiteralPath ${powershellSingleQuotedLiteral(zipPath)} -DestinationPath ${powershellSingleQuotedLiteral(destination)} -Force`
+  ];
+}
+
 async function ensureUvCommand() {
   const bundled = bundledToolCommand("uv");
   if (bundled) return bundled;
@@ -342,20 +356,7 @@ async function ensureUvCommand() {
   const archivePath = path.join(root, path.basename(new URL(url).pathname));
   await downloadFile(url, archivePath);
   if (/\.zip$/i.test(archivePath)) {
-    const unzipCommand = IS_WINDOWS ? "" : "/usr/bin/unzip";
-    if (IS_WINDOWS) {
-      await runInstallCommand("powershell.exe", [
-        "-NoProfile",
-        "-ExecutionPolicy",
-        "Bypass",
-        "-Command",
-        "Expand-Archive -LiteralPath $args[0] -DestinationPath $args[1] -Force",
-        archivePath,
-        root
-      ], { timeoutMs: 10 * 60 * 1000 });
-    } else {
-      await runInstallCommand(unzipCommand, ["-q", "-o", archivePath, "-d", root], { timeoutMs: 10 * 60 * 1000 });
-    }
+    await extractZipArchive(archivePath, root);
   } else {
     const tar = extractTarGzCommand();
     if (!tar) throw new Error("缺少 tar，无法解压便携 uv。");
@@ -363,7 +364,7 @@ async function ensureUvCommand() {
   }
   const extracted = findExecutableRecursive(root, executableName("uv"));
   if (!extracted) throw new Error("便携 uv 下载完成，但未找到 uv 可执行文件。");
-  fs.copyFileSync(extracted, managed);
+  if (path.resolve(extracted) !== path.resolve(managed)) fs.copyFileSync(extracted, managed);
   if (!IS_WINDOWS) fs.chmodSync(managed, 0o755);
   if (!hasCommand(managed, ["--version"])) throw new Error("便携 uv 无法运行。");
   return managed;
@@ -428,15 +429,9 @@ async function ensureHomebrewPackages(packages = []) {
 async function extractZipArchive(zipPath, destination) {
   fs.mkdirSync(destination, { recursive: true });
   if (IS_WINDOWS) {
-    await runInstallCommand("powershell.exe", [
-        "-NoProfile",
-        "-ExecutionPolicy",
-        "Bypass",
-        "-Command",
-        "Expand-Archive -LiteralPath $args[0] -DestinationPath $args[1] -Force",
-      zipPath,
-      destination
-    ], { timeoutMs: 10 * 60 * 1000 });
+    await runInstallCommand("powershell.exe", windowsExpandArchiveArgs(zipPath, destination), {
+      timeoutMs: 10 * 60 * 1000
+    });
     return;
   }
   await runInstallCommand("/usr/bin/unzip", ["-q", "-o", zipPath, "-d", destination], {
@@ -630,19 +625,7 @@ async function ensureFfmpegCommand() {
   const extractRoot = path.join(root, "ffmpeg-extracted");
   fs.rmSync(extractRoot, { recursive: true, force: true });
   fs.mkdirSync(extractRoot, { recursive: true });
-  if (IS_WINDOWS) {
-    await runInstallCommand("powershell.exe", [
-        "-NoProfile",
-        "-ExecutionPolicy",
-        "Bypass",
-        "-Command",
-        "Expand-Archive -LiteralPath $args[0] -DestinationPath $args[1] -Force",
-      archivePath,
-      extractRoot
-    ], { timeoutMs: 10 * 60 * 1000 });
-  } else {
-    await runInstallCommand("/usr/bin/unzip", ["-q", "-o", archivePath, "-d", extractRoot], { timeoutMs: 10 * 60 * 1000 });
-  }
+  await extractZipArchive(archivePath, extractRoot);
   const extracted = findExecutableRecursive(extractRoot, executableName("ffmpeg"));
   if (!extracted) throw new Error("ffmpeg 下载完成，但未找到可执行文件。");
   const target = path.join(root, executableName("ffmpeg"));
@@ -747,7 +730,7 @@ function qwenTtsPinnedRuntimeDependencies() {
   return [
     "qwen-tts==0.1.1",
     "transformers==4.57.3",
-    "accelerate==1.10.1",
+    "accelerate==1.12.0",
     "gradio",
     "librosa",
     "torchaudio",
@@ -1614,6 +1597,8 @@ module.exports = {
   resolveGitCommand,
   resolveSoxCommand,
   ensureHomebrewPackages,
+  powershellSingleQuotedLiteral,
+  windowsExpandArchiveArgs,
   extractZipArchive,
   downloadAndExtractQwenTtsRepo,
   shellQuote,
