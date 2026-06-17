@@ -12,6 +12,92 @@ const { extensionFromMime } = require("../utils/mime.cjs");
 const { fileUrlFromLocalPath, localPathFromFileUrl, sanitizeFilename } = require("../utils/paths.cjs");
 const { bufferFromMediaPayload } = require("../media/payload.cjs");
 
+const IS_MAC = process.platform === "darwin";
+const IS_WINDOWS = process.platform === "win32";
+const PLATFORM_KEY = IS_WINDOWS ? "win32" : IS_MAC ? "darwin" : process.platform;
+const ARCH_KEY = process.arch === "x64" ? "x64" : process.arch === "ia32" ? "ia32" : process.arch === "arm64" ? "arm64" : process.arch;
+
+function executableName(name) {
+  return IS_WINDOWS ? `${name}.exe` : name;
+}
+
+function safeAppPath() {
+  try {
+    if (app?.getAppPath) return app.getAppPath();
+  } catch {}
+  return path.resolve(__dirname, "../../..");
+}
+
+function safeUserPath(name) {
+  try {
+    if (app?.getPath) return app.getPath(name);
+  } catch {}
+  if (name === "home") return process.env.HOME || process.env.USERPROFILE || process.cwd();
+  if (name === "userData") return path.join(safeAppPath(), ".wanjuan-tool-test-data");
+  return process.cwd();
+}
+
+function appResourcePath(...segments) {
+  return path.join(process.resourcesPath || path.dirname(safeAppPath()), ...segments);
+}
+
+function toolRuntimeRoots() {
+  return [
+    appResourcePath("tool-runtime", `${PLATFORM_KEY}-${ARCH_KEY}`),
+    appResourcePath("tool-runtime", PLATFORM_KEY),
+    path.join(safeAppPath(), "tool-runtime", `${PLATFORM_KEY}-${ARCH_KEY}`),
+    path.join(safeAppPath(), "tool-runtime", PLATFORM_KEY)
+  ];
+}
+
+function findExecutableRecursive(root, executable) {
+  if (!root || !fs.existsSync(root)) return "";
+  const stack = [root];
+  const maxVisited = 2000;
+  let visited = 0;
+  while (stack.length && visited < maxVisited) {
+    visited += 1;
+    const current = stack.pop();
+    let entries = [];
+    try {
+      entries = fs.readdirSync(current, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+    for (const entry of entries) {
+      const fullPath = path.join(current, entry.name);
+      if (entry.isDirectory()) {
+        if (!/\.app$/i.test(entry.name)) stack.push(fullPath);
+        continue;
+      }
+      if (entry.name.toLowerCase() === executable.toLowerCase()) return fullPath;
+    }
+  }
+  return "";
+}
+
+function bundledToolCommand(name) {
+  const executable = executableName(name);
+  for (const root of toolRuntimeRoots()) {
+    const direct = path.join(root, "bin", executable);
+    if (fs.existsSync(direct)) return direct;
+    const nested = findExecutableRecursive(root, executable);
+    if (nested) return nested;
+  }
+  return "";
+}
+
+function managedToolBinRoot() {
+  return path.join(safeUserPath("userData"), "extension-tools", "bin", `${PLATFORM_KEY}-${ARCH_KEY}`);
+}
+
+function managedToolCommand(name) {
+  const executable = executableName(name);
+  const direct = path.join(managedToolBinRoot(), executable);
+  if (fs.existsSync(direct)) return direct;
+  return findExecutableRecursive(managedToolBinRoot(), executable);
+}
+
 function execFileWithTimeout(command, args, options = {}) {
   const timeoutMs = Number(options.timeoutMs || 30 * 60 * 1000);
   return new Promise((resolve, reject) => {
@@ -32,6 +118,41 @@ function execFileWithTimeout(command, args, options = {}) {
   });
 }
 
+function extensionInstallLogPath() {
+  return path.join(safeUserPath("userData"), "extension-tools", "install.log");
+}
+
+function appendExtensionInstallLog(type, payload = {}) {
+  try {
+    const logPath = extensionInstallLogPath();
+    fs.mkdirSync(path.dirname(logPath), { recursive: true });
+    fs.appendFileSync(logPath, `${JSON.stringify({ time: new Date().toISOString(), type, ...payload })}\n`, "utf8");
+  } catch {}
+}
+
+async function runInstallCommand(command, args, options = {}) {
+  appendExtensionInstallLog("command-start", { command, args, cwd: options.cwd || "" });
+  try {
+    const result = await execFileWithTimeout(command, args, options);
+    appendExtensionInstallLog("command-ok", {
+      command,
+      stdout: String(result?.stdout || "").slice(-8000),
+      stderr: String(result?.stderr || "").slice(-8000)
+    });
+    return result;
+  } catch (error) {
+    appendExtensionInstallLog("command-failed", {
+      command,
+      args,
+      code: error?.code,
+      message: String(error?.message || error),
+      stdout: String(error?.stdout || "").slice(-12000),
+      stderr: String(error?.stderr || "").slice(-12000)
+    });
+    throw error;
+  }
+}
+
 function parsePythonVersionText(text = "") {
   const match = String(text || "").match(/Python\s+(\d+)\.(\d+)(?:\.(\d+))?/i);
   if (!match) return null;
@@ -49,6 +170,8 @@ function isPythonVersionAtLeast(version, major, minor) {
 }
 
 function inspectPythonCommand(candidate) {
+  if (!candidate) return null;
+  if (candidate.includes(path.sep) && !fs.existsSync(candidate)) return null;
   try {
     const output = execFileSync(candidate, ["--version"], {
       encoding: "utf8",
@@ -66,8 +189,16 @@ function inspectPythonCommand(candidate) {
 function resolvePythonCommand(options = {}) {
   const minMajor = Number(options.minMajor || 0);
   const minMinor = Number(options.minMinor || 0);
+  const runtimePython = bundledToolCommand("python") || bundledToolCommand("python3") || managedToolCommand("python") || managedToolCommand("python3");
   const candidates = [
     process.env.WANJUAN_QWEN_TTS_PYTHON_BIN,
+    runtimePython,
+    bundledToolCommand("python3.12"),
+    managedToolCommand("python3.12"),
+    IS_WINDOWS ? path.join(qwenTtsToolRoot(), "python", "python.exe") : "",
+    IS_WINDOWS ? path.join(safeUserPath("home"), "AppData", "Local", "Programs", "Python", "Python312", "python.exe") : "",
+    IS_WINDOWS ? path.join(safeUserPath("home"), "AppData", "Local", "Microsoft", "WindowsApps", "python3.12.exe") : "",
+    IS_WINDOWS ? path.join(safeUserPath("home"), "AppData", "Local", "Microsoft", "WindowsApps", "python.exe") : "",
     "/opt/homebrew/bin/python3.12",
     "/usr/local/bin/python3.12",
     "python3.12",
@@ -78,7 +209,7 @@ function resolvePythonCommand(options = {}) {
     "/usr/local/bin/python3.10",
     "python3.10",
     process.env.WANJUAN_PYTHON_BIN,
-    path.join(app.getPath("home"), ".local", "share", "uv", "python", "cpython-3.12-macos-aarch64-none", "bin", "python3.12"),
+    path.join(safeUserPath("home"), ".local", "share", "uv", "python", "cpython-3.12-macos-aarch64-none", "bin", "python3.12"),
     "/opt/homebrew/bin/python3.13",
     "/usr/local/bin/python3.13",
     "python3.13",
@@ -98,18 +229,21 @@ function resolvePythonCommand(options = {}) {
 async function ensureQwenTtsPythonCommand() {
   let python = resolvePythonCommand({ minMajor: 3, minMinor: 10 });
   if (python) return python;
+  python = await ensureUvPythonCommand({ minMajor: 3, minMinor: 10 });
+  if (python) return python;
   const brew = resolveHomebrewCommand();
-  if (brew) {
-    await execFileWithTimeout(brew, ["install", "python@3.12"], {
+  if (IS_MAC && brew) {
+    await runInstallCommand(brew, ["install", "python@3.12"], {
       timeoutMs: 60 * 60 * 1000
     });
     python = resolvePythonCommand({ minMajor: 3, minMinor: 10 });
     if (python) return python;
   }
-  throw new Error("Qwen-TTS 需要 Python 3.10 或更高版本，推荐 Python 3.12。当前未检测到可用 Python，也无法自动安装。请先完成依赖安装后重试。");
+  throw new Error("Qwen-TTS 需要 Python 3.10 或更高版本，推荐 Python 3.12。当前未检测到可用 Python，自动安装便携 Python 也失败。请检查网络后重试。");
 }
 
 function resolveHomebrewCommand() {
+  if (!IS_MAC) return "";
   return ["/opt/homebrew/bin/brew", "/usr/local/bin/brew", "brew"].find((candidate) => {
     try {
       execFileSync(candidate, ["--version"], {
@@ -125,6 +259,8 @@ function resolveHomebrewCommand() {
 }
 
 function hasCommand(command, args = ["--version"]) {
+  if (!command) return false;
+  if (command.includes(path.sep) && !fs.existsSync(command)) return false;
   try {
     execFileSync(command, args, {
       encoding: "utf8",
@@ -140,6 +276,10 @@ function hasCommand(command, args = ["--version"]) {
 function resolveGitCommand() {
   const candidates = [
     process.env.WANJUAN_GIT_BIN,
+    bundledToolCommand("git"),
+    managedToolCommand("git"),
+    IS_WINDOWS ? path.join(process.env.ProgramFiles || "C:\\Program Files", "Git", "cmd", "git.exe") : "",
+    IS_WINDOWS ? path.join(process.env["ProgramFiles(x86)"] || "C:\\Program Files (x86)", "Git", "cmd", "git.exe") : "",
     "/opt/homebrew/bin/git",
     "/usr/local/bin/git",
     "/usr/bin/git",
@@ -154,7 +294,9 @@ function resolveGitCommand() {
 function resolveSoxCommand() {
   const candidates = [
     process.env.WANJUAN_SOX_BIN,
-    path.join(qwenTtsToolRoot(), "bin", "sox"),
+    bundledToolCommand("sox"),
+    managedToolCommand("sox"),
+    path.join(qwenTtsToolRoot(), "bin", executableName("sox")),
     "/opt/homebrew/bin/sox",
     "/usr/local/bin/sox",
     "sox"
@@ -165,7 +307,93 @@ function resolveSoxCommand() {
   return "";
 }
 
+function uvToolRoot() {
+  return path.join(safeUserPath("userData"), "extension-tools", "uv");
+}
+
+function uvCommand() {
+  return path.join(uvToolRoot(), executableName("uv"));
+}
+
+function uvDownloadUrl() {
+  if (IS_MAC && ARCH_KEY === "arm64") return "https://github.com/astral-sh/uv/releases/latest/download/uv-aarch64-apple-darwin.tar.gz";
+  if (IS_MAC) return "https://github.com/astral-sh/uv/releases/latest/download/uv-x86_64-apple-darwin.tar.gz";
+  if (IS_WINDOWS && ARCH_KEY === "arm64") return "https://github.com/astral-sh/uv/releases/latest/download/uv-aarch64-pc-windows-msvc.zip";
+  if (IS_WINDOWS && ARCH_KEY === "ia32") return "";
+  if (IS_WINDOWS) return "https://github.com/astral-sh/uv/releases/latest/download/uv-x86_64-pc-windows-msvc.zip";
+  return "";
+}
+
+function extractTarGzCommand() {
+  if (IS_WINDOWS) return "";
+  return hasCommand("/usr/bin/tar", ["--version"]) ? "/usr/bin/tar" : hasCommand("tar", ["--version"]) ? "tar" : "";
+}
+
+async function ensureUvCommand() {
+  const bundled = bundledToolCommand("uv");
+  if (bundled) return bundled;
+  const managed = uvCommand();
+  if (hasCommand(managed, ["--version"])) return managed;
+  const url = uvDownloadUrl();
+  if (!url) return "";
+  const root = uvToolRoot();
+  fs.rmSync(root, { recursive: true, force: true });
+  fs.mkdirSync(root, { recursive: true });
+  const archivePath = path.join(root, path.basename(new URL(url).pathname));
+  await downloadFile(url, archivePath);
+  if (/\.zip$/i.test(archivePath)) {
+    const unzipCommand = IS_WINDOWS ? "" : "/usr/bin/unzip";
+    if (IS_WINDOWS) {
+      await runInstallCommand("powershell.exe", [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-Command",
+        "Expand-Archive -LiteralPath $args[0] -DestinationPath $args[1] -Force",
+        archivePath,
+        root
+      ], { timeoutMs: 10 * 60 * 1000 });
+    } else {
+      await runInstallCommand(unzipCommand, ["-q", "-o", archivePath, "-d", root], { timeoutMs: 10 * 60 * 1000 });
+    }
+  } else {
+    const tar = extractTarGzCommand();
+    if (!tar) throw new Error("缺少 tar，无法解压便携 uv。");
+    await runInstallCommand(tar, ["-xzf", archivePath, "-C", root], { timeoutMs: 10 * 60 * 1000 });
+  }
+  const extracted = findExecutableRecursive(root, executableName("uv"));
+  if (!extracted) throw new Error("便携 uv 下载完成，但未找到 uv 可执行文件。");
+  fs.copyFileSync(extracted, managed);
+  if (!IS_WINDOWS) fs.chmodSync(managed, 0o755);
+  if (!hasCommand(managed, ["--version"])) throw new Error("便携 uv 无法运行。");
+  return managed;
+}
+
+async function ensureUvPythonCommand(options = {}) {
+  const uv = await ensureUvCommand();
+  if (!uv) return "";
+  const installDir = path.join(qwenTtsToolRoot(), "python");
+  fs.mkdirSync(installDir, { recursive: true });
+  const env = { ...process.env, UV_PYTHON_INSTALL_DIR: installDir };
+  await runInstallCommand(uv, ["python", "install", "3.12"], {
+    env,
+    timeoutMs: 30 * 60 * 1000
+  });
+  const candidates = [
+    findExecutableRecursive(installDir, IS_WINDOWS ? "python.exe" : "python3.12"),
+    findExecutableRecursive(installDir, executableName("python"))
+  ].filter(Boolean);
+  for (const candidate of candidates) {
+    const info = inspectPythonCommand(candidate);
+    if (!info) continue;
+    if (options.minMajor && !isPythonVersionAtLeast(info.version, options.minMajor, options.minMinor || 0)) continue;
+    return candidate;
+  }
+  return "";
+}
+
 async function ensureHomebrewPackages(packages = []) {
+  if (!IS_MAC) return;
   const missing = packages.filter((name) => {
     try {
       execFileSync(name, [name === "ffmpeg" ? "-version" : "--version"], {
@@ -197,6 +425,46 @@ async function ensureHomebrewPackages(packages = []) {
   });
 }
 
+async function extractZipArchive(zipPath, destination) {
+  fs.mkdirSync(destination, { recursive: true });
+  if (IS_WINDOWS) {
+    await runInstallCommand("powershell.exe", [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-Command",
+        "Expand-Archive -LiteralPath $args[0] -DestinationPath $args[1] -Force",
+      zipPath,
+      destination
+    ], { timeoutMs: 10 * 60 * 1000 });
+    return;
+  }
+  await runInstallCommand("/usr/bin/unzip", ["-q", "-o", zipPath, "-d", destination], {
+    timeoutMs: 10 * 60 * 1000
+  });
+}
+
+async function downloadAndExtractQwenTtsRepo(repoDir) {
+  const root = qwenTtsToolRoot();
+  const zipPath = path.join(root, "qtts-main.zip");
+  const extractRoot = path.join(root, "qtts-source");
+  fs.rmSync(extractRoot, { recursive: true, force: true });
+  await downloadFile("https://github.com/daliusd/qtts/archive/refs/heads/main.zip", zipPath);
+  await extractZipArchive(zipPath, extractRoot);
+  const extracted = fs.readdirSync(extractRoot)
+    .map((name) => path.join(extractRoot, name))
+    .find((item) => {
+      try {
+        return fs.statSync(item).isDirectory() && fs.existsSync(path.join(item, "qtts.py"));
+      } catch {
+        return false;
+      }
+    });
+  if (!extracted) throw new Error("Qwen-TTS 源码下载完成，但未找到 qtts.py。");
+  fs.rmSync(repoDir, { recursive: true, force: true });
+  fs.renameSync(extracted, repoDir);
+}
+
 function shellQuote(value) {
   return `'${String(value).replace(/'/g, `'\\''`)}'`;
 }
@@ -204,9 +472,7 @@ function shellQuote(value) {
 function getQwenTtsMissingPrerequisites() {
   const missing = [];
   if (!resolvePythonCommand({ minMajor: 3, minMinor: 10 })) missing.push("Python 3.10+");
-  if (!resolveGitCommand()) missing.push("git");
-  if (!resolveFfmpegCommand()) missing.push("ffmpeg");
-  if (!resolveSoxCommand()) missing.push("sox");
+  if (IS_MAC && !resolveSoxCommand()) missing.push("sox");
   return missing;
 }
 
@@ -308,6 +574,7 @@ async function waitForBootstrapMarker(markerPath, logPath, timeoutMs = 2 * 60 * 
 }
 
 async function bootstrapQwenTtsPrerequisitesIfNeeded() {
+  if (!IS_MAC) return;
   const missing = getQwenTtsMissingPrerequisites();
   if (missing.length === 0) return;
   if (resolveHomebrewCommand()) return;
@@ -324,7 +591,10 @@ async function bootstrapQwenTtsPrerequisitesIfNeeded() {
 function resolveFfmpegCommand() {
   const candidates = [
     process.env.WANJUAN_FFMPEG_BIN,
-    path.join(qwenTtsToolRoot(), "bin", "ffmpeg"),
+    bundledToolCommand("ffmpeg"),
+    managedToolCommand("ffmpeg"),
+    path.join(qwenTtsToolRoot(), "bin", executableName("ffmpeg")),
+    IS_WINDOWS ? path.join(process.env.ProgramFiles || "C:\\Program Files", "ffmpeg", "bin", "ffmpeg.exe") : "",
     "/opt/homebrew/bin/ffmpeg",
     "/usr/local/bin/ffmpeg",
     "ffmpeg"
@@ -342,13 +612,60 @@ function resolveFfmpegCommand() {
   return "";
 }
 
+function ffmpegDownloadUrl() {
+  if (IS_MAC) return "https://evermeet.cx/ffmpeg/getrelease/zip";
+  if (IS_WINDOWS) return "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip";
+  return "";
+}
+
+async function ensureFfmpegCommand() {
+  const existing = resolveFfmpegCommand();
+  if (existing) return existing;
+  const url = ffmpegDownloadUrl();
+  if (!url) return "";
+  const root = managedToolBinRoot();
+  fs.mkdirSync(root, { recursive: true });
+  const archivePath = path.join(root, IS_WINDOWS ? "ffmpeg-release-essentials.zip" : "ffmpeg.zip");
+  await downloadFile(url, archivePath);
+  const extractRoot = path.join(root, "ffmpeg-extracted");
+  fs.rmSync(extractRoot, { recursive: true, force: true });
+  fs.mkdirSync(extractRoot, { recursive: true });
+  if (IS_WINDOWS) {
+    await runInstallCommand("powershell.exe", [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-Command",
+        "Expand-Archive -LiteralPath $args[0] -DestinationPath $args[1] -Force",
+      archivePath,
+      extractRoot
+    ], { timeoutMs: 10 * 60 * 1000 });
+  } else {
+    await runInstallCommand("/usr/bin/unzip", ["-q", "-o", archivePath, "-d", extractRoot], { timeoutMs: 10 * 60 * 1000 });
+  }
+  const extracted = findExecutableRecursive(extractRoot, executableName("ffmpeg"));
+  if (!extracted) throw new Error("ffmpeg 下载完成，但未找到可执行文件。");
+  const target = path.join(root, executableName("ffmpeg"));
+  fs.copyFileSync(extracted, target);
+  if (!IS_WINDOWS) fs.chmodSync(target, 0o755);
+  if (!hasCommand(target, ["-version"])) throw new Error("便携 ffmpeg 无法运行。");
+  return target;
+}
+
 function resolveDefaceCommand() {
   const managedDeface = defaceVenvCommand();
-  const userPythonBinRoot = path.join(app.getPath("home"), "Library", "Python");
   const userDefaceBins = [];
   try {
-    for (const version of fs.readdirSync(userPythonBinRoot)) {
-      userDefaceBins.push(path.join(userPythonBinRoot, version, "bin", "deface"));
+    if (IS_MAC) {
+      const userPythonBinRoot = path.join(safeUserPath("home"), "Library", "Python");
+      for (const version of fs.readdirSync(userPythonBinRoot)) {
+        userDefaceBins.push(path.join(userPythonBinRoot, version, "bin", "deface"));
+      }
+    } else if (IS_WINDOWS) {
+      const localPrograms = path.join(safeUserPath("home"), "AppData", "Local", "Programs", "Python");
+      for (const version of fs.readdirSync(localPrograms)) {
+        userDefaceBins.push(path.join(localPrograms, version, "Scripts", "deface.exe"));
+      }
     }
   } catch {}
   const candidates = [
@@ -361,25 +678,25 @@ function resolveDefaceCommand() {
   ].filter(Boolean);
   for (const candidate of candidates) {
     if (candidate.includes(path.sep) && !fs.existsSync(candidate)) continue;
-    return candidate;
+    if (hasCommand(candidate, ["--version"]) || hasCommand(candidate, ["--help"])) return candidate;
   }
   return "deface";
 }
 
 function defaceToolRoot() {
-  return path.join(app.getPath("userData"), "extension-tools", "deface");
+  return path.join(safeUserPath("userData"), "extension-tools", "deface");
 }
 
 function defaceVenvPython() {
-  return path.join(defaceToolRoot(), "venv", "bin", "python");
+  return path.join(defaceToolRoot(), "venv", IS_WINDOWS ? "Scripts" : "bin", executableName("python"));
 }
 
 function defaceVenvCommand() {
-  return path.join(defaceToolRoot(), "venv", "bin", "deface");
+  return path.join(defaceToolRoot(), "venv", IS_WINDOWS ? "Scripts" : "bin", executableName("deface"));
 }
 
 function qwenTtsToolRoot() {
-  return path.join(app.getPath("userData"), "extension-tools", "qwen-tts");
+  return path.join(safeUserPath("userData"), "extension-tools", "qwen-tts");
 }
 
 function qwenTtsRepoDir() {
@@ -387,7 +704,7 @@ function qwenTtsRepoDir() {
 }
 
 function qwenTtsVenvPython() {
-  return path.join(qwenTtsToolRoot(), "venv", "bin", "python");
+  return path.join(qwenTtsToolRoot(), "venv", IS_WINDOWS ? "Scripts" : "bin", executableName("python"));
 }
 
 function qwenTtsScriptPath() {
@@ -395,20 +712,34 @@ function qwenTtsScriptPath() {
 }
 
 function realEsrganToolRoot() {
-  return path.join(app.getPath("userData"), "extension-tools", "real-esrgan-ncnn-vulkan");
+  return path.join(safeUserPath("userData"), "extension-tools", "real-esrgan-ncnn-vulkan");
 }
 
 function realEsrganExtractedDir() {
-  const flatCommand = path.join(realEsrganToolRoot(), "realesrgan-ncnn-vulkan");
+  const flatCommand = path.join(realEsrganToolRoot(), executableName("realesrgan-ncnn-vulkan"));
   if (fs.existsSync(flatCommand)) return realEsrganToolRoot();
-  return path.join(realEsrganToolRoot(), "realesrgan-ncnn-vulkan-20220424-macos");
+  const candidates = fs.existsSync(realEsrganToolRoot())
+    ? fs.readdirSync(realEsrganToolRoot()).map((name) => path.join(realEsrganToolRoot(), name)).filter((item) => {
+      try {
+        return fs.statSync(item).isDirectory() && /realesrgan-ncnn-vulkan/i.test(path.basename(item));
+      } catch {
+        return false;
+      }
+    })
+    : [];
+  return candidates[0] || path.join(realEsrganToolRoot(), IS_WINDOWS ? "realesrgan-ncnn-vulkan-20220424-windows" : "realesrgan-ncnn-vulkan-20220424-macos");
 }
 
 function realEsrganCommand() {
-  return path.join(realEsrganExtractedDir(), "realesrgan-ncnn-vulkan");
+  const bundled = bundledToolCommand("realesrgan-ncnn-vulkan");
+  if (bundled) return bundled;
+  const managed = managedToolCommand("realesrgan-ncnn-vulkan");
+  if (managed) return managed;
+  return path.join(realEsrganExtractedDir(), executableName("realesrgan-ncnn-vulkan"));
 }
 
 function realEsrganReleaseUrl() {
+  if (IS_WINDOWS) return "https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/realesrgan-ncnn-vulkan-20220424-windows.zip";
   return "https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/realesrgan-ncnn-vulkan-20220424-macos.zip";
 }
 
@@ -500,22 +831,28 @@ function getQwenTtsToolStatus() {
 }
 
 async function installQwenTtsTool() {
-  await bootstrapQwenTtsPrerequisitesIfNeeded();
   const python = await ensureQwenTtsPythonCommand();
-  await ensureHomebrewPackages(["git", "ffmpeg", "sox"]);
-  const git = resolveGitCommand() || "git";
+  await ensureFfmpegCommand().catch(() => "");
+  if (IS_MAC) await ensureHomebrewPackages(["git", "sox"]);
+  const git = resolveGitCommand();
   const root = qwenTtsToolRoot();
   const repoDir = qwenTtsRepoDir();
   const venvPython = qwenTtsVenvPython();
   fs.mkdirSync(root, { recursive: true });
   if (!fs.existsSync(repoDir)) {
-    await execFileWithTimeout(git, ["clone", "https://github.com/daliusd/qtts.git", repoDir], {
-      timeoutMs: 10 * 60 * 1000
-    });
+    if (git) {
+      await runInstallCommand(git, ["clone", "https://github.com/daliusd/qtts.git", repoDir], {
+        timeoutMs: 10 * 60 * 1000
+      });
+    } else {
+      await downloadAndExtractQwenTtsRepo(repoDir);
+    }
   } else {
-    await execFileWithTimeout(git, ["-C", repoDir, "pull", "--ff-only"], {
-      timeoutMs: 10 * 60 * 1000
-    });
+    if (git) {
+      await runInstallCommand(git, ["-C", repoDir, "pull", "--ff-only"], {
+        timeoutMs: 10 * 60 * 1000
+      }).catch(() => null);
+    }
   }
   patchQwenTtsScriptForMac(qwenTtsScriptPath());
   if (shouldRecreateQwenTtsVenv(venvPython)) {
@@ -525,20 +862,20 @@ async function installQwenTtsTool() {
     });
   }
   if (!fs.existsSync(venvPython)) {
-    await execFileWithTimeout(python, ["-m", "venv", path.join(root, "venv")], {
+    await runInstallCommand(python, ["-m", "venv", path.join(root, "venv")], {
       timeoutMs: 10 * 60 * 1000
     });
   }
-  await execFileWithTimeout(venvPython, ["-m", "pip", "install", "--upgrade", "pip"], {
+  await runInstallCommand(venvPython, ["-m", "pip", "install", "--upgrade", "pip"], {
     timeoutMs: 10 * 60 * 1000
   });
-  await execFileWithTimeout(venvPython, ["-m", "pip", "install", "--upgrade", "setuptools", "wheel"], {
+  await runInstallCommand(venvPython, ["-m", "pip", "install", "--upgrade", "setuptools", "wheel"], {
     timeoutMs: 10 * 60 * 1000
   });
-  await execFileWithTimeout(venvPython, ["-m", "pip", "install", "--no-deps", "qwen-tts==0.1.1"], {
+  await runInstallCommand(venvPython, ["-m", "pip", "install", "--no-deps", "qwen-tts==0.1.1"], {
     timeoutMs: 60 * 60 * 1000
   });
-  await execFileWithTimeout(venvPython, ["-m", "pip", "install", ...qwenTtsPinnedRuntimeDependencies().filter((item) => !/^qwen-tts(?:=|<|>|$)/i.test(item))], {
+  await runInstallCommand(venvPython, ["-m", "pip", "install", ...qwenTtsPinnedRuntimeDependencies().filter((item) => !/^qwen-tts(?:=|<|>|$)/i.test(item))], {
     timeoutMs: 60 * 60 * 1000
   });
   const status = getQwenTtsToolStatus();
@@ -629,16 +966,14 @@ async function downloadFile(url, destination) {
 }
 
 async function installRealEsrganTool() {
-  await ensureHomebrewPackages(["ffmpeg"]);
+  await ensureFfmpegCommand();
   const root = realEsrganToolRoot();
-  const zipPath = path.join(root, "realesrgan-ncnn-vulkan-20220424-macos.zip");
+  const zipPath = path.join(root, path.basename(new URL(realEsrganReleaseUrl()).pathname));
   fs.mkdirSync(root, { recursive: true });
   if (!fs.existsSync(zipPath)) {
     await downloadFile(realEsrganReleaseUrl(), zipPath);
   }
-  await execFileWithTimeout("/usr/bin/unzip", ["-q", "-o", zipPath, "-d", root], {
-    timeoutMs: 10 * 60 * 1000
-  });
+  await extractZipArchive(zipPath, root);
   const command = realEsrganCommand();
   if (fs.existsSync(command)) fs.chmodSync(command, 0o755);
   const status = getRealEsrganToolStatus();
@@ -741,7 +1076,7 @@ function listRealEsrganSystemJobs() {
       const inputMatch = command.match(/real-esrgan-video-upscale\/([^/\s]+)-input\.[^\s]+/);
       const jobId = framesMatch?.[1] || upscaledMatch?.[1] || inputMatch?.[1] || "";
       if (!jobId) return null;
-      const root = path.join(app.getPath("userData"), "real-esrgan-video-upscale");
+      const root = path.join(safeUserPath("userData"), "real-esrgan-video-upscale");
       const framesDir = path.join(root, `${jobId}-frames`);
       const upscaledDir = path.join(root, `${jobId}-upscaled`);
       const status = realEsrganJobProgressFromDirs(jobId, framesDir, upscaledDir, {
@@ -846,7 +1181,7 @@ async function upscaleVideoWithRealEsrgan(payload = {}, context = {}) {
   emitProgress(8, "读取视频");
   const sourceName = sanitizeFilename(payload?.filename || rawFilename || `source-${Date.now()}${extensionFromMime(mime) || ".mp4"}`);
   const inputExt = path.extname(sourceName) || extensionFromMime(mime) || ".mp4";
-  const workRoot = path.join(app.getPath("userData"), "real-esrgan-video-upscale");
+  const workRoot = path.join(safeUserPath("userData"), "real-esrgan-video-upscale");
   fs.mkdirSync(workRoot, { recursive: true });
   const inputPath = path.join(workRoot, `${jobId}-input${inputExt}`);
   const framesDir = path.join(workRoot, `${jobId}-frames`);
@@ -858,7 +1193,7 @@ async function upscaleVideoWithRealEsrgan(payload = {}, context = {}) {
   fs.mkdirSync(framesDir, { recursive: true });
   fs.mkdirSync(upscaledDir, { recursive: true });
   fs.writeFileSync(inputPath, buffer);
-  const ffmpeg = resolveFfmpegCommand();
+  const ffmpeg = await ensureFfmpegCommand();
   if (!ffmpeg) throw new Error("Real-ESRGAN 视频超分需要 ffmpeg 拆帧与合成，请先安装 ffmpeg。");
   const scale = safeInteger(payload?.scale || payload?.upscale || 2, 2, 2, 4);
   const tile = safeInteger(payload?.tile || 0, 0, 0, 1024);
@@ -957,7 +1292,7 @@ async function cloneVoiceWithQwenTts(payload = {}) {
   const inputText = String(payload?.text || "").trim();
   const refText = String(payload?.refText || "").trim();
   if (!inputText) throw new Error("请输入要朗读的文本");
-  const workRoot = path.join(app.getPath("userData"), "qwen-tts-clone");
+  const workRoot = path.join(safeUserPath("userData"), "qwen-tts-clone");
   fs.mkdirSync(workRoot, { recursive: true });
   const jobId = `${Date.now()}-${crypto.randomBytes(4).toString("hex")}`;
   const outputFormat = ["wav", "mp3"].includes(String(payload?.format || "").toLowerCase()) ? String(payload.format).toLowerCase() : "mp3";
@@ -987,13 +1322,13 @@ async function cloneVoiceWithQwenTts(payload = {}) {
     fs.writeFileSync(mediaPath, buffer);
     const isVideo = /^video\//i.test(mime) || /\.(mp4|webm|mov|m4v|mkv|avi)$/i.test(inputExt);
     if (isVideo) {
-      const ffmpeg = resolveFfmpegCommand();
+      const ffmpeg = await ensureFfmpegCommand();
       if (!ffmpeg) throw new Error("参考视频需要先提取音轨，但未找到 ffmpeg。请安装 ffmpeg 后重试。");
       await execFileWithTimeout(ffmpeg, ["-y", "-i", mediaPath, "-vn", "-ac", "1", "-ar", "24000", refAudioPath], {
         timeoutMs: 20 * 60 * 1000
       });
     } else {
-      const ffmpeg = resolveFfmpegCommand();
+      const ffmpeg = await ensureFfmpegCommand().catch(() => "");
       if (ffmpeg) {
         await execFileWithTimeout(ffmpeg, ["-y", "-i", mediaPath, "-ac", "1", "-ar", "24000", refAudioPath], {
           timeoutMs: 20 * 60 * 1000
@@ -1023,7 +1358,7 @@ async function cloneVoiceWithQwenTts(payload = {}) {
   if (!isValidAudioFile(finalOutputPath) && outputFormat === "mp3") {
     const wavFallbackPath = outputPath.replace(/\.mp3$/i, ".wav");
     if (isValidAudioFile(wavFallbackPath)) {
-      const ffmpeg = resolveFfmpegCommand();
+      const ffmpeg = await ensureFfmpegCommand().catch(() => "");
       if (ffmpeg) {
         await execFileWithTimeout(ffmpeg, ["-y", "-i", wavFallbackPath, "-codec:a", "libmp3lame", "-b:a", "192k", outputPath], {
           timeoutMs: 10 * 60 * 1000
@@ -1089,9 +1424,8 @@ function getDefaceToolStatus() {
 }
 
 async function installDefaceTool() {
-  await bootstrapQwenTtsPrerequisitesIfNeeded();
   const python = await ensureQwenTtsPythonCommand();
-  await ensureHomebrewPackages(["git", "ffmpeg"]);
+  await ensureFfmpegCommand().catch(() => "");
   const root = defaceToolRoot();
   const venvPython = defaceVenvPython();
   fs.mkdirSync(root, { recursive: true });
@@ -1102,14 +1436,14 @@ async function installDefaceTool() {
     });
   }
   if (!fs.existsSync(venvPython)) {
-    await execFileWithTimeout(python, ["-m", "venv", path.join(root, "venv")], {
+    await runInstallCommand(python, ["-m", "venv", path.join(root, "venv")], {
       timeoutMs: 10 * 60 * 1000
     });
   }
-  await execFileWithTimeout(venvPython, ["-m", "pip", "install", "--upgrade", "pip", "setuptools", "wheel"], {
+  await runInstallCommand(venvPython, ["-m", "pip", "install", "--upgrade", "pip", "setuptools", "wheel"], {
     timeoutMs: 10 * 60 * 1000
   });
-  await execFileWithTimeout(venvPython, ["-m", "pip", "install", "--upgrade", "git+https://github.com/ORB-HD/deface"], {
+  await runInstallCommand(venvPython, ["-m", "pip", "install", "--upgrade", "deface"], {
     timeoutMs: 60 * 60 * 1000
   });
   const status = getDefaceToolStatus();
@@ -1128,7 +1462,7 @@ async function blurVideoFaces(payload = {}) {
   const { buffer, mime, filename: rawFilename } = await bufferFromMediaPayload(payload || {});
   const sourceName = sanitizeFilename(payload?.filename || rawFilename || `source-${Date.now()}${extensionFromMime(mime) || ".mp4"}`);
   const inputExt = path.extname(sourceName) || extensionFromMime(mime) || ".mp4";
-  const workRoot = path.join(app.getPath("userData"), "video-face-blur");
+  const workRoot = path.join(safeUserPath("userData"), "video-face-blur");
   fs.mkdirSync(workRoot, { recursive: true });
   const jobId = `${Date.now()}-${crypto.randomBytes(4).toString("hex")}`;
   const inputPath = path.join(workRoot, `${jobId}-input${inputExt}`);
@@ -1162,7 +1496,7 @@ async function blurVideoFaces(payload = {}) {
     const message = String(error?.message || error || "");
     const detail = String(error?.stderr || error?.stdout || "").trim();
     if (error?.code === "ENOENT" || /ENOENT|not found|no such file/i.test(message)) {
-      throw new Error("未找到 deface。请先在终端安装：python3 -m pip install deface");
+      throw new Error("未找到 deface。请先在 设置 > 拓展功能 中点击安装或重新安装 Deface。");
     }
     throw new Error(`视频人脸打码失败：${detail || message}`);
   }
@@ -1181,8 +1515,8 @@ async function blurVideoFaces(payload = {}) {
 }
 
 async function trimVideoSegment(payload = {}) {
-  const ffmpeg = resolveFfmpegCommand();
-  if (!ffmpeg) throw new Error("视频剪辑导出需要 ffmpeg，请先在设置里的拓展工具安装依赖或安装 Homebrew ffmpeg。");
+  const ffmpeg = await ensureFfmpegCommand();
+  if (!ffmpeg) throw new Error("视频剪辑导出需要 ffmpeg。请先在设置里的拓展功能中安装或修复本地工具依赖。");
 
   const start = Math.max(0, Number(payload?.start || 0));
   const end = Math.max(start, Number(payload?.end || 0));
@@ -1190,7 +1524,7 @@ async function trimVideoSegment(payload = {}) {
   if (!Number.isFinite(duration) || duration <= 0.05) throw new Error("剪辑选区无效，请重新设置入点和出点。");
 
   const url = String(payload?.url || "");
-  const workRoot = path.join(app.getPath("userData"), "video-editor");
+  const workRoot = path.join(safeUserPath("userData"), "video-editor");
   fs.mkdirSync(workRoot, { recursive: true });
   const jobId = `${Date.now()}-${crypto.randomBytes(4).toString("hex")}`;
   const sourceName = sanitizeFilename(payload?.filename || `source-${jobId}.mp4`);
@@ -1267,6 +1601,9 @@ async function trimVideoSegment(payload = {}) {
 
 module.exports = {
   execFileWithTimeout,
+  extensionInstallLogPath,
+  appendExtensionInstallLog,
+  runInstallCommand,
   parsePythonVersionText,
   isPythonVersionAtLeast,
   inspectPythonCommand,
@@ -1277,12 +1614,17 @@ module.exports = {
   resolveGitCommand,
   resolveSoxCommand,
   ensureHomebrewPackages,
+  extractZipArchive,
+  downloadAndExtractQwenTtsRepo,
   shellQuote,
   getQwenTtsMissingPrerequisites,
   writeQwenTtsPrerequisiteBootstrapScript,
   waitForBootstrapMarker,
   bootstrapQwenTtsPrerequisitesIfNeeded,
   resolveFfmpegCommand,
+  ensureFfmpegCommand,
+  ensureUvCommand,
+  ensureUvPythonCommand,
   resolveDefaceCommand,
   defaceToolRoot,
   defaceVenvPython,

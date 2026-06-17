@@ -65,6 +65,7 @@ const {
   installRealEsrganTool,
   getDefaceToolStatus,
   installDefaceTool,
+  extensionInstallLogPath,
   cloneVoiceWithQwenTts,
   upscaleVideoWithRealEsrgan,
   setRealEsrganJobPaused,
@@ -546,7 +547,7 @@ function registerDesktopIpc() {
       return { ok: false, error: "暂不支持该拓展工具" };
     } catch (error) {
       console.error("install-extension-tool failed", error);
-      return { ok: false, error: formatErrorMessage(error) };
+      return { ok: false, installed: false, error: formatErrorMessage(error), logPath: extensionInstallLogPath() };
     }
   });
 

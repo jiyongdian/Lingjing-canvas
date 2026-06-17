@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.2.16 - 2026-06-17
+
+- Improved extension tool installation with bundled/portable runtime lookup and managed per-user tool installs.
+- Added cross-platform fallback installers for uv/Python, ffmpeg, Qwen-TTS, Deface, and Real-ESRGAN where possible.
+- Added extension install logs to help diagnose missing dependency or environment failures on macOS and Windows.
+- Published macOS and Windows release packages for 1.2.16.
+
+## 1.2.15 - 2026-06-17
+
+- Fixed imported external asset paths becoming invalid on Windows.
+- Added the first-run default unified API config named Jixin with `https://newapi.guancn.uk` and an empty token.
+- Removed the Recommended Relay module below Current Version.
+- Published macOS and Windows release packages for 1.2.15.
+
 ## 1.2.14 - 2026-06-15
 
 - Added the One-stop Center in model services with an embedded browser entry for the configured relay portal.

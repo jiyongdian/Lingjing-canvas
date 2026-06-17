@@ -30213,6 +30213,12 @@ time=1h`,
 	      setExtensionToolInstalling((prev) => ({ ...prev, [toolName]: !1 }));
 	    }
 	  };
+	  const formatExtensionToolError = (status) => {
+	    let message = status?.error || ``,
+	      logPath = status?.logPath || ``;
+	    return logPath ? `${message}
+日志：${logPath}` : message;
+	  };
 	  useEffect(() => {
 	    activeSettingsTab === `extensions` &&
 	    (refreshExtensionToolStatus(`deface`),
@@ -30433,7 +30439,7 @@ time=1h`,
         "当前已启用全局统一API配置": "目前已啟用全域統一 API 配置",
         "切换石墨灰、曜石黑、晴空蓝、暖砂白、樱雾粉、薄荷绿或跟随系统外观，不改变现有布局结构": "切換石墨灰、曜石黑、晴空藍、暖砂白、櫻霧粉、薄荷綠或跟隨系統外觀，不改變現有布局結構",
         "选择界面语言偏好，后续多语言文案将按此设置展示": "選擇介面語言偏好，介面文案會依此設定顯示",
-        "1.2.15：修复 Windows 导入外部素材后路径失效的问题；新增首次安装默认统一 API 配置“极鑫”，并移除当前版本下方的推荐中转模块。": "1.2.15：修復 Windows 匯入外部素材後路徑失效的問題；新增首次安裝預設統一 API 配置「極鑫」，並移除目前版本下方的推薦中轉模組。",
+        "1.2.16：增强拓展功能安装器，支持随包/便携运行环境、跨平台 ffmpeg/Python/Real-ESRGAN 兜底安装，并在失败时显示安装日志路径。": "1.2.16：增強擴充功能安裝器，支援隨包/便攜執行環境、跨平台 ffmpeg/Python/Real-ESRGAN 備援安裝，並在失敗時顯示安裝日誌路徑。",
         "1.2.13：修复即梦/Seedance 视频节点多次生成后仍显示第一次生成结果的问题；新任务、任务刷新和项目重开都会清理旧媒体绑定并优先回填最新结果。": "1.2.13：修復即夢/Seedance 影片節點多次生成後仍顯示第一次生成結果的問題；新任務、任務刷新和專案重開都會清理舊媒體綁定並優先回填最新結果。",
         "1.2.11：修复部分视频节点已下载到资源库但重新打开仍显示过期云端链接的问题；任务刷新会优先回填本地资源副本，并修正旧设备路径误判为有效文件的情况。": "1.2.11：修復部分影片節點已下載到資源庫但重新開啟仍顯示過期雲端連結的問題；任務刷新會優先回填本地資源副本，並修正舊裝置路徑誤判為有效檔案的情況。",
         "1.2.9：优化大画布渲染流畅度；改进选择素材弹窗布局、筛选选中态和音视频素材预览；修复部分生成视频下载路径不一致；整理项目、备份中心和即梦节点菜单图标等界面细节。": "1.2.9：優化大畫布渲染流暢度；改進選擇素材彈窗布局、篩選選中態和音影片素材預覽；修復部分生成影片下載路徑不一致；整理專案、備份中心和即夢節點選單圖示等介面細節。",
@@ -30492,7 +30498,7 @@ time=1h`,
         "当前已启用全局统一API配置": "Global unified API config is enabled",
         "切换石墨灰、曜石黑、晴空蓝、暖砂白、樱雾粉、薄荷绿或跟随系统外观，不改变现有布局结构": "Switch the visual theme without changing the current layout.",
         "选择界面语言偏好，后续多语言文案将按此设置展示": "Choose the interface language. Supported interface text follows this setting.",
-        "1.2.15：修复 Windows 导入外部素材后路径失效的问题；新增首次安装默认统一 API 配置“极鑫”，并移除当前版本下方的推荐中转模块。": "1.2.15: Fixed invalid paths after importing external assets on Windows; added the default unified API config “Jixin” for first install, and removed the Recommended Relay module under Current Version.",
+        "1.2.16：增强拓展功能安装器，支持随包/便携运行环境、跨平台 ffmpeg/Python/Real-ESRGAN 兜底安装，并在失败时显示安装日志路径。": "1.2.16: Improved extension tool installation with bundled/portable runtimes, cross-platform ffmpeg/Python/Real-ESRGAN fallback installers, and install log paths when setup fails.",
         "1.2.13：修复即梦/Seedance 视频节点多次生成后仍显示第一次生成结果的问题；新任务、任务刷新和项目重开都会清理旧媒体绑定并优先回填最新结果。": "1.2.13: Fixed Jimeng/Seedance video nodes still showing the first generated result after repeated generations; new tasks, task refresh, and project reopen now clear stale media bindings and prefer the latest result.",
         "1.2.11：修复部分视频节点已下载到资源库但重新打开仍显示过期云端链接的问题；任务刷新会优先回填本地资源副本，并修正旧设备路径误判为有效文件的情况。": "1.2.11: Fixed video nodes that had already downloaded results into the resource library but reopened with expired cloud links; task refresh now prefers local resource copies and stale paths from older devices are no longer treated as valid files.",
         "1.2.9：优化大画布渲染流畅度；改进选择素材弹窗布局、筛选选中态和音视频素材预览；修复部分生成视频下载路径不一致；整理项目、备份中心和即梦节点菜单图标等界面细节。": "1.2.9: Improved large-canvas rendering responsiveness; polished the asset picker layout, selected filter state, and audio/video previews; fixed inconsistent save paths for some generated videos; refined project, Backup Center, and Jimeng node menu icon details.",
@@ -41355,7 +41361,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                           [],
                         ),
                         buildBackupPayload = async (e, t, n, r = {}) => ({
-		                            version: `1.2.15`,
+		                            version: `1.2.16`,
                             backupFormat: `4`,
                             exportedAt: new Date().toISOString(),
                             modules: await buildBackupModules(e, t, n, r),
@@ -41940,7 +41946,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                 }),
                 jsx(`span`, {
                   className: `absolute bottom-1 right-2 text-[8px] text-gray-600 font-normal`,
-			                  children: `v1.2.15`,
+			                  children: `v1.2.16`,
                 }),
                 updateInfo?.hasUpdate &&
                 jsx(`span`, {
@@ -45865,7 +45871,7 @@ ${String(l || ``).slice(0, 5e4)}`;
 	                                        }),
 	                                        jsx(`div`, {
 	                                          className: `pt-2 border-t border-[#262626] text-[11px] text-gray-500`,
-		                                          children: wanjuanT(`1.2.15：修复 Windows 导入外部素材后路径失效的问题；新增首次安装默认统一 API 配置“极鑫”，并移除当前版本下方的推荐中转模块。`),
+		                                          children: wanjuanT(`1.2.16：增强拓展功能安装器，支持随包/便携运行环境、跨平台 ffmpeg/Python/Real-ESRGAN 兜底安装，并在失败时显示安装日志路径。`),
 	                                        }),
 	                                      ],
 	                                    }),
@@ -45882,7 +45888,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                                       children: [
                                         jsx(`span`, {
                                           className: `text-sm font-semibold text-gray-100`,
-		                                          children: `1.2.15`,
+		                                          children: `1.2.16`,
 	                                        }),
 	                                        jsx(`span`, {
 	                                          className: `text-[10px] text-gray-500`,
@@ -46909,7 +46915,7 @@ ${String(l || ``).slice(0, 5e4)}`;
 	                                children: [
 	                                  jsx(`p`, {
 	                                    className: `text-xs text-gray-500 leading-6 wanjuan-settings-help`,
-	                                    children: `软件默认不会安装这些项目；只有点击安装后，才会从对应开源项目拉取并安装到当前用户环境。`,
+	                                    children: `软件会优先使用随包或本地便携运行环境；点击安装后会在应用数据目录补齐缺少的工具，必要时再使用系统环境兜底。`,
 	                                  }),
 	                                  jsxs(`div`, {
 	                                    className: `rounded-xl border border-[#333] bg-[#121212] p-4 flex flex-col gap-4`,
@@ -46977,7 +46983,7 @@ ${String(l || ``).slice(0, 5e4)}`;
 	                                              !extensionToolStatus.deface?.installed &&
 	                                              jsx(`div`, {
 	                                                className: `mt-3 rounded-lg border border-rose-500/25 bg-rose-500/10 px-3 py-2 text-[11px] text-rose-200 leading-5 break-words`,
-	                                                children: extensionToolStatus.deface.error,
+	                                                children: formatExtensionToolError(extensionToolStatus.deface),
 	                                              }),
 	                                            ],
 	                                          }),
@@ -47069,7 +47075,7 @@ ${String(l || ``).slice(0, 5e4)}`;
 	                                              !extensionToolStatus[`qwen-tts`]?.installed &&
 	                                              jsx(`div`, {
 	                                                className: `mt-3 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-100 leading-5 break-words`,
-	                                                children: extensionToolStatus[`qwen-tts`].error,
+	                                                children: formatExtensionToolError(extensionToolStatus[`qwen-tts`]),
 	                                              }),
 	                                            ],
 	                                          }),
@@ -47161,7 +47167,7 @@ ${String(l || ``).slice(0, 5e4)}`;
 	                                              !extensionToolStatus[`real-esrgan`]?.installed &&
 	                                              jsx(`div`, {
 	                                                className: `mt-3 rounded-lg border border-sky-500/25 bg-sky-500/10 px-3 py-2 text-[11px] text-sky-100 leading-5 break-words`,
-	                                                children: extensionToolStatus[`real-esrgan`].error,
+	                                                children: formatExtensionToolError(extensionToolStatus[`real-esrgan`]),
 	                                              }),
 	                                            ],
 	                                          }),

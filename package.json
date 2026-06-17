@@ -1,6 +1,6 @@
 {
   "name": "wanjuan-lingjing",
-  "version": "1.2.15",
+  "version": "1.2.16",
   "private": true,
   "description": "万卷灵境 - macOS AI 创作画布桌面应用",
   "author": "",
@@ -19,6 +19,7 @@
     "typecheck": "tsc --noEmit",
     "test:lib": "node scripts/test-lib.mjs",
     "test:windows-paths": "node scripts/test-windows-file-url-paths.cjs",
+    "test:extension-tools": "node scripts/test-extension-tool-runtime.cjs",
     "test:update-checker": "electron scripts/test-update-checker.cjs",
     "test:storage": "node scripts/test-storage-lab.mjs",
     "test:storage:electron": "electron scripts/test-storage-electron.cjs",
@@ -52,7 +53,7 @@
   "build": {
     "appId": "com.wanjuan.lingjing",
     "productName": "万卷灵境",
-    "artifactName": "万卷灵境-1.2.15-${arch}.${ext}",
+    "artifactName": "万卷灵境-1.2.16-${arch}.${ext}",
     "directories": {
       "output": "release"
     },
@@ -60,12 +61,21 @@
       "dist/**/*",
       "electron/**/*"
     ],
+    "extraResources": [
+      {
+        "from": "tool-runtime",
+        "to": "tool-runtime",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
     "mac": {
       "category": "public.app-category.productivity",
       "icon": "build/icon.icns",
       "extendInfo": {
-        "CFBundleShortVersionString": "1.2.15",
-        "CFBundleVersion": "1.2.15"
+        "CFBundleShortVersionString": "1.2.16",
+        "CFBundleVersion": "1.2.16"
       }
     },
     "win": {
