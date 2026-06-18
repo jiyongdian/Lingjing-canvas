@@ -10330,6 +10330,46 @@ ${data.audioModel || ``}`)
         ],
       });
     }),
+    wanjuanLooksLikeLocalMediaPath = (value) => {
+      let text = String(value || ``).trim();
+      return !!(
+        text &&
+        (/^\/(?:Users|Volumes|private|var|tmp|opt|home)\//i.test(text) ||
+          /^[A-Za-z]:[\\/]/.test(text) ||
+          /^\\\\[^\\]+\\/.test(text) ||
+          /^\/\/[^/]+\//.test(text))
+      );
+    },
+    wanjuanNormalizeReferenceMediaUrl = (value, kindHint = ``) => {
+      let rawValue =
+        value && typeof value == `object` ?
+        wanjuanResourceMediaUrl(value) ||
+          value.url ||
+          value.localPath ||
+          value.path ||
+          value.imageUrl ||
+          value.videoUrl ||
+          value.thumbnailUrl ||
+          `` :
+        value;
+      let mediaUrl = String(rawValue || ``).trim();
+      if (!mediaUrl) return ``;
+      if (/^(https?:|data:|blob:|file:)/i.test(mediaUrl)) return mediaUrl;
+      if (wanjuanLooksLikeLocalMediaPath(mediaUrl)) return buildProjectMediaFileUrl(mediaUrl) || mediaUrl;
+      return mediaUrl;
+    },
+    wanjuanPushReferenceMediaUrl = (images, videos, value, kindHint = ``) => {
+      let mediaUrl = wanjuanNormalizeReferenceMediaUrl(value, kindHint);
+      if (!mediaUrl) return;
+      let kind = String(kindHint || ``).toLowerCase();
+      if (
+        kind === `video` ||
+        /^data:video\//i.test(mediaUrl) ||
+        /\.(mp4|webm|mov|m4v|mpeg|mpg|avi|mkv|ogg)(?:$|[?#])/i.test(mediaUrl)
+      )
+        videos.push(mediaUrl);
+      else images.push(mediaUrl);
+    },
     Ye = (node) =>
     node?.data ?
     node.data.text === void 0 ?
@@ -10351,34 +10391,24 @@ ${data.audioModel || ``}`)
         images: images,
         videos: videos
       };
-      if (
-        node.data.imageUrl &&
-        typeof node.data.imageUrl == `string` &&
-        (/^(https?:|data:|blob:|file:)/i.test(node.data.imageUrl) ||
-          /^\/(?:Users|Volumes|var|tmp)\//i.test(node.data.imageUrl))
-      ) {
-        let imageUrl = node.data.imageUrl;
-        imageUrl.startsWith(`data:video/`) || /\.(mp4|webm|mov|ogg)($|\?)/i.test(imageUrl) ?
-          videos.push(imageUrl) :
-          images.push(imageUrl);
-      }
+      wanjuanPushReferenceMediaUrl(images, videos, node.data.imageUrl || node.data.mediaUrl || node.data.localPath || node.data.filePath || node.data.path, node.data.mediaKind);
       if (node.type === `customNode` && node.data.resultData) {
         let resultData = node.data.resultData;
         node.data.config?.outputType === `image` &&
           (Array.isArray(resultData) ?
             resultData.forEach((item) => {
-              typeof item == `string` && images.push(item);
+              typeof item == `string` && wanjuanPushReferenceMediaUrl(images, videos, item, `image`);
             }) :
-            typeof resultData == `string` && images.push(resultData));
+            typeof resultData == `string` && wanjuanPushReferenceMediaUrl(images, videos, resultData, `image`));
       }
       if (node.type === `videoExtractNode` && node.data.extractedImages)
         if (handleId && handleId.startsWith(`frame-`)) {
           let frameIndex = parseInt(handleId.replace(`frame-`, ``), 10);
           if (!(node.data.hiddenIndices || []).includes(frameIndex)) {
             let allExtractedImages = node.data.allExtractedImages;
-            allExtractedImages && allExtractedImages[frameIndex] && images.push(allExtractedImages[frameIndex]);
+            allExtractedImages && allExtractedImages[frameIndex] && wanjuanPushReferenceMediaUrl(images, videos, allExtractedImages[frameIndex], `image`);
           }
-        } else node.data.extractedImages.forEach((node2) => images.push(node2));
+        } else node.data.extractedImages.forEach((node2) => wanjuanPushReferenceMediaUrl(images, videos, node2, `image`));
       if (
         node.type === `gridSplitNode` &&
         node.data.imageUrl &&
@@ -10389,26 +10419,28 @@ ${data.audioModel || ``}`)
         node.data.extractedImages &&
           Array.isArray(node.data.extractedImages) &&
           node.data.extractedImages[cellIndex] &&
-          images.push(node.data.extractedImages[cellIndex]);
+          wanjuanPushReferenceMediaUrl(images, videos, node.data.extractedImages[cellIndex], `image`);
       }
       return (
-        node.type === `gridMergeNode` && node.data.imageUrl && images.push(node.data.imageUrl),
-        node.data.videoUrl && videos.push(node.data.videoUrl), {
+        node.type === `gridMergeNode` && node.data.imageUrl && wanjuanPushReferenceMediaUrl(images, videos, node.data.imageUrl, `image`),
+        node.data.videoUrl && wanjuanPushReferenceMediaUrl(images, videos, node.data.videoUrl, `video`), {
           images: images,
           videos: videos
         }
       );
     },
 	    mediaUrlToDataUrl = async (url) => {
+	        url = wanjuanNormalizeReferenceMediaUrl(url);
 	        if (url.startsWith(`data:`)) return url;
 	        if (
-	          /^file:\/\//i.test(url) &&
+	          (/^file:\/\//i.test(url) || wanjuanLooksLikeLocalMediaPath(url)) &&
 	          window.wanjuanDesktop &&
 	          typeof window.wanjuanDesktop.readLocalFileAsDataUrl == `function`
 	        )
 	          try {
 	            let result = await window.wanjuanDesktop.readLocalFileAsDataUrl({
-	              url: url
+	              url: url,
+	              localPath: localPathFromProjectFileUrl(url) || (wanjuanLooksLikeLocalMediaPath(url) ? url : ``),
 	            });
 	            if (result?.ok && result.dataUrl) return result.dataUrl;
 	          } catch (error) {
@@ -18999,6 +19031,7 @@ function dt({
 	            shouldForceGptImage2Async =
 	            isSuChuangGptImageApi,
             imageGatewayFormatOverride =
+            !selectedImageProtocolDefinition &&
             imageConfig?.protocolFormat && imageConfig.protocolFormat !== `auto`
               ? imageConfig.protocolFormat
               : null,
@@ -19105,11 +19138,13 @@ function dt({
 	              _.data.selectedContextResources &&
 	              _.data.selectedContextResources.forEach((resource) => {
 	                wanjuanResourceKind(resource) === `image` ?
-	                  imageUrls.push(resource.url) :
+	                  imageUrls.push(wanjuanNormalizeReferenceMediaUrl(resource, `image`)) :
 	                  wanjuanResourceKind(resource) === `video` ?
-	                  videoUrls.push(resource.url) :
-	                  wanjuanResourceKind(resource) === `text` && textParts.push(resource.url);
+	                  videoUrls.push(wanjuanNormalizeReferenceMediaUrl(resource, `video`)) :
+	                  wanjuanResourceKind(resource) === `text` && textParts.push(wanjuanResourceMediaUrl(resource) || resource.url);
 	              });
+	            imageUrls = imageUrls.map((url) => wanjuanNormalizeReferenceMediaUrl(url, `image`)).filter(Boolean);
+	            videoUrls = videoUrls.map((url) => wanjuanNormalizeReferenceMediaUrl(url, `video`)).filter(Boolean);
             let sanitizeText = (text) => {
                 if (!text) return ``;
                 let cleaned = text
@@ -22821,6 +22856,7 @@ ${combinedPrompt}`,
               requiresReferenceVideo =
               effectiveVideoRequestProfile?.requiresReferenceVideo === !0,
               videoGatewayFormatOverride =
+              !modelProtocolDefinition &&
               videoConfig?.protocolFormat && videoConfig.protocolFormat !== `auto`
                 ? videoConfig.protocolFormat
                 : null,
@@ -22836,6 +22872,7 @@ ${combinedPrompt}`,
               useAspectRatioAsSize =
               effectiveVideoRequestProfile?.useAspectRatioAsSize === !0,
               uploadReferenceMediaForUrlOnlyModel = async (url, mediaKind = `image`) => {
+                  url = wanjuanNormalizeReferenceMediaUrl(url, mediaKind);
                   if (!url) return ``;
                   if (/^https?:\/\//i.test(String(url))) return String(url);
                   if (
@@ -24131,6 +24168,7 @@ ${combinedPrompt}`,
               return isVectorEngineApi ? (isGenerateContent || /gemini/i.test(modelIdentifier) ? `gemini-generate-content` : `openai-chat`) : isGenerateContent || /gemini/i.test(modelIdentifier) ? `gemini-generate-content` : `openai-chat`;
             },
             gatewayProtocolOverride =
+            !textProtocolDefinition &&
             textConfig?.protocolFormat && textConfig.protocolFormat !== `auto`
               ? textConfig.protocolFormat
               : null,
@@ -24217,11 +24255,13 @@ ${combinedPrompt}`,
 	              node.data.selectedContextResources.forEach((resource) => {
 	                let resourceKind = wanjuanResourceKind(resource);
 	                resourceKind === `image` ?
-	                  imageUrls.push(resource.url) :
+	                  imageUrls.push(wanjuanNormalizeReferenceMediaUrl(resource, `image`)) :
 	                  resourceKind === `video` ?
-	                  videoUrls.push(resource.url) :
-	                  resourceKind === `text` && textParts.push(resource.url);
+	                  videoUrls.push(wanjuanNormalizeReferenceMediaUrl(resource, `video`)) :
+	                  resourceKind === `text` && textParts.push(wanjuanResourceMediaUrl(resource) || resource.url);
 	              });
+	            imageUrls = imageUrls.map((url) => wanjuanNormalizeReferenceMediaUrl(url, `image`)).filter(Boolean);
+	            videoUrls = videoUrls.map((url) => wanjuanNormalizeReferenceMediaUrl(url, `video`)).filter(Boolean);
             let textContent = (
                 textParts.length > 0 ?
                 `${textParts.join(`
@@ -30888,6 +30928,21 @@ time=1h`,
         videoModelProtocolBindings: videoProtocolBindings,
       };
     },
+    normalizeUnifiedApiConfig = (config) =>
+    config && typeof config == `object` ?
+    {
+      ...config,
+      protocolFormat: String(config.protocolFormat || ``).trim() || `auto`,
+    } :
+    config,
+    normalizeUnifiedApiConfigs = (configs) =>
+    Array.isArray(configs) ? configs.map(normalizeUnifiedApiConfig) : configs,
+    normalizeStoredGlobalConfigBackup = (backup = {}) => {
+      let config = backup && typeof backup == `object` ? cloneBackupValue(backup) : {};
+      Array.isArray(config.apiConfigs) && (config.apiConfigs = normalizeUnifiedApiConfigs(config.apiConfigs));
+      let configApiUrl = config.videoApiUrl || config.apiConfigs?.find((apiConfig) => apiConfig?.url)?.url || ``;
+      return repairXSeeVeoReferenceVideoBindings(config, configApiUrl);
+    },
     normalizeStoredGlobalConfigs = (items) =>
     Array.isArray(items) ?
     items
@@ -30898,11 +30953,11 @@ time=1h`,
       description: String(item.description || ``),
       apiDocUrl: String(item.apiDocUrl || item.config?.apiDocUrl || item.config?.configButlerDocUrl || ``),
       updatedAt: item.updatedAt || 0,
-      config: repairXSeeVeoReferenceVideoBindings(item.config),
+      config: normalizeStoredGlobalConfigBackup(item.config),
     })) :
     [],
     captureCurrentGlobalConfig = () => ({
-      apiConfigs: cloneBackupValue(apiConfigs),
+      apiConfigs: cloneBackupValue(normalizeUnifiedApiConfigs(apiConfigs)),
       textApiConfigId: textApiConfigId,
       imageApiConfigId: imageApiConfigId,
       videoApiConfigId: videoApiConfigId,
@@ -30963,9 +31018,9 @@ time=1h`,
         }));
     },
     mergeStoredGlobalApiConfigs = (value) => {
-      let backupList = Array.isArray(value) ? cloneBackupValue(value) : [],
+      let backupList = Array.isArray(value) ? cloneBackupValue(normalizeUnifiedApiConfigs(value)) : [],
         firstBackup = backupList[0],
-        allBackups = Array.isArray(apiConfigs) ? cloneBackupValue(apiConfigs) : [];
+        allBackups = Array.isArray(apiConfigs) ? cloneBackupValue(normalizeUnifiedApiConfigs(apiConfigs)) : [];
       if (!firstBackup) return allBackups;
       return [
         firstBackup,
@@ -30978,7 +31033,7 @@ time=1h`,
         showToast2(`请选择一个已存储配置`);
         return;
       }
-	      let repairedConfig = repairXSeeVeoReferenceVideoBindings(storedConfig.config || {}, storedConfig.config?.videoApiUrl || ``),
+	      let repairedConfig = normalizeStoredGlobalConfigBackup(storedConfig.config || {}),
 	        mergedApiConfigs = mergeStoredGlobalApiConfigs(repairedConfig.apiConfigs);
       (Array.isArray(repairedConfig.apiConfigs) && setApiConfigs(mergedApiConfigs),
         repairedConfig.textApiConfigId && setTextApiConfigId(repairedConfig.textApiConfigId),
@@ -33183,15 +33238,16 @@ ${model.apiConfigName || ``}`.toLowerCase();
             null;
           matchedApiConfig
             ?
-            ((matchedApiConfig.url = apiUrl), apiKey && (matchedApiConfig.key = apiKey), apiConfigName && (matchedApiConfig.name = apiConfigName)) :
+            ((matchedApiConfig.url = apiUrl), apiKey && (matchedApiConfig.key = apiKey), apiConfigName && (matchedApiConfig.name = apiConfigName), matchedApiConfig.protocolFormat || (matchedApiConfig.protocolFormat = `auto`)) :
             ((matchedApiConfig = {
                 id: Date.now().toString(),
                 name: apiConfigName,
                 url: apiUrl,
                 key: apiKey,
+                protocolFormat: `auto`,
               }),
               apiConfigs2.push(matchedApiConfig)),
-            setApiConfigs(apiConfigs2);
+            setApiConfigs(normalizeUnifiedApiConfigs(apiConfigs2));
 	          let nextProtocolRegistry =
 	            protocolName && protocolConfig && typeof protocolConfig == `object` ?
 	            {
@@ -33422,7 +33478,8 @@ ${model.apiConfigName || ``}`.toLowerCase();
 	              id: `config-butler-batch-${Date.now()}`,
 	              name: apiConfigName,
 	              url: apiUrl,
-	              key: apiKey
+	              key: apiKey,
+	              protocolFormat: `auto`,
 	            };
 	          let textModels2 = ``,
 	            imageModels2 = ``,
@@ -33481,7 +33538,7 @@ ${model.apiConfigName || ``}`.toLowerCase();
 	            existingConfigNames = new Set((storedGlobalConfigs || []).map((globalConfig) => String(globalConfig?.name || ``))),
 	            configName = existingConfigNames.has(baseConfigName) ? `${baseConfigName} ${new Date().toLocaleString()}` : baseConfigName,
 	            configId = `global-config-butler-batch-${Date.now()}`,
-	            repairedGlobalConfig = repairXSeeVeoReferenceVideoBindings({
+	            repairedGlobalConfig = normalizeStoredGlobalConfigBackup({
 	              ...captureCurrentGlobalConfig(),
 	              apiConfigs: [cloneBackupValue(newApiConfig)],
 	              textApiConfigId: newApiConfig.id,
@@ -33514,7 +33571,7 @@ ${model.apiConfigName || ``}`.toLowerCase();
 	              configButlerDocUrl: docUrl,
 	              configButlerMode: `batch`,
 	              configButlerTargetApiConfigId: newApiConfig.id,
-	            }, apiUrl),
+	            }),
 	            nextStoredConfigs = [
 	              ...(storedGlobalConfigs || []),
 	              {
@@ -33551,12 +33608,12 @@ ${model.apiConfigName || ``}`.toLowerCase();
 	            setImageModelApiBindings(imageApiBindings),
 	            setVideoModelApiBindings(videoApiBindings),
 	            setAudioModelApiBindings(audioApiBindings),
-	            setTextModelProtocolBindings(textProtocolBindings),
-	            setImageModelProtocolBindings(imageProtocolBindings),
-	            setVideoModelProtocolBindings(videoProtocolBindings),
-	            setAudioModelProtocolBindings(audioProtocolBindings),
-	            setModelProtocolRegistry(protocolRegistry),
-	            setProtocolNamesText(Object.keys(protocolRegistry).join(`
+	            setTextModelProtocolBindings(repairedGlobalConfig.textModelProtocolBindings || textProtocolBindings),
+	            setImageModelProtocolBindings(repairedGlobalConfig.imageModelProtocolBindings || imageProtocolBindings),
+	            setVideoModelProtocolBindings(repairedGlobalConfig.videoModelProtocolBindings || videoProtocolBindings),
+	            setAudioModelProtocolBindings(repairedGlobalConfig.audioModelProtocolBindings || audioProtocolBindings),
+	            setModelProtocolRegistry(repairedGlobalConfig.modelProtocolRegistry || protocolRegistry),
+	            setProtocolNamesText(Object.keys(repairedGlobalConfig.modelProtocolRegistry || protocolRegistry).join(`
 `)),
 	            setConfigButlerBatchModalOpen(!1),
 	            setConfigButlerExpanded(!0),
@@ -33585,11 +33642,11 @@ ${model.apiConfigName || ``}`.toLowerCase();
 	              imageModelApiBindings: imageApiBindings,
 	              videoModelApiBindings: videoApiBindings,
 	              audioModelApiBindings: audioApiBindings,
-	              textModelProtocolBindings: textProtocolBindings,
-	              imageModelProtocolBindings: imageProtocolBindings,
-	              videoModelProtocolBindings: videoProtocolBindings,
-	              audioModelProtocolBindings: audioProtocolBindings,
-	              modelProtocolRegistry: protocolRegistry,
+	              textModelProtocolBindings: repairedGlobalConfig.textModelProtocolBindings || textProtocolBindings,
+	              imageModelProtocolBindings: repairedGlobalConfig.imageModelProtocolBindings || imageProtocolBindings,
+	              videoModelProtocolBindings: repairedGlobalConfig.videoModelProtocolBindings || videoProtocolBindings,
+	              audioModelProtocolBindings: repairedGlobalConfig.audioModelProtocolBindings || audioProtocolBindings,
+	              modelProtocolRegistry: repairedGlobalConfig.modelProtocolRegistry || protocolRegistry,
 	              configButlerDocUrl: docUrl,
 	              configButlerMode: `batch`,
 	              configButlerTargetApiConfigId: newApiConfig.id
@@ -34111,7 +34168,14 @@ ${docText}`;
                 ],
                 (settings) => {
                   (Array.isArray(settings.apiConfigs) &&
-                    setApiConfigs(settings.apiConfigs),
+                    (() => {
+                      let normalizedApiConfigs = normalizeUnifiedApiConfigs(settings.apiConfigs);
+                      setApiConfigs(normalizedApiConfigs);
+                      JSON.stringify(normalizedApiConfigs) !== JSON.stringify(settings.apiConfigs) &&
+                        chrome.storage.local.set({
+                          apiConfigs: normalizedApiConfigs
+                        });
+                    })(),
 
                     settings.textApiConfigId && setTextApiConfigId(settings.textApiConfigId),
                     settings.imageApiConfigId && setImageApiConfigId(settings.imageApiConfigId),
