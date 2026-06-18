@@ -16060,8 +16060,9 @@ var at = {
     },
   };
 
+const WANJUAN_TIANJI_DEFAULT_BASE_URL = `https://newapi.guancn.uk`;
 const wanjuanTianjiSeedanceDefaults = {
-  baseUrl: ``,
+  baseUrl: WANJUAN_TIANJI_DEFAULT_BASE_URL,
   token: ``,
   sassId: `1`,
   platform: `web`,
@@ -16105,7 +16106,7 @@ const wanjuanTianjiStorageSet = (items) =>
 const wanjuanNormalizeTianjiSeedanceConfig = (config = {}) => ({
   ...wanjuanTianjiSeedanceDefaults,
   ...(config && typeof config == `object` ? config : {}),
-  baseUrl: String(config?.baseUrl || ``)
+  baseUrl: String(Object.prototype.hasOwnProperty.call(config || {}, `baseUrl`) ? config?.baseUrl : WANJUAN_TIANJI_DEFAULT_BASE_URL)
     .replace(/\s+/g, ``)
     .replace(/\/+$/, ``),
   token: String(config?.token || ``).trim(),
@@ -35649,7 +35650,7 @@ ${docText}`;
         },
         renderStorageOptimizationPanel = () =>
         jsxs(`div`, {
-          className: `mx-4 mt-4 rounded-xl border border-[#3a414c] bg-[#171a1f] p-4 space-y-4 wanjuan-settings-subcard`,
+          className: `mx-4 mt-4 rounded-xl border border-[#3a414c] bg-[#171a1f] p-4 space-y-4 wanjuan-settings-subcard wanjuan-storage-optimization-card`,
           children: [
             jsxs(`div`, {
               className: `flex items-start justify-between gap-4`,

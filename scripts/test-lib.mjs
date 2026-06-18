@@ -17,14 +17,15 @@ function compile() {
     [
       "tsc",
       "--skipLibCheck",
-      "--module", "esnext",
+      "--module", "commonjs",
       "--target", "es2022",
-      "--moduleResolution", "bundler",
+      "--moduleResolution", "node",
       "--jsx", "react-jsx",
       "--outDir", outDir,
       join(root, "src/renderer/lib/resource.ts"),
       join(root, "src/renderer/lib/video-aspect-ratio.ts"),
       join(root, "src/renderer/lib/video-task.ts"),
+      join(root, "src/renderer/lib/tianji-api.ts"),
     ],
     { cwd: root, stdio: "inherit" }
   );
@@ -49,6 +50,7 @@ async function run() {
 
   const { wanjuanResourceKind, wanjuanResourceSourceKind } = await import(pathToFileURL(join(outDir, "resource.js")).href);
   const { normalizeVideoAspectRatioValue, normalizeVideoSizeValue } = await import(pathToFileURL(join(outDir, "video-aspect-ratio.js")).href);
+  const { WANJUAN_TIANJI_DEFAULT_BASE_URL, wanjuanNormalizeTianjiSeedanceConfig } = await import(pathToFileURL(join(outDir, "tianji-api.js")).href);
 
   console.log("运行用例...");
   // wanjuanResourceKind
@@ -70,6 +72,12 @@ async function run() {
   check("ratio fallback", normalizeVideoAspectRatioValue("garbage"), "16:9");
   check("size normalize", normalizeVideoSizeValue("1280 x 720"), "1280x720");
   check("size fallback", normalizeVideoSizeValue("nope"), "1280x720");
+
+  // Tianji defaults
+  check("tianji default base url", WANJUAN_TIANJI_DEFAULT_BASE_URL, "https://newapi.guancn.uk");
+  check("tianji missing base url uses default", wanjuanNormalizeTianjiSeedanceConfig({}).baseUrl, "https://newapi.guancn.uk");
+  check("tianji trims default trailing slash", wanjuanNormalizeTianjiSeedanceConfig({ baseUrl: " https://newapi.guancn.uk/ " }).baseUrl, "https://newapi.guancn.uk");
+  check("tianji saved empty base url stays empty", wanjuanNormalizeTianjiSeedanceConfig({ baseUrl: "" }).baseUrl, "");
 
   console.log(`\n结果：${pass} 通过，${fail} 失败`);
   rmSync(outDir, { recursive: true, force: true });

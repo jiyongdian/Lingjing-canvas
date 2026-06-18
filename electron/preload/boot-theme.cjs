@@ -182,19 +182,19 @@ function installBootStabilityStyle() {
           </div>
           <div class="wanjuan-scroll-copy">
             <div class="wanjuan-scroll-title">万卷灵境</div>
-            <div class="wanjuan-scroll-subtitle">正在展开灵境项目</div>
           </div>
         </div>`;
       const themeAnimHTML = {
         "graphite": `<div class="wanjuan-boot-atmosphere" aria-hidden="true"><div class="wanjuan-boot-scene scene-book"><span class="wanjuan-boot-orbit orbit-one"></span><span class="wanjuan-boot-orbit orbit-two"></span><span class="wanjuan-boot-orbit orbit-three"></span><span class="wanjuan-boot-book-core"></span></div></div>`,
         "chrome-rose": `<div class="wanjuan-boot-animation rose-bloom" aria-hidden="true"><span class="rose-pistil"></span><span class="rose-petal p1"></span><span class="rose-petal p2"></span><span class="rose-petal p3"></span><span class="rose-petal p4"></span><span class="rose-petal p5"></span><span class="rose-ring r1"></span><span class="rose-ring r2"></span></div>`,
         "chrome-blue": `<div class="wanjuan-boot-animation sky-scene" aria-hidden="true"><span class="sky-sun"></span><span class="sky-cloud c1"></span><span class="sky-cloud c2"></span><span class="sky-cloud c3"></span></div>`,
-        "sage-green": `<div class="wanjuan-boot-animation green-grow" aria-hidden="true"><span class="green-seed"></span><span class="green-soil"></span><span class="green-stem"><span class="green-leaf stem-leaf-l"></span><span class="green-leaf stem-leaf-r"></span></span><span class="green-branch-l"><span class="green-leaf branch-leaf"></span></span><span class="green-branch-r"><span class="green-leaf branch-leaf"></span></span></div>`,
-        "chrome-sand": `<div class="wanjuan-boot-animation sand-rays" aria-hidden="true"><span class="sand-sun"></span><span class="sand-ray r1"></span><span class="sand-ray r2"></span><span class="sand-ray r3"></span><span class="sand-ray r4"></span><span class="sand-ray r5"></span><span class="sand-ray r6"></span><span class="sand-ray r7"></span><span class="sand-ray r8"></span></div>`,
+        "sage-green": `<div class="wanjuan-boot-animation mint-vellum" aria-hidden="true"><span class="mint-halo h1"></span><span class="mint-halo h2"></span><span class="mint-leaf leaf-a"><span class="mint-vein v1"></span><span class="mint-vein v2"></span><span class="mint-vein v3"></span></span><span class="mint-leaf leaf-b"><span class="mint-vein v1"></span><span class="mint-vein v2"></span><span class="mint-vein v3"></span></span><span class="mint-dew d1"></span><span class="mint-dew d2"></span><span class="mint-dew d3"></span><span class="mint-thread t1"></span><span class="mint-thread t2"></span></div>`,
+        "chrome-sand": `<div class="wanjuan-boot-animation sand-vellum" aria-hidden="true"><span class="sand-glow"></span><svg class="sand-landscape" viewBox="0 0 760 300" preserveAspectRatio="xMidYMid meet"><defs><linearGradient id="wjSandWash" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="rgba(233,186,118,0.26)"/><stop offset="1" stop-color="rgba(233,186,118,0)"/></linearGradient></defs><path class="sand-wash wash-back" d="M20 185 C120 153 206 162 304 185 C420 212 540 168 740 122 L740 300 L20 300 Z"/><path class="sand-wash wash-front" d="M-10 230 C122 198 250 211 374 230 C508 251 612 217 770 180 L770 300 L-10 300 Z"/><path class="sand-ridge ridge-a" d="M28 184 C120 154 210 162 306 184 C426 211 548 166 735 124"/><path class="sand-ridge ridge-b" d="M-8 231 C126 199 252 211 376 230 C510 251 616 216 768 181"/><path class="sand-ridge ridge-c" d="M72 255 C186 238 300 241 410 256 C528 272 626 250 720 228"/></svg><span class="sand-grain g1"></span><span class="sand-grain g2"></span><span class="sand-grain g3"></span><span class="sand-grain g4"></span><span class="sand-grain g5"></span><span class="sand-sweep"></span></div>`,
         "dark": `<div class="wanjuan-boot-animation dark-stars" aria-hidden="true">${buildBootParticleMarkup("dark-dust", 46, 120)}<svg class="star-lines" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid meet"><line x1="88" y1="86" x2="154" y2="132"/><line x1="154" y1="132" x2="225" y2="96"/><line x1="154" y1="132" x2="196" y2="214"/><line x1="196" y1="214" x2="296" y2="252"/><line x1="225" y1="96" x2="315" y2="158"/><line x1="315" y1="158" x2="296" y2="252"/><line x1="104" y1="278" x2="196" y2="214"/><line x1="104" y1="278" x2="58" y2="202"/><line x1="315" y1="158" x2="354" y2="92"/></svg><span class="dark-star s1"></span><span class="dark-star s2"></span><span class="dark-star s3"></span><span class="dark-star s4"></span><span class="dark-star s5"></span><span class="dark-star s6"></span><span class="dark-star s7"></span><span class="dark-star s8"></span><span class="dark-star s9"></span><span class="dark-star s10"></span><span class="dark-star s11"></span><span class="dark-star s12"></span></div>`
       };
       themeAnimHTML["light"] = themeAnimHTML["chrome-blue"];
       themeAnimHTML["warm-light"] = themeAnimHTML["chrome-sand"];
+      themeAnimHTML["chrome-teal"] = themeAnimHTML["sage-green"];
       const resolvedHTML = themeAnimHTML[initialTheme] || themeAnimHTML["graphite"];
       splash.innerHTML = resolvedHTML + scrollStageHTML;
       if (!splash.parentElement) document.body.appendChild(splash);
@@ -398,121 +398,131 @@ function installBootStabilityStyle() {
         #wanjuan-boot-splash .sky-cloud.c2 { left: 55%; top: 38%; width: 140px; height: 44px; animation-delay: -2.8s !important; }
         #wanjuan-boot-splash .sky-cloud.c3 { left: 35%; top: 50%; width: 100px; height: 32px; opacity: 0.6; animation-delay: -5.2s !important; }
 
-        /* ===== SAGE-GREEN / CHROME-TEAL: Seed Sprout ===== */
-        #wanjuan-boot-splash.boot-theme-sage-green {
-          color: #1a3a2a;
-          background: linear-gradient(180deg, #f2faf6 0%, #e6f5ee 60%, #c8e6d8 100%);
+        /* ===== SAGE-GREEN / CHROME-TEAL: Mint Vellum ===== */
+        #wanjuan-boot-splash.boot-theme-sage-green,
+        #wanjuan-boot-splash.boot-theme-chrome-teal {
+          color: #183a2c;
+          background:
+            radial-gradient(ellipse 58% 42% at 50% 40%, rgba(139,207,179,0.26), transparent 58%),
+            radial-gradient(circle at 25% 22%, rgba(234,252,243,0.82), transparent 32%),
+            linear-gradient(180deg, #f7fcf8 0%, #edf8f1 54%, #d9efe3 100%);
         }
-        #wanjuan-boot-splash .green-grow {
-          position: absolute; inset: 0;
-          display: flex; align-items: center; justify-content: center;
+        #wanjuan-boot-splash .mint-vellum,
+        #wanjuan-boot-splash .sand-vellum {
+          position: absolute; inset: 0; overflow: hidden;
         }
-        #wanjuan-boot-splash .green-seed {
-          position: absolute; left: 50%; top: 50%;
-          width: 12px; height: 12px; border-radius: 50%;
-          background: radial-gradient(circle, #8B6914 30%, #5a4010 80%);
+        #wanjuan-boot-splash .mint-halo {
+          position: absolute; left: 50%; top: 42%; border-radius: 999px;
           transform: translate(-50%, -50%);
-          opacity: 0;
-          animation: wjSeedFall 5s ease-in infinite !important;
+          border: 1px solid rgba(78,145,111,0.18);
+          background: radial-gradient(circle, rgba(188,235,213,0.22), transparent 66%);
+          animation: wjMintHalo 6.8s ease-in-out infinite !important;
         }
-        #wanjuan-boot-splash .green-soil {
-          position: absolute; left: 50%; top: 50%;
-          width: 60px; height: 6px; border-radius: 3px;
-          background: radial-gradient(ellipse, rgba(90,64,16,0.4), rgba(90,64,16,0.1) 70%, transparent);
-          transform: translate(-50%, 0) scaleX(0);
-          animation: wjSoilAppear 5s ease-out infinite !important;
+        #wanjuan-boot-splash .mint-halo.h1 { width: 280px; height: 280px; }
+        #wanjuan-boot-splash .mint-halo.h2 { width: 410px; height: 410px; animation-delay: -2.6s !important; opacity: 0.58; }
+        #wanjuan-boot-splash .mint-leaf {
+          position: absolute; left: 50%; top: 43%; width: 96px; height: 142px;
+          border-radius: 82% 10% 82% 12% / 72% 12% 78% 14%;
+          background:
+            radial-gradient(ellipse at 32% 28%, rgba(245,255,249,0.78), transparent 36%),
+            linear-gradient(135deg, rgba(183,232,202,0.96) 0%, rgba(105,184,141,0.94) 58%, rgba(61,137,100,0.86) 100%);
+          box-shadow: 0 22px 58px rgba(69,132,95,0.22), inset 0 1px 0 rgba(255,255,255,0.72);
+          transform-origin: 78% 88%;
+          animation: wjMintLeafA 5.6s cubic-bezier(.2,.72,.24,1) infinite !important;
         }
-        #wanjuan-boot-splash .green-stem,
-        #wanjuan-boot-splash .green-branch-l,
-        #wanjuan-boot-splash .green-branch-r {
-          position: relative;
+        #wanjuan-boot-splash .mint-leaf.leaf-a { transform: translate(-76px, -82px) rotate(-32deg) scale(1); }
+        #wanjuan-boot-splash .mint-leaf.leaf-b {
+          width: 82px; height: 122px;
+          transform-origin: 22% 88%;
+          background:
+            radial-gradient(ellipse at 34% 28%, rgba(250,255,252,0.7), transparent 34%),
+            linear-gradient(135deg, rgba(211,244,222,0.95) 0%, rgba(124,201,159,0.92) 60%, rgba(72,154,116,0.82) 100%);
+          animation-name: wjMintLeafB !important;
         }
-        #wanjuan-boot-splash .green-stem {
-          position: absolute; left: 50%; bottom: 50%;
-          width: 3px; height: 0;
-          background: linear-gradient(180deg, #4ec89a 0%, #2a9d6a 100%);
-          border-radius: 2px;
-          transform: translateX(-50%);
-          transform-origin: bottom center;
-          animation: wjStemGrow 5s cubic-bezier(.2,.6,.4,1) infinite !important;
+        #wanjuan-boot-splash .mint-vein {
+          position: absolute; left: 50%; top: 16%; width: 1.5px; height: 78%;
+          border-radius: 999px;
+          background: linear-gradient(180deg, rgba(255,255,255,0.72), rgba(45,117,83,0.28));
+          transform-origin: 50% 100%;
+          opacity: 0.68;
         }
-        #wanjuan-boot-splash .green-branch-l,
-        #wanjuan-boot-splash .green-branch-r {
-          position: absolute; left: 50%; bottom: calc(50% + 48px);
-          width: 2.5px; height: 0;
-          background: linear-gradient(180deg, #4ec89a, #6dcaa8);
-          border-radius: 2px;
-          transform-origin: bottom center;
-          opacity: 0;
-          animation: wjBranchGrow 5s cubic-bezier(.2,.6,.4,1) infinite !important;
+        #wanjuan-boot-splash .mint-vein.v1 { transform: translateX(-50%) rotate(0deg); }
+        #wanjuan-boot-splash .mint-vein.v2 { transform: translateX(-50%) rotate(-22deg); height: 48%; top: 29%; opacity: 0.42; }
+        #wanjuan-boot-splash .mint-vein.v3 { transform: translateX(-50%) rotate(24deg); height: 44%; top: 33%; opacity: 0.38; }
+        #wanjuan-boot-splash .mint-dew {
+          position: absolute; width: 9px; height: 9px; border-radius: 999px;
+          background: radial-gradient(circle at 34% 28%, rgba(255,255,255,0.95), rgba(181,239,215,0.52) 52%, rgba(91,166,132,0.22) 100%);
+          box-shadow: 0 8px 18px rgba(60,128,96,0.14);
+          animation: wjMintDew 5.8s ease-in-out infinite !important;
         }
-        #wanjuan-boot-splash .green-branch-l {
-          transform: translateX(-50%) rotate(-42deg);
-          animation-delay: 0s !important;
+        #wanjuan-boot-splash .mint-dew.d1 { left: calc(50% - 30px); top: calc(43% - 64px); }
+        #wanjuan-boot-splash .mint-dew.d2 { left: calc(50% + 48px); top: calc(43% - 24px); width: 7px; height: 7px; animation-delay: -1.8s !important; }
+        #wanjuan-boot-splash .mint-dew.d3 { left: calc(50% - 92px); top: calc(43% + 26px); width: 6px; height: 6px; animation-delay: -3.1s !important; }
+        #wanjuan-boot-splash .mint-thread {
+          position: absolute; left: 50%; top: 43%; width: 260px; height: 1px;
+          background: linear-gradient(90deg, transparent, rgba(72,141,104,0.32), transparent);
+          transform-origin: center;
+          animation: wjMintThread 7.2s ease-in-out infinite !important;
         }
-        #wanjuan-boot-splash .green-branch-r {
-          transform: translateX(-50%) rotate(42deg);
-          animation-delay: 0.3s !important;
-        }
-        #wanjuan-boot-splash .green-leaf {
-          position: absolute;
-          width: 12px; height: 8px;
-          background: #3da87e;
-          border-radius: 0 70% 0 70%;
-          opacity: 0;
-          animation: wjLeafUnfurl 5s ease-out infinite !important;
-        }
-        #wanjuan-boot-splash .green-stem .stem-leaf-l {
-          bottom: 0; left: -10px;
-          transform: rotate(-40deg);
-          animation-delay: 0.2s !important;
-        }
-        #wanjuan-boot-splash .green-stem .stem-leaf-r {
-          bottom: 20px; right: -10px;
-          transform: rotate(40deg) scaleX(-1);
-          animation-delay: 0.5s !important;
-        }
-        #wanjuan-boot-splash .green-branch-l .branch-leaf {
-          bottom: 0; left: -8px;
-          transform: rotate(-30deg);
-          animation-delay: 0.3s !important;
-        }
-        #wanjuan-boot-splash .green-branch-r .branch-leaf {
-          bottom: 0; right: -8px;
-          transform: rotate(30deg) scaleX(-1);
-          animation-delay: 0.6s !important;
-        }
+        #wanjuan-boot-splash .mint-thread.t1 { transform: translate(-50%, 88px) rotate(-7deg); }
+        #wanjuan-boot-splash .mint-thread.t2 { transform: translate(-50%, -116px) rotate(9deg); animation-delay: -3.5s !important; opacity: 0.58; }
 
-        /* ===== WARM-LIGHT/CHROME-SAND: Sun Rays ===== */
+        /* ===== WARM-LIGHT/CHROME-SAND: Sand Vellum ===== */
         #wanjuan-boot-splash.boot-theme-chrome-sand,
         #wanjuan-boot-splash.boot-theme-warm-light {
-          color: #3a2a10;
-          background: linear-gradient(180deg, #fdf8f0 0%, #f8f2e8 50%, #f4ede2 100%);
+          color: #4a351c;
+          background:
+            radial-gradient(ellipse 70% 44% at 50% 36%, rgba(226,177,108,0.18), transparent 60%),
+            linear-gradient(180deg, #fffaf3 0%, #f8f0e4 52%, #efe2d1 100%);
         }
-        #wanjuan-boot-splash .sand-rays { position: absolute; inset: 0; }
-        #wanjuan-boot-splash .sand-sun {
-          position: absolute; left: 50%; top: 42%; width: 40px; height: 40px; border-radius: 50%;
-          background: radial-gradient(circle, #fff 22%, #e8c060 52%, #b8862a 82%);
-          box-shadow: 0 0 44px rgba(184,134,42,0.6), 0 0 88px rgba(214,173,107,0.3);
+        #wanjuan-boot-splash .sand-glow {
+          position: absolute; left: 50%; top: 42%; width: 330px; height: 190px;
+          border-radius: 999px;
+          background: radial-gradient(ellipse, rgba(226,178,101,0.34), rgba(228,190,133,0.11) 54%, transparent 72%);
           transform: translate(-50%, -50%);
-          animation: wjSandSun 4s ease-in-out infinite !important;
+          animation: wjSandGlow 6.4s ease-in-out infinite !important;
         }
-        #wanjuan-boot-splash .sand-ray {
-          position: absolute; left: 50%; top: 42%;
-          width: 2.5px; height: 0;
-          background: linear-gradient(180deg, rgba(184,134,42,0.8) 0%, rgba(214,173,107,0.2) 100%);
-          border-radius: 2px;
-          transform-origin: 50% 0%;
-          animation: wjSandRayGrow 4s cubic-bezier(.2,.6,.3,1) infinite !important;
+        #wanjuan-boot-splash .sand-landscape {
+          position: absolute; left: 50%; top: 54%;
+          width: min(680px, 88vw); height: min(300px, 40vw);
+          transform: translate(-50%, -36%);
+          filter: drop-shadow(0 18px 28px rgba(142,100,55,0.08));
+          overflow: visible;
         }
-        #wanjuan-boot-splash .sand-ray.r1 { --ray-angle: 0deg; --ray-len: 70px; animation-delay: 0s !important; }
-        #wanjuan-boot-splash .sand-ray.r2 { --ray-angle: 45deg; --ray-len: 50px; animation-delay: 0.2s !important; }
-        #wanjuan-boot-splash .sand-ray.r3 { --ray-angle: 90deg; --ray-len: 70px; animation-delay: 0.4s !important; }
-        #wanjuan-boot-splash .sand-ray.r4 { --ray-angle: 135deg; --ray-len: 50px; animation-delay: 0.6s !important; }
-        #wanjuan-boot-splash .sand-ray.r5 { --ray-angle: 180deg; --ray-len: 70px; animation-delay: 0.8s !important; }
-        #wanjuan-boot-splash .sand-ray.r6 { --ray-angle: 225deg; --ray-len: 50px; animation-delay: 1.0s !important; }
-        #wanjuan-boot-splash .sand-ray.r7 { --ray-angle: 270deg; --ray-len: 70px; animation-delay: 1.2s !important; }
-        #wanjuan-boot-splash .sand-ray.r8 { --ray-angle: 315deg; --ray-len: 50px; animation-delay: 1.4s !important; }
+        #wanjuan-boot-splash .sand-wash {
+          transform-box: fill-box;
+          transform-origin: 50% 82%;
+          animation: wjSandLayer 6.2s cubic-bezier(.24,.68,.28,1) infinite !important;
+        }
+        #wanjuan-boot-splash .wash-back { fill: url(#wjSandWash); opacity: 0.5; animation-delay: -2.6s !important; }
+        #wanjuan-boot-splash .wash-front { fill: url(#wjSandWash); opacity: 0.38; }
+        #wanjuan-boot-splash .sand-ridge {
+          fill: none;
+          stroke: rgba(176,112,46,0.24);
+          stroke-width: 2.4;
+          stroke-linecap: round;
+          opacity: 0.48;
+          animation: wjSandRidge 5.8s ease-in-out infinite !important;
+        }
+        #wanjuan-boot-splash .ridge-b { stroke-width: 2; animation-delay: -1.7s !important; opacity: 0.36; }
+        #wanjuan-boot-splash .ridge-c { stroke-width: 1.5; animation-delay: -3.2s !important; opacity: 0.25; }
+        #wanjuan-boot-splash .sand-sweep {
+          position: absolute; left: 50%; top: 38%; width: 520px; height: 2px;
+          background: linear-gradient(90deg, transparent, rgba(187,130,64,0.08), rgba(167,104,45,0.44), rgba(187,130,64,0.08), transparent);
+          transform: translate(-50%, -50%) rotate(-9deg);
+          animation: wjSandSweep 4.8s cubic-bezier(.18,.7,.2,1) infinite !important;
+        }
+        #wanjuan-boot-splash .sand-grain {
+          position: absolute; width: 5px; height: 5px; border-radius: 999px;
+          background: rgba(177,121,57,0.35);
+          box-shadow: 0 0 12px rgba(217,171,105,0.35);
+          animation: wjSandGrain 5.6s ease-in-out infinite !important;
+        }
+        #wanjuan-boot-splash .sand-grain.g1 { left: calc(50% - 162px); top: calc(44% - 42px); }
+        #wanjuan-boot-splash .sand-grain.g2 { left: calc(50% + 132px); top: calc(42% + 8px); width: 4px; height: 4px; animation-delay: -1.4s !important; }
+        #wanjuan-boot-splash .sand-grain.g3 { left: calc(50% - 48px); top: calc(50% - 84px); width: 6px; height: 6px; animation-delay: -2.5s !important; }
+        #wanjuan-boot-splash .sand-grain.g4 { left: calc(50% + 52px); top: calc(49% + 72px); width: 3px; height: 3px; animation-delay: -3.2s !important; }
+        #wanjuan-boot-splash .sand-grain.g5 { left: calc(50% - 208px); top: calc(53% + 38px); width: 4px; height: 4px; animation-delay: -4.1s !important; }
 
         /* ===== DARK: Constellation Breathe ===== */
         #wanjuan-boot-splash.boot-theme-dark {
@@ -659,48 +669,60 @@ function installBootStabilityStyle() {
           100% { transform: translateX(0); opacity: 0.85; }
         }
 
-        /* Green keyframes */
-        @keyframes wjSeedFall {
-          0% { opacity: 1; transform: translate(-50%, -170px) scale(0.8); }
-          16% { opacity: 1; transform: translate(-50%, -14px) scale(1); }
-          22% { opacity: 1; transform: translate(-50%, -4px) scale(0.9); }
-          30%,100% { opacity: 0; transform: translate(-50%, -4px) scale(0.6); }
+        /* Mint keyframes */
+        @keyframes wjMintHalo {
+          0%,100% { opacity: 0.34; transform: translate(-50%, -50%) scale(0.92); }
+          48% { opacity: 0.78; transform: translate(-50%, -50%) scale(1.08); }
         }
-        @keyframes wjSoilAppear {
-          0%,14% { transform: translate(-50%, 0) scaleX(0); opacity: 0; }
-          22% { transform: translate(-50%, 0) scaleX(1.2); opacity: 1; }
-          28%,80% { transform: translate(-50%, 0) scaleX(1); opacity: 0.8; }
-          100% { transform: translate(-50%, 0) scaleX(1); opacity: 0; }
+        @keyframes wjMintLeafA {
+          0%,100% { opacity: 0.72; transform: translate(-76px, -82px) rotate(-37deg) scale(0.94); }
+          18% { opacity: 0.98; transform: translate(-76px, -82px) rotate(-29deg) scale(1.02); }
+          58% { opacity: 0.94; transform: translate(-78px, -84px) rotate(-25deg) scale(1.05); }
+          82% { opacity: 0.8; transform: translate(-76px, -82px) rotate(-33deg) scale(0.98); }
         }
-        @keyframes wjStemGrow {
-          0%,20% { height: 0; opacity: 0; }
-          25% { height: 0; opacity: 1; }
-          55% { height: 88px; opacity: 1; }
-          80% { height: 88px; opacity: 0.8; }
-          100% { height: 88px; opacity: 0; }
+        @keyframes wjMintLeafB {
+          0%,100% { opacity: 0.62; transform: translate(10px, -70px) rotate(41deg) scale(0.9); }
+          22% { opacity: 0.96; transform: translate(12px, -72px) rotate(35deg) scale(1); }
+          62% { opacity: 0.9; transform: translate(14px, -74px) rotate(31deg) scale(1.04); }
+          84% { opacity: 0.72; transform: translate(10px, -70px) rotate(39deg) scale(0.96); }
         }
-        @keyframes wjBranchGrow {
-          0%,40% { height: 0; opacity: 0; }
-          45% { height: 0; opacity: 0.9; }
-          65% { height: 35px; opacity: 0.9; }
-          80% { height: 35px; opacity: 0.6; }
-          100% { height: 35px; opacity: 0; }
+        @keyframes wjMintDew {
+          0%,100% { opacity: 0.24; transform: translate3d(0, 9px, 0) scale(0.72); }
+          42% { opacity: 0.95; transform: translate3d(0, -5px, 0) scale(1.08); }
+          68% { opacity: 0.72; transform: translate3d(0, -12px, 0) scale(0.94); }
         }
-        @keyframes wjLeafUnfurl {
-          0%,44% { opacity: 0; transform: scale(0); }
-          55% { opacity: 1; transform: scale(1.3); }
-          65%,78% { opacity: 1; transform: scale(1); }
-          100% { opacity: 0; transform: scale(1); }
+        @keyframes wjMintThread {
+          0%,100% { opacity: 0; clip-path: inset(0 100% 0 0); }
+          22% { opacity: 0.52; clip-path: inset(0 24% 0 24%); }
+          58% { opacity: 0.36; clip-path: inset(0 0 0 0); }
+          86% { opacity: 0; clip-path: inset(0 0 0 100%); }
         }
 
         /* Sand keyframes */
-        @keyframes wjSandSun { 0%,100% { transform: translate(-50%,-50%) scale(1); box-shadow: 0 0 44px rgba(184,134,42,0.6), 0 0 88px rgba(214,173,107,0.3); } 50% { transform: translate(-50%,-50%) scale(1.15); box-shadow: 0 0 64px rgba(184,134,42,0.8), 0 0 120px rgba(214,173,107,0.4); } }
-        @keyframes wjSandRayGrow {
-          0% { height: 0; opacity: 0; transform: rotate(var(--ray-angle, 0deg)) translateX(-50%) translateY(-20px); }
-          20% { opacity: 0.85; }
-          50% { height: var(--ray-len, 56px); opacity: 0.85; transform: rotate(var(--ray-angle, 0deg)) translateX(-50%) translateY(-20px); }
-          80% { height: var(--ray-len, 56px); opacity: 0.4; }
-          100% { height: var(--ray-len, 56px); opacity: 0; transform: rotate(var(--ray-angle, 0deg)) translateX(-50%) translateY(-20px); }
+        @keyframes wjSandGlow {
+          0%,100% { opacity: 0.42; transform: translate(-50%, -50%) scale(0.94); }
+          46% { opacity: 0.86; transform: translate(-50%, -50%) scale(1.08); }
+        }
+        @keyframes wjSandLayer {
+          0%,100% { transform: translate3d(0, 4px, 0) scaleY(0.99); opacity: 0.32; }
+          36% { transform: translate3d(0, -2px, 0) scaleY(1.012); opacity: 0.52; }
+          72% { transform: translate3d(0, 1px, 0) scaleY(1); opacity: 0.4; }
+        }
+        @keyframes wjSandRidge {
+          0%,100% { stroke-dasharray: 96 520; stroke-dashoffset: 150; opacity: 0.16; }
+          42% { stroke-dasharray: 360 260; stroke-dashoffset: -32; opacity: 0.46; }
+          72% { stroke-dasharray: 210 410; stroke-dashoffset: -104; opacity: 0.28; }
+        }
+        @keyframes wjSandSweep {
+          0% { opacity: 0; transform: translate(-76%, -50%) rotate(-9deg) scaleX(0.44); }
+          22% { opacity: 0.72; transform: translate(-58%, -50%) rotate(-9deg) scaleX(0.84); }
+          56% { opacity: 0.48; transform: translate(-42%, -50%) rotate(-9deg) scaleX(1); }
+          100% { opacity: 0; transform: translate(-18%, -50%) rotate(-9deg) scaleX(0.52); }
+        }
+        @keyframes wjSandGrain {
+          0%,100% { opacity: 0.18; transform: translate3d(0, 14px, 0) scale(0.76); }
+          38% { opacity: 0.7; transform: translate3d(18px, -9px, 0) scale(1.08); }
+          72% { opacity: 0.42; transform: translate3d(-8px, -18px, 0) scale(0.92); }
         }
 
         /* Dark keyframes */

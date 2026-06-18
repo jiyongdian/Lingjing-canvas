@@ -319,6 +319,12 @@ html:is(.theme-light, .theme-warm-light, .theme-mist-blue, .theme-chrome-blue, .
   gap: 18px !important;
 }
 
+.wanjuan-storage-optimization-card {
+  box-sizing: border-box !important;
+  margin: 16px 16px 0 !important;
+  width: calc(100% - 32px) !important;
+}
+
 .wanjuan-settings-card-title {
   min-width: 0 !important;
   flex: 1 1 auto !important;

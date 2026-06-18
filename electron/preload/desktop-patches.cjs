@@ -1253,9 +1253,10 @@ function installDesktopPatches() {
   const autoClickLabels = ["开发模式：模拟进入", "模拟进入"];
   let autoClicked = false;
   let projectNameSynced = false;
+  const TIANJI_DEFAULT_BASE_URL = "https://newapi.guancn.uk";
 
   const TIANJI_DEFAULT_CONFIG = {
-    baseUrl: "",
+    baseUrl: TIANJI_DEFAULT_BASE_URL,
     token: "",
     sassId: "1",
     platform: "web",
@@ -1304,7 +1305,7 @@ function installDesktopPatches() {
   const tianjiNormalizeConfig = (value = {}) => ({
     ...TIANJI_DEFAULT_CONFIG,
     ...(value && typeof value === "object" ? value : {}),
-    baseUrl: String(value?.baseUrl || "").replace(/\s+/g, "").replace(/\/+$/, ""),
+    baseUrl: String(Object.prototype.hasOwnProperty.call(value || {}, "baseUrl") ? value?.baseUrl : TIANJI_DEFAULT_BASE_URL).replace(/\s+/g, "").replace(/\/+$/, ""),
     sassId: String(value?.sassId || "1").trim() || "1",
     platform: String(value?.platform || "web").trim() || "web",
     generateAudio: value?.generateAudio !== false,

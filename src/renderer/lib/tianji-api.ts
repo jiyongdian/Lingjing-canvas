@@ -25,6 +25,8 @@ declare global {
   }
 }
 
+export const WANJUAN_TIANJI_DEFAULT_BASE_URL = `https://newapi.guancn.uk`;
+
 /** 即梦天玑配置结构（字段较动态，使用宽松类型）。 */
 export interface TianjiSeedanceConfig {
   baseUrl: string;
@@ -76,7 +78,7 @@ interface RunTianjiSeedanceVideoOptions {
 
 /** 即梦天玑默认配置（base 地址、可选模型 / 时长 / 分辨率 / 画幅比例等）。 */
 export const wanjuanTianjiSeedanceDefaults: TianjiSeedanceConfig = {
-  baseUrl: ``,
+  baseUrl: WANJUAN_TIANJI_DEFAULT_BASE_URL,
   token: ``,
   sassId: `1`,
   platform: `web`,
@@ -105,7 +107,7 @@ export const wanjuanNormalizeTianjiSeedanceConfig = (config: any = {}): TianjiSe
   ...wanjuanTianjiSeedanceDefaults,
   ...(config && typeof config == `object` ? config : {}),
   baseUrl:
-    String(config?.baseUrl || ``)
+    String(Object.prototype.hasOwnProperty.call(config || {}, `baseUrl`) ? config?.baseUrl : WANJUAN_TIANJI_DEFAULT_BASE_URL)
       .replace(/\s+/g, ``)
       .replace(/\/+$/, ``),
   token: String(config?.token || ``).trim(),

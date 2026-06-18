@@ -722,6 +722,12 @@ html:is(.theme-light, .theme-warm-light, .theme-mist-blue, .theme-chrome-blue, .
   box-shadow: 0 8px 22px color-mix(in srgb, var(--wanjuan-theme-shadow, rgba(0, 0, 0, 0.22)) 28%, transparent) !important;
 }
 
+.wanjuan-storage-optimization-card {
+  box-sizing: border-box !important;
+  margin: 16px 16px 0 !important;
+  width: calc(100% - 32px) !important;
+}
+
 .wanjuan-settings-card-header {
   background: color-mix(in srgb, var(--wj-surface-2) 78%, var(--wj-surface) 22%) !important;
   border-color: color-mix(in srgb, var(--wj-border) 76%, transparent) !important;
