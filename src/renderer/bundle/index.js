@@ -41426,7 +41426,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                           [],
                         ),
                         buildBackupPayload = async (e, t, n, r = {}) => ({
-		                            version: `1.2.18`,
+		                            version: `1.2.18-2`,
                             backupFormat: `4`,
                             exportedAt: new Date().toISOString(),
                             modules: await buildBackupModules(e, t, n, r),
@@ -42011,7 +42011,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                 }),
                 jsx(`span`, {
                   className: `absolute bottom-1 right-2 text-[8px] text-gray-600 font-normal`,
-			                  children: `v1.2.18`,
+			                  children: `v1.2.18-2`,
                 }),
                 updateInfo?.hasUpdate &&
                 jsx(`span`, {
@@ -45968,7 +45968,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                                       children: [
                                         jsx(`span`, {
                                           className: `text-sm font-semibold text-gray-100`,
-		                                          children: `1.2.18`,
+		                                          children: `1.2.18-2`,
 	                                        }),
 	                                        jsx(`span`, {
 	                                          className: `text-[10px] text-gray-500`,

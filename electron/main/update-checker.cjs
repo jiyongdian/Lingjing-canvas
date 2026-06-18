@@ -15,13 +15,32 @@ function parseVersion(value) {
   return match ? match.slice(1, 4).map(Number) : null;
 }
 
+function parseVersionParts(value) {
+  const match = String(value || "").trim().match(/(\d+)\.(\d+)\.(\d+)(?:-([0-9]+))?/);
+  if (!match) return null;
+  return {
+    major: Number(match[1]),
+    minor: Number(match[2]),
+    patch: Number(match[3]),
+    suffix: Number(match[4] || 0)
+  };
+}
+
+function formatVersionParts(parts) {
+  if (!parts) return "";
+  const base = `${parts.major}.${parts.minor}.${parts.patch}`;
+  return parts.suffix > 0 ? `${base}-${parts.suffix}` : base;
+}
+
 function compareVersions(left, right) {
-  const a = parseVersion(left);
-  const b = parseVersion(right);
+  const a = parseVersionParts(left);
+  const b = parseVersionParts(right);
   if (!a || !b) return 0;
   for (let index = 0; index < 3; index += 1) {
-    if (a[index] !== b[index]) return a[index] > b[index] ? 1 : -1;
+    const key = index === 0 ? "major" : index === 1 ? "minor" : "patch";
+    if (a[key] !== b[key]) return a[key] > b[key] ? 1 : -1;
   }
+  if (a.suffix !== b.suffix) return a.suffix > b.suffix ? 1 : -1;
   return 0;
 }
 
@@ -95,7 +114,7 @@ function selectDownloadAsset(assets = [], arch = process.arch, platform = proces
 }
 
 function normalizeRelease(release, arch = process.arch, platform = process.platform) {
-  const version = parseVersion(release?.tag_name)?.join(".") || "";
+  const version = formatVersionParts(parseVersionParts(release?.tag_name)) || "";
   if (!version || release?.draft || release?.prerelease) return null;
   const asset = selectDownloadAsset(release?.assets, arch, platform);
   return {
@@ -125,7 +144,7 @@ async function fetchLatestRelease() {
 
 function normalizeLatestYaml(text, arch = process.arch, platform = process.platform, source = "") {
   const metadata = parseYaml(String(text || ""));
-  const version = parseVersion(metadata?.version)?.join(".") || "";
+  const version = formatVersionParts(parseVersionParts(metadata?.version)) || "";
   if (!version) return null;
   const files = Array.isArray(metadata?.files) ? metadata.files : [];
   const assets = files.map((file) => ({
@@ -309,6 +328,7 @@ module.exports = {
   LATEST_MAC_YML_URL,
   LATEST_WIN_YML_URL,
   parseVersion,
+  parseVersionParts,
   compareVersions,
   selectDownloadAsset,
   normalizeRelease,

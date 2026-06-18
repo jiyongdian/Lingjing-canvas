@@ -1,6 +1,7 @@
 const assert = require("node:assert/strict");
 const {
   parseVersion,
+  parseVersionParts,
   compareVersions,
   selectDownloadAsset,
   normalizeRelease,
@@ -10,9 +11,11 @@ const {
 } = require("../electron/main/update-checker.cjs");
 
 assert.deepEqual(parseVersion("v1.2.9-release"), [1, 2, 9]);
+assert.deepEqual(parseVersionParts("v1.2.18-2"), { major: 1, minor: 2, patch: 18, suffix: 2 });
 assert.equal(compareVersions("1.3.0", "1.2.9"), 1);
 assert.equal(compareVersions("1.2.9", "1.2.9"), 0);
 assert.equal(compareVersions("1.2.8", "1.2.9"), -1);
+assert.equal(compareVersions("1.2.18-2", "1.2.18"), 1);
 
 const assets = [
   { name: "latest-mac.yml", browser_download_url: "https://example.com/latest.yml" },
@@ -33,13 +36,13 @@ assert.equal(latestYamlUrlForPlatform("win32").endsWith("/latest.yml"), true);
 assert.equal(latestYamlUrlForPlatform("darwin").endsWith("/latest-mac.yml"), true);
 
 const release = normalizeRelease({
-  tag_name: "v1.3.0-release",
-  name: "万卷灵境 v1.3.0",
+  tag_name: "v1.3.0-2",
+  name: "万卷灵境 v1.3.0-2",
   body: "更新说明",
   html_url: "https://example.com/release",
   assets
 }, "arm64", "darwin");
-assert.equal(release.version, "1.3.0");
+assert.equal(release.version, "1.3.0-2");
 assert.equal(release.assetName, "wanjuan-lingjing-1.3.0.dmg");
 
 const windowsRelease = normalizeRelease({

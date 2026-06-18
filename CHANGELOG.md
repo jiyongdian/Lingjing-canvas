@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.18-2 - 2026-06-18
+
+- Fixed downstream nodes missing upstream reference images/videos after switching global unified API configs.
+- Normalized local file, `file://`, and Windows/UNC media paths before reference media is passed to downstream image, video, and multimodal text requests.
+- Made model-level protocol bindings take priority over unified API format overrides so reference field mappings such as `image` and `input_reference` are preserved.
+- Normalized Config Butler generated global API configs with automatic protocol format defaults.
+- Published supplemental macOS and Windows release packages for 1.2.18-2.
+
 ## 1.2.17 - 2026-06-17
 
 - Added a copy action for user messages in the Agents chat view.
