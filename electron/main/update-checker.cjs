@@ -5,6 +5,7 @@ const { parse: parseYaml } = require("yaml");
 const RELEASES_API_URL = "https://api.github.com/repos/Guan-XX003/Lingjing-canvas/releases/latest";
 const RELEASES_PAGE_URL = "https://github.com/Guan-XX003/Lingjing-canvas/releases/latest";
 const LATEST_MAC_YML_URL = "https://github.com/Guan-XX003/Lingjing-canvas/releases/latest/download/latest-mac.yml";
+const LATEST_WIN_YML_URL = "https://github.com/Guan-XX003/Lingjing-canvas/releases/latest/download/latest.yml";
 const AUTO_CHECK_DELAY_MS = 6000;
 
 let activeCheck = null;
@@ -24,26 +25,79 @@ function compareVersions(left, right) {
   return 0;
 }
 
-function selectDownloadAsset(assets = [], arch = process.arch) {
-  const available = assets.filter((asset) => asset?.browser_download_url && asset?.name);
-  const architecture = String(arch || "").toLowerCase();
-  const matchingDmg = available.find((asset) => {
-    const name = asset.name.toLowerCase();
-    return name.endsWith(".dmg") && name.includes(architecture);
-  });
-  const dmg = available.find((asset) => asset.name.toLowerCase().endsWith(".dmg"));
-  const matchingZip = available.find((asset) => {
-    const name = asset.name.toLowerCase();
-    return name.endsWith(".zip") && name.includes(architecture);
-  });
-  const fallbackZip = available.find((asset) => asset.name.toLowerCase().endsWith(".zip"));
-  return matchingDmg || dmg || matchingZip || fallbackZip || null;
+function normalizePlatform(value = process.platform) {
+  const platform = String(value || "").toLowerCase();
+  if (platform === "darwin" || platform === "mac" || platform === "macos") return "darwin";
+  if (platform === "win32" || platform === "windows" || platform === "win") return "win32";
+  return platform;
 }
 
-function normalizeRelease(release, arch = process.arch) {
+function normalizeArch(value = process.arch) {
+  const arch = String(value || "").toLowerCase();
+  if (arch === "x86" || arch === "ia32" || arch === "win32") return "ia32";
+  if (arch === "amd64" || arch === "x86_64") return "x64";
+  if (arch === "aarch64") return "arm64";
+  return arch;
+}
+
+function assetName(asset) {
+  return String(asset?.name || "").toLowerCase();
+}
+
+function isReleasePayloadAsset(asset) {
+  const name = assetName(asset);
+  return (
+    !!asset?.browser_download_url &&
+    !!asset?.name &&
+    !name.endsWith(".blockmap") &&
+    !name.endsWith(".yml") &&
+    !name.includes("__uninstaller")
+  );
+}
+
+function findAsset(assets, predicate) {
+  return assets.find((asset) => predicate(assetName(asset), asset));
+}
+
+function selectDownloadAsset(assets = [], arch = process.arch, platform = process.platform) {
+  const available = assets.filter(isReleasePayloadAsset);
+  const architecture = normalizeArch(arch);
+  const targetPlatform = normalizePlatform(platform);
+  if (targetPlatform === "win32") {
+    const archExe = findAsset(available, (name) =>
+      name.endsWith(".exe") &&
+      name.includes("setup") &&
+      name.includes(architecture)
+    );
+    const setupExe = findAsset(available, (name) => name.endsWith(".exe") && name.includes("setup"));
+    const archZip = findAsset(available, (name) =>
+      name.endsWith(".zip") &&
+      name.includes(architecture) &&
+      name.includes("win")
+    );
+    const winZip = findAsset(available, (name) => name.endsWith(".zip") && name.includes("win"));
+    const exe = findAsset(available, (name) => name.endsWith(".exe"));
+    return archExe || archZip || setupExe || winZip || exe || null;
+  }
+  if (targetPlatform === "darwin") {
+    const dmg = findAsset(available, (name) => name.endsWith(".dmg"));
+    const archMacZip = findAsset(available, (name) =>
+      name.endsWith(".zip") &&
+      name.includes("mac") &&
+      name.includes(architecture)
+    );
+    const macZip = findAsset(available, (name) => name.endsWith(".zip") && name.includes("mac"));
+    return dmg || archMacZip || macZip || null;
+  }
+  const matchingZip = findAsset(available, (name) => name.endsWith(".zip") && name.includes(architecture));
+  const fallbackZip = findAsset(available, (name) => name.endsWith(".zip"));
+  return matchingZip || fallbackZip || null;
+}
+
+function normalizeRelease(release, arch = process.arch, platform = process.platform) {
   const version = parseVersion(release?.tag_name)?.join(".") || "";
   if (!version || release?.draft || release?.prerelease) return null;
-  const asset = selectDownloadAsset(release?.assets, arch);
+  const asset = selectDownloadAsset(release?.assets, arch, platform);
   return {
     version,
     name: String(release?.name || release?.tag_name || `v${version}`),
@@ -69,7 +123,7 @@ async function fetchLatestRelease() {
   return release;
 }
 
-function normalizeLatestMacYaml(text, arch = process.arch) {
+function normalizeLatestYaml(text, arch = process.arch, platform = process.platform, source = "") {
   const metadata = parseYaml(String(text || ""));
   const version = parseVersion(metadata?.version)?.join(".") || "";
   if (!version) return null;
@@ -80,7 +134,7 @@ function normalizeLatestMacYaml(text, arch = process.arch) {
       ? `https://github.com/Guan-XX003/Lingjing-canvas/releases/latest/download/${encodeURIComponent(file.url)}`
       : ""
   }));
-  const asset = selectDownloadAsset(assets, arch);
+  const asset = selectDownloadAsset(assets, arch, platform);
   return {
     version,
     name: `万卷灵境 v${version}`,
@@ -89,18 +143,28 @@ function normalizeLatestMacYaml(text, arch = process.arch) {
     releaseUrl: RELEASES_PAGE_URL,
     downloadUrl: String(asset?.browser_download_url || ""),
     assetName: String(asset?.name || ""),
-    source: "latest-mac.yml"
+    source: source || (normalizePlatform(platform) === "win32" ? "latest.yml" : "latest-mac.yml")
   };
 }
 
-async function fetchLatestMacYaml() {
-  const response = await fetch(LATEST_MAC_YML_URL, {
+function normalizeLatestMacYaml(text, arch = process.arch) {
+  return normalizeLatestYaml(text, arch, "darwin", "latest-mac.yml");
+}
+
+function latestYamlUrlForPlatform(platform = process.platform) {
+  return normalizePlatform(platform) === "win32" ? LATEST_WIN_YML_URL : LATEST_MAC_YML_URL;
+}
+
+async function fetchLatestYaml() {
+  const latestYamlUrl = latestYamlUrlForPlatform();
+  const latestYamlName = latestYamlUrl.endsWith("latest.yml") ? "latest.yml" : "latest-mac.yml";
+  const response = await fetch(latestYamlUrl, {
     headers: { "user-agent": `wanjuan-lingjing/${app.getVersion()}` },
     signal: AbortSignal.timeout(12000)
   });
-  if (!response.ok) throw new Error(`latest-mac.yml 请求失败：HTTP ${response.status}`);
-  const release = normalizeLatestMacYaml(await response.text());
-  if (!release) throw new Error("latest-mac.yml 内容无效");
+  if (!response.ok) throw new Error(`${latestYamlName} 请求失败：HTTP ${response.status}`);
+  const release = normalizeLatestYaml(await response.text(), process.arch, process.platform, latestYamlName);
+  if (!release) throw new Error(`${latestYamlName} 内容无效`);
   return release;
 }
 
@@ -109,7 +173,7 @@ async function fetchLatestReleaseWithFallback() {
     return await fetchLatestRelease();
   } catch (apiError) {
     appendDesktopLog("update-check-api-fallback", { message: formatErrorMessage(apiError) });
-    return fetchLatestMacYaml();
+    return fetchLatestYaml();
   }
 }
 
@@ -243,13 +307,16 @@ module.exports = {
   RELEASES_API_URL,
   RELEASES_PAGE_URL,
   LATEST_MAC_YML_URL,
+  LATEST_WIN_YML_URL,
   parseVersion,
   compareVersions,
   selectDownloadAsset,
   normalizeRelease,
+  normalizeLatestYaml,
   normalizeLatestMacYaml,
+  latestYamlUrlForPlatform,
   fetchLatestRelease,
-  fetchLatestMacYaml,
+  fetchLatestYaml,
   fetchLatestReleaseWithFallback,
   checkForUpdates,
   installApplicationMenu,
