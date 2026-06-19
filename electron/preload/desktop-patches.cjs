@@ -1272,6 +1272,7 @@ function installDesktopPatches() {
   let tianjiAssetsState = { LivenessFace: [], AIGC: [] };
   let tianjiGroupsState = {};
   let tianjiPointsLogsDialog = null;
+  let tianjiSettingsStorageListener = null;
 
   const tianjiStorageGet = (keys) =>
     new Promise((resolve) => {
@@ -1311,6 +1312,48 @@ function installDesktopPatches() {
     generateAudio: value?.generateAudio !== false,
     watermark: value?.watermark === true
   });
+
+  const tianjiNormalizeApiBaseUrl = (value) =>
+    String(value || "").replace(/\s+/g, "").replace(/\/+$/, "");
+
+  const tianjiIsJixinApiConfig = (config) =>
+    config?.id === "jixin-default" ||
+    tianjiNormalizeApiBaseUrl(config?.url) === tianjiNormalizeApiBaseUrl(TIANJI_DEFAULT_BASE_URL);
+
+  const tianjiGetSyncedConfigFromJixin = async () => {
+    const stored = await tianjiStorageGet(["tianjiSeedanceConfig", "apiConfigs"]);
+    const currentConfig = tianjiNormalizeConfig(stored.tianjiSeedanceConfig || {});
+    const jixinConfig = (Array.isArray(stored.apiConfigs) ? stored.apiConfigs : []).find(tianjiIsJixinApiConfig);
+    if (!jixinConfig) return currentConfig;
+    const nextConfig = tianjiNormalizeConfig({
+      ...currentConfig,
+      baseUrl: tianjiNormalizeApiBaseUrl(jixinConfig.url || TIANJI_DEFAULT_BASE_URL) || TIANJI_DEFAULT_BASE_URL,
+      token: String(jixinConfig.key || "").trim()
+    });
+    if (JSON.stringify(currentConfig) !== JSON.stringify(nextConfig)) {
+      await tianjiStorageSet({ tianjiSeedanceConfig: nextConfig });
+    }
+    return nextConfig;
+  };
+
+  const tianjiApplyConfigToPanel = (panel, config) => {
+    if (!panel) return;
+    const nextConfig = tianjiNormalizeConfig(config || {});
+    const fields = {
+      baseUrl: nextConfig.baseUrl,
+      token: nextConfig.token || "",
+      sassId: nextConfig.sassId,
+      platform: nextConfig.platform
+    };
+    Object.entries(fields).forEach(([field, value]) => {
+      const input = panel.querySelector(`[data-tianji-field='${field}']`);
+      if (input && input.value !== value) input.value = value;
+    });
+    const audioInput = panel.querySelector("[data-tianji-field='generateAudio']");
+    const watermarkInput = panel.querySelector("[data-tianji-field='watermark']");
+    if (audioInput) audioInput.checked = nextConfig.generateAudio !== false;
+    if (watermarkInput) watermarkInput.checked = nextConfig.watermark === true;
+  };
 
   const tianjiFindArray = (value) => {
     if (Array.isArray(value)) return value;
@@ -1670,6 +1713,18 @@ function installDesktopPatches() {
     return tianjiGroupsState;
   };
 
+  const tianjiEnsureGroups = async (panel, preferredType = "AIGC") => {
+    const targetKey = preferredType === "LivenessFace" ? "LivenessFace" : "AIGC";
+    const currentGroups = {
+      LivenessFace: panel?.querySelector("[data-tianji-field='liveGroupId']")?.value || tianjiGroupsState.LivenessFace || "",
+      AIGC: panel?.querySelector("[data-tianji-field='aigcGroupId']")?.value || tianjiGroupsState.AIGC || ""
+    };
+    if (currentGroups[targetKey]) return currentGroups;
+    const nextGroups = await tianjiSyncGroups(panel, preferredType);
+    if (!nextGroups[targetKey]) throw new Error(`天玑未返回${preferredType === "LivenessFace" ? "真人" : "虚拟"}人像组 ID，请确认极鑫令牌权限后重试`);
+    return nextGroups;
+  };
+
   const tianjiRequest = async (config, path, { method = "POST", params = {}, query = {} } = {}) => {
     const nextConfig = tianjiNormalizeConfig(config);
     if (!nextConfig.token) throw new Error("请先填写即梦天玑 Authorization Token");
@@ -1887,8 +1942,8 @@ function installDesktopPatches() {
     const seedanceCard = tianjiModeHost?.closest?.(".wanjuan-settings-card") || seedanceHeader?.closest?.(".wanjuan-settings-card") || null;
     if (!tianjiModeHost && !tianjiHost && (!seedanceCard || seedanceCard.parentElement?.querySelector(".wanjuan-tianji-settings-card"))) return;
     seedanceCard?.classList?.add("wanjuan-seedance-settings-card");
-    const stored = await tianjiStorageGet(["tianjiSeedanceConfig", "tianjiSeedanceAssets", "tianjiSeedanceGroups", "tianjiSeedanceSettingsMode"]);
-    tianjiSettingsState = tianjiNormalizeConfig(stored.tianjiSeedanceConfig || {});
+    const stored = await tianjiStorageGet(["tianjiSeedanceAssets", "tianjiSeedanceGroups", "tianjiSeedanceSettingsMode"]);
+    tianjiSettingsState = await tianjiGetSyncedConfigFromJixin();
     tianjiAssetsState = {
       LivenessFace: tianjiMergeLocalAssets(stored.tianjiSeedanceAssets?.LivenessFace || tianjiAssetsState.LivenessFace),
       AIGC: tianjiMergeLocalAssets(stored.tianjiSeedanceAssets?.AIGC || tianjiAssetsState.AIGC)
@@ -1905,10 +1960,12 @@ function installDesktopPatches() {
       .wanjuan-tianji-settings-host{display:grid;gap:12px;min-width:0}
       .wanjuan-seedance-settings-card.wanjuan-tianji-mode-active .wanjuan-settings-card-body > :not(.wanjuan-tianji-mode-row):not(.wanjuan-tianji-settings-host){display:none!important}
       .wanjuan-seedance-settings-card.wanjuan-tianji-mode-active .wanjuan-tianji-settings-card{margin-top:0}
-      .wanjuan-tianji-mode-row{display:flex!important;align-items:center;justify-content:space-between;gap:12px;border:1px solid color-mix(in srgb,var(--wj-border,#333) 72%,transparent);border-radius:8px;background:color-mix(in srgb,var(--wj-surface-2,#121212) 78%,var(--wj-bg,#0f0f0f) 22%);padding:8px 10px}
-      .wanjuan-tianji-mode-row-title{font-size:12px;font-weight:600;color:var(--wj-text,#d1d5db)}
-      .wanjuan-tianji-mode-row-help{font-size:10px;color:var(--wj-muted,#6b7280);margin-top:2px}
+      .wanjuan-tianji-mode-row{display:flex!important;align-items:center;justify-content:space-between;gap:12px;border:1px solid color-mix(in srgb,var(--wj-border,#333) 72%,transparent);border-radius:8px;background:color-mix(in srgb,var(--wj-surface-2,#121212) 78%,var(--wj-bg,#0f0f0f) 22%);padding:10px 12px}
+      .wanjuan-tianji-mode-row-title{font-size:12px;font-weight:650;color:var(--wj-text,#d1d5db);line-height:1.25}
+      .wanjuan-tianji-mode-row-help{font-size:11px;color:var(--wj-muted,#6b7280);margin-top:3px;line-height:1.35}
       .wanjuan-tianji-mode-host{display:flex;align-items:center;justify-content:flex-end;margin-left:0;vertical-align:middle}
+      .wanjuan-tianji-mode-locked-field{display:block;min-width:0}
+      .wanjuan-tianji-mode-readonly{display:flex;align-items:center;min-height:40px;line-height:1.35;border:1px solid color-mix(in srgb,var(--wj-border,#333) 72%,transparent);border-radius:8px;background:color-mix(in srgb,var(--wj-surface-2,#121212) 82%,var(--wj-bg,#0f0f0f) 18%);color:var(--wj-text,#d1d5db);font-size:13px;font-weight:400;padding:9px 12px;box-shadow:none}
       .wanjuan-tianji-mode-switch{display:inline-flex;align-items:center;gap:3px;padding:3px;border:1px solid color-mix(in srgb,var(--wj-border,#333) 72%,transparent);border-radius:9px;background:color-mix(in srgb,var(--wj-surface-2,#121212) 84%,var(--wj-bg,#0f0f0f) 16%);box-shadow:0 1px 0 rgba(255,255,255,.04) inset}
       .wanjuan-tianji-mode-switch button{height:26px;min-width:64px;padding:0 12px!important;border:1px solid transparent!important;border-radius:7px!important;background:transparent!important;color:var(--wj-muted,#9ca3af)!important;font-size:11px!important;font-weight:600!important;transition:background .14s ease,border-color .14s ease,color .14s ease,box-shadow .14s ease,transform .14s ease}
       .wanjuan-tianji-mode-switch button:not(.is-active):not([aria-pressed="true"]):hover{background:color-mix(in srgb,var(--wj-surface-3,#2a2a2a) 88%,var(--wj-accent,#60a5fa) 12%)!important;color:var(--wj-text,#d1d5db)!important}
@@ -2041,6 +2098,22 @@ function installDesktopPatches() {
     panel.addEventListener("input", (event) => {
       if (event.target?.hasAttribute?.("data-tianji-field")) tianjiSaveConfigFromPanel(panel).catch(console.warn);
     });
+    const refreshPanelConfigFromJixin = async () => {
+      tianjiSettingsState = await tianjiGetSyncedConfigFromJixin();
+      tianjiApplyConfigToPanel(panel, tianjiSettingsState);
+    };
+    if (tianjiSettingsStorageListener) {
+      window.chrome?.storage?.onChanged?.removeListener?.(tianjiSettingsStorageListener);
+      tianjiSettingsStorageListener = null;
+    }
+    const handleTianjiStorageChange = (changes, areaName) => {
+      if (areaName !== "local") return;
+      if (changes?.apiConfigs || changes?.tianjiSeedanceConfig) {
+        refreshPanelConfigFromJixin().catch((error) => console.warn("Tianji config storage sync failed", error));
+      }
+    };
+    tianjiSettingsStorageListener = handleTianjiStorageChange;
+    window.chrome?.storage?.onChanged?.addListener?.(tianjiSettingsStorageListener);
     panel.addEventListener("click", async (event) => {
       const secretToggle = event.target?.closest?.("[data-tianji-toggle-secret]");
       if (secretToggle) {
@@ -2057,7 +2130,9 @@ function installDesktopPatches() {
       if (!action) return;
       try {
         status("处理中...");
-        await tianjiSaveConfigFromPanel(panel);
+        tianjiSettingsState = await tianjiGetSyncedConfigFromJixin();
+        tianjiApplyConfigToPanel(panel, tianjiSettingsState);
+        if (action === "save") await tianjiSaveConfigFromPanel(panel);
         if (action === "save") status("已保存");
         if (action === "balance") {
           const result = await tianjiRequest(tianjiSettingsState, "/api/cut/model/fetch-points-balance");
@@ -2105,25 +2180,25 @@ function installDesktopPatches() {
           if (!file) throw new Error("请选择一张人像图片");
           const type = panel.querySelector("[data-tianji-upload-type]")?.value || "AIGC";
           const name = panel.querySelector("[data-tianji-upload-name]")?.value || file.name || "人像素材";
+          status("正在获取人像组 ID...");
+          await tianjiEnsureGroups(panel, type);
           const dataUrl = await new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.onload = () => resolve(String(reader.result || ""));
             reader.onerror = () => reject(reader.error || new Error("读取图片失败"));
             reader.readAsDataURL(file);
           });
+          status("正在上传公网图片...");
           const uploaded = await ipcRenderer.invoke("wanjuan:upload-public-media", {
             url: dataUrl,
             kind: "image",
             filename: `tianji-portrait-${Date.now()}`
           });
           if (!uploaded?.ok || !uploaded.url) throw new Error(uploaded?.error || "图片公网链接上传失败");
+          status("正在提交天玑人像审核...");
           const uploadResult = await tianjiRequest(tianjiSettingsState, type === "AIGC" ? "/api/cut/model/upload-VirtralPortrait" : "/api/cut/model/upload-Portrait", {
             params: { image_url: uploaded.url, name }
           });
-          if (!tianjiGroupsState.LivenessFace || !tianjiGroupsState.AIGC) {
-            status("上传成功，正在获取素材组...");
-            await tianjiSyncGroups(panel, type).catch(() => {});
-          }
           status("上传成功，正在刷新素材...");
           await tianjiRefreshAssets(panel).catch(() => {});
           status("上传已提交；请刷新素材列表，接口返回后才会显示在人像库");

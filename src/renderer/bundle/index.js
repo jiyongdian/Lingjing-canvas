@@ -4442,8 +4442,7 @@ var Le = reactMemo(({
       try {
         setTianjiPortraitPickerRefreshing(!0);
         data.onShowToast?.(`正在刷新天玑人像库...`);
-        let stored = await wanjuanTianjiStorageGet([`tianjiSeedanceConfig`]),
-          config = wanjuanNormalizeTianjiSeedanceConfig(stored.tianjiSeedanceConfig || {}),
+        let config = await wanjuanGetSyncedTianjiSeedanceConfig(),
           refresh = await wanjuanTianjiRefreshPortraitAssets(config, {
             preferredType: `AIGC`,
             retries: 1,
@@ -16093,6 +16092,281 @@ var at = {
   };
 
 const WANJUAN_TIANJI_DEFAULT_BASE_URL = `https://newapi.guancn.uk`;
+const WANJUAN_JIXIN_DEFAULT_API_CONFIG_ID = `jixin-default`;
+const WANJUAN_JIXIN_DEFAULT_API_URL = `https://newapi.guancn.uk`;
+const WANJUAN_JIXIN_BUILTIN_GLOBAL_CONFIG_ID = `builtin-jixin-base`;
+const WANJUAN_JIXIN_BUILTIN_BASE_CONFIG_VERSION = `2026-06-19-v3`;
+const WANJUAN_JIXIN_BUILTIN_TEXT_MODELS = [
+  `gpt-5.5`,
+  `deepseek-v4-pro`,
+  `deepseek-v4-flash`,
+  `deepseek-v3-1-250821`,
+  `Qwen3-235B-A22B-Instruct-2507`,
+  `Qwen3-30B-A3B-Instruct-2507`,
+  `gemini-3.1-pro`,
+  `gemini-3.5-flash`,
+];
+const WANJUAN_JIXIN_BUILTIN_IMAGE_MODELS = [
+  `gpt-image-2`,
+  `gpt-image-2-pro`,
+  `Z-Image-Turbo`,
+  `gemini-3.1-flash-image-preview`,
+  `gemini-3-pro-image-preview`,
+];
+const WANJUAN_JIXIN_BUILTIN_VIDEO_MODELS = [
+  `veo3.1`,
+  `grok-video-3`,
+  `grok-video-3-pro`,
+  `doubao-seedance-2-0-fast-260128`,
+];
+const WANJUAN_JIXIN_BUILTIN_MUSIC_MODELS = [
+  `suno_music`,
+];
+const WANJUAN_JIXIN_BUILTIN_TEXT_PROTOCOLS = {
+  [`gemini-3.1-pro`]: `Gemini 文本原生`,
+  [`gemini-3.5-flash`]: `Gemini 文本原生`,
+};
+const WANJUAN_JIXIN_BUILTIN_IMAGE_PROTOCOLS = {
+  [`gpt-image-2`]: `极鑫图片兼容`,
+  [`gpt-image-2-pro`]: `极鑫图片兼容`,
+  [`Z-Image-Turbo`]: `极鑫图片兼容`,
+  [`gemini-3.1-flash-image-preview`]: `极鑫 Gemini 图片兼容`,
+  [`gemini-3-pro-image-preview`]: `极鑫 Gemini 图片兼容`,
+};
+const WANJUAN_JIXIN_BUILTIN_PROTOCOLS = {
+  [`极鑫图片兼容`]: {
+    category: `image`,
+    requestType: `openai-images`,
+    submitPath: `/v1/images/generations`,
+    editPath: `/v1/images/edits`,
+    fieldMapping: {
+      model: `model`,
+      prompt: `prompt`,
+      count: `n`,
+      size: `size`,
+      aspectRatio: ``,
+      responseFormat: ``,
+      referenceImage: `image`,
+    },
+    fieldValueTypes: {
+      n: `number`,
+      size: `string`,
+    },
+    parameterAdapter: {
+      sizeValueMode: `dimension`,
+      aspectRatioValueMode: `omit`,
+    },
+    responseMapping: {
+      image: [`data.0.url`, `data.0.b64_json`, `data.0.download_url`, `data.0.image_url`, `url`, `image_url`],
+    },
+  },
+  [`极鑫 Gemini 图片兼容`]: {
+    category: `image`,
+    requestType: `gemini-generate-content`,
+    parameterAdapter: {
+      sizeValueMode: `preset`,
+      aspectRatioValueMode: `ratio`,
+    },
+    responseMapping: {
+      image: [`candidates.0.content.parts.0.inlineData.data`, `candidates.0.content.parts.0.inline_data.data`, `candidates.0.content.parts.0.fileData.fileUri`, `candidates.0.content.parts.0.file_data.file_uri`, `candidates.0.content.parts.0.text`, `text`],
+    },
+  },
+  [`极鑫视频兼容`]: {
+    category: `video`,
+    requestType: `openai-video`,
+    submitPath: `/v1/videos`,
+    pollPath: `/v1/videos/{taskId}`,
+    contentPath: `/v1/videos/{taskId}/content`,
+    fieldMapping: {
+      model: `model`,
+      prompt: `prompt`,
+      resolution: `size`,
+      aspectRatio: ``,
+      duration: `seconds`,
+      referenceImage: `input_reference`,
+      referenceVideo: `input_video`,
+    },
+    fieldValueTypes: {
+      seconds: `string`,
+      size: `string`,
+    },
+    parameterAdapter: {
+      resolutionValueMode: `preset`,
+      resolutionValueMap: {
+        [`1280x720`]: `720p`,
+        [`720x1280`]: `720p`,
+        [`1080x720`]: `720p`,
+        [`720x1080`]: `720p`,
+        [`720x720`]: `720p`,
+        [`1920x1080`]: `1080p`,
+        [`1080x1920`]: `1080p`,
+      },
+      aspectRatioValueMode: `omit`,
+    },
+    responseMapping: {
+      video: [`metadata.url`, `data.0.url`, `data.0.video_url`, `output.video_url`, `result.video_url`, `video_url`, `url`],
+      taskId: [`id`, `task_id`, `data.id`, `data.task_id`],
+      status: [`status`, `data.status`, `state`],
+    },
+  },
+  [`极鑫 Suno 音乐生成`]: {
+    category: `music`,
+    requestType: `suno-music`,
+    submitPath: `/suno/submit/music`,
+    pollPath: `/suno/fetch/{taskId}`,
+    fieldMapping: {
+      model: `mv`,
+      prompt: `gpt_description_prompt`,
+      title: `title`,
+    },
+    responseMapping: {
+      audio: [`data.clips.0.audio_url`, `data.clips.0.audioUrl`, `data.0.audio_url`, `data.0.audioUrl`, `audio_url`, `url`],
+      taskId: [`data`, `id`, `task_id`, `data.id`, `data.task_id`],
+      status: [`data.status`, `status`],
+    },
+  },
+};
+const wanjuanMergeModelText = (...inputs) => {
+  let seen = new Set(),
+    models = [];
+  inputs.forEach((input) => {
+    (Array.isArray(input) ? input : String(input || ``).split(/[\n,，、]+/))
+      .map((model) => String(model || ``).trim())
+      .filter(Boolean)
+      .forEach((model) => {
+        if (seen.has(model)) return;
+        seen.add(model);
+        models.push(model);
+      });
+  });
+  return models.join(`
+`);
+};
+const wanjuanBuildJixinModelBindings = (models, apiConfigId = WANJUAN_JIXIN_DEFAULT_API_CONFIG_ID) =>
+  String(models || ``)
+    .split(/[\n,，、]+/)
+    .map((model) => model.trim())
+    .filter(Boolean)
+    .reduce((bindings, model) => ({
+      ...bindings,
+      [model]: apiConfigId,
+    }), {});
+const wanjuanMergeObjectDefaults = (target = {}, defaults = {}) => ({
+  ...(defaults || {}),
+  ...(target && typeof target == `object` ? target : {}),
+});
+const wanjuanHasUserModelConfiguration = (settings = {}) => {
+  let hasModelText = [`textModel`, `drawingModel`, `videoModel`, `audioModel`, `ttsMusicModel`]
+      .some((key) => String(settings?.[key] || ``).trim()),
+    hasModelBinding = [
+      `textModelApiBindings`,
+      `textModelProtocolBindings`,
+      `imageModelApiBindings`,
+      `imageModelProtocolBindings`,
+      `videoModelApiBindings`,
+      `videoModelProtocolBindings`,
+      `audioModelApiBindings`,
+      `audioModelProtocolBindings`,
+    ].some((key) => settings?.[key] && typeof settings[key] == `object` && Object.keys(settings[key]).length > 0),
+    hasStoredGlobalConfig = Array.isArray(settings.storedGlobalConfigs) && settings.storedGlobalConfigs.length > 0,
+    apiConfigs = Array.isArray(settings.apiConfigs) ? settings.apiConfigs : [],
+    hasNonDefaultApiConfig = apiConfigs.some((config) => {
+      let normalizedUrl = String(config?.url || ``).replace(/\s+/g, ``).replace(/\/+$/, ``);
+      return config?.id !== WANJUAN_JIXIN_DEFAULT_API_CONFIG_ID ||
+        normalizedUrl && normalizedUrl !== WANJUAN_JIXIN_DEFAULT_API_URL ||
+        String(config?.key || ``).trim();
+    });
+  return hasModelText || hasModelBinding || hasStoredGlobalConfig || hasNonDefaultApiConfig;
+};
+const wanjuanBuildJixinBuiltinBasePatch = (source = {}) => {
+  let apiConfigs = Array.isArray(source.apiConfigs) && source.apiConfigs.length ?
+      source.apiConfigs :
+      [{
+        id: WANJUAN_JIXIN_DEFAULT_API_CONFIG_ID,
+        name: `极鑫`,
+        url: WANJUAN_JIXIN_DEFAULT_API_URL,
+        key: ``,
+        protocolFormat: `auto`,
+      }],
+    jixinConfig = apiConfigs.find((config) => config?.id === WANJUAN_JIXIN_DEFAULT_API_CONFIG_ID) ||
+      apiConfigs.find((config) => String(config?.url || ``).replace(/\s+/g, ``).replace(/\/+$/, ``) === WANJUAN_JIXIN_DEFAULT_API_URL) ||
+      apiConfigs[0],
+    jixinConfigId = jixinConfig?.id || WANJUAN_JIXIN_DEFAULT_API_CONFIG_ID,
+    textModel = wanjuanMergeModelText(source.textModel, WANJUAN_JIXIN_BUILTIN_TEXT_MODELS),
+    drawingModel = wanjuanMergeModelText(source.drawingModel, WANJUAN_JIXIN_BUILTIN_IMAGE_MODELS),
+    videoModel = wanjuanMergeModelText(source.videoModel, WANJUAN_JIXIN_BUILTIN_VIDEO_MODELS),
+    ttsMusicModel = wanjuanMergeModelText(source.ttsMusicModel, WANJUAN_JIXIN_BUILTIN_MUSIC_MODELS),
+    textBindings = wanjuanBuildJixinModelBindings(WANJUAN_JIXIN_BUILTIN_TEXT_MODELS, jixinConfigId),
+    imageBindings = wanjuanBuildJixinModelBindings(WANJUAN_JIXIN_BUILTIN_IMAGE_MODELS, jixinConfigId),
+    videoBindings = wanjuanBuildJixinModelBindings(WANJUAN_JIXIN_BUILTIN_VIDEO_MODELS, jixinConfigId),
+    musicBindings = wanjuanBuildJixinModelBindings(WANJUAN_JIXIN_BUILTIN_MUSIC_MODELS, jixinConfigId);
+  return {
+    ...source,
+    apiConfigs: apiConfigs.map((config) =>
+      config === jixinConfig ? {
+        ...config,
+        id: jixinConfigId,
+        name: config.name || `极鑫`,
+        url: config.url || WANJUAN_JIXIN_DEFAULT_API_URL,
+        protocolFormat: config.protocolFormat || `auto`,
+      } : config,
+    ),
+    textApiConfigId: source.textApiConfigId || jixinConfigId,
+    imageApiConfigId: source.imageApiConfigId || jixinConfigId,
+    videoApiConfigId: source.videoApiConfigId || jixinConfigId,
+    audioApiConfigId: source.audioApiConfigId || jixinConfigId,
+    textApiUrl: source.textApiUrl || jixinConfig?.url || WANJUAN_JIXIN_DEFAULT_API_URL,
+    imageApiUrl: source.imageApiUrl || jixinConfig?.url || WANJUAN_JIXIN_DEFAULT_API_URL,
+    videoApiUrl: source.videoApiUrl || jixinConfig?.url || WANJUAN_JIXIN_DEFAULT_API_URL,
+    audioApiUrl: source.audioApiUrl || jixinConfig?.url || WANJUAN_JIXIN_DEFAULT_API_URL,
+    textModel,
+    drawingModel,
+    videoModel,
+    ttsMusicModel,
+    videoResolutions: source.videoResolutions || `1280x720
+720x1280
+1920x1080
+1080x1920
+720x720`,
+    videoAspectRatios: source.videoAspectRatios || `16:9
+9:16
+1:1`,
+    modelProtocolRegistry: {
+      ...(source.modelProtocolRegistry && typeof source.modelProtocolRegistry == `object` ? source.modelProtocolRegistry : {}),
+      ...WANJUAN_JIXIN_BUILTIN_PROTOCOLS,
+    },
+    textModelApiBindings: wanjuanMergeObjectDefaults(source.textModelApiBindings, textBindings),
+    imageModelApiBindings: wanjuanMergeObjectDefaults(source.imageModelApiBindings, imageBindings),
+    videoModelApiBindings: wanjuanMergeObjectDefaults(source.videoModelApiBindings, videoBindings),
+    audioModelApiBindings: wanjuanMergeObjectDefaults(source.audioModelApiBindings, musicBindings),
+    textModelProtocolBindings: wanjuanMergeObjectDefaults(source.textModelProtocolBindings, WANJUAN_JIXIN_BUILTIN_TEXT_PROTOCOLS),
+    imageModelProtocolBindings: wanjuanMergeObjectDefaults(source.imageModelProtocolBindings, WANJUAN_JIXIN_BUILTIN_IMAGE_PROTOCOLS),
+    videoModelProtocolBindings: wanjuanMergeObjectDefaults(
+      source.videoModelProtocolBindings,
+      WANJUAN_JIXIN_BUILTIN_VIDEO_MODELS.reduce((bindings, model) => ({
+        ...bindings,
+        [model]: `极鑫视频兼容`,
+      }), {}),
+    ),
+    audioModelProtocolBindings: wanjuanMergeObjectDefaults(source.audioModelProtocolBindings, {
+      suno_music: `极鑫 Suno 音乐生成`,
+    }),
+  };
+};
+const wanjuanBuildJixinBuiltinStoredGlobalConfig = (config) => ({
+  id: WANJUAN_JIXIN_BUILTIN_GLOBAL_CONFIG_ID,
+  name: `极鑫默认基础配置`,
+  description: `内置基础配置 · 填入极鑫令牌后可直接使用`,
+  source: `builtin-jixin`,
+  apiDocUrl: `${WANJUAN_JIXIN_DEFAULT_API_URL}/docs`,
+  updatedAt: 0,
+  config: {
+    ...(config || {}),
+    configButlerDocUrl: `${WANJUAN_JIXIN_DEFAULT_API_URL}/docs`,
+    configButlerMode: `batch`,
+    configButlerTargetApiConfigId: WANJUAN_JIXIN_DEFAULT_API_CONFIG_ID,
+  },
+});
 const wanjuanTianjiSeedanceDefaults = {
   baseUrl: WANJUAN_TIANJI_DEFAULT_BASE_URL,
   token: ``,
@@ -16147,6 +16421,32 @@ const wanjuanNormalizeTianjiSeedanceConfig = (config = {}) => ({
   generateAudio: config?.generateAudio !== !1,
   watermark: config?.watermark === !0,
 });
+
+const wanjuanNormalizeTianjiApiBaseUrl = (value) =>
+  String(value || ``)
+    .replace(/\s+/g, ``)
+    .replace(/\/+$/, ``);
+
+const wanjuanIsJixinApiConfig = (config) =>
+  config?.id === `jixin-default` ||
+  wanjuanNormalizeTianjiApiBaseUrl(config?.url) === wanjuanNormalizeTianjiApiBaseUrl(WANJUAN_TIANJI_DEFAULT_BASE_URL);
+
+const wanjuanGetSyncedTianjiSeedanceConfig = async () => {
+  let stored = await wanjuanTianjiStorageGet([`tianjiSeedanceConfig`, `apiConfigs`]),
+    currentConfig = wanjuanNormalizeTianjiSeedanceConfig(stored.tianjiSeedanceConfig || {}),
+    jixinConfig = (Array.isArray(stored.apiConfigs) ? stored.apiConfigs : []).find(wanjuanIsJixinApiConfig);
+  if (!jixinConfig) return currentConfig;
+  let nextConfig = wanjuanNormalizeTianjiSeedanceConfig({
+    ...currentConfig,
+    baseUrl: wanjuanNormalizeTianjiApiBaseUrl(jixinConfig.url || WANJUAN_TIANJI_DEFAULT_BASE_URL) || WANJUAN_TIANJI_DEFAULT_BASE_URL,
+    token: String(jixinConfig.key || ``).trim(),
+  });
+  JSON.stringify(currentConfig) !== JSON.stringify(nextConfig) &&
+    await wanjuanTianjiStorageSet({
+      tianjiSeedanceConfig: nextConfig,
+    });
+  return nextConfig;
+};
 
 const wanjuanTianjiFirstListValue = (value, t) =>
   String(value || ``)
@@ -16335,6 +16635,20 @@ const wanjuanTianjiExtractGroups = (result, current = {}, preferredType = ``) =>
   };
 };
 
+const wanjuanTianjiEnsurePortraitGroups = async (config, preferredType = `AIGC`) => {
+  let stored = await wanjuanTianjiStorageGet([`tianjiSeedanceGroups`]),
+    currentGroups = stored.tianjiSeedanceGroups && typeof stored.tianjiSeedanceGroups == `object` ? stored.tianjiSeedanceGroups : {},
+    targetKey = preferredType === `LivenessFace` ? `LivenessFace` : `AIGC`;
+  if (currentGroups[targetKey]) return currentGroups;
+  let groupResult = await wanjuanTianjiRequest(config, `/api/cut/model/seedance-portrait-auth-status`),
+    nextGroups = wanjuanTianjiExtractGroups(groupResult, currentGroups, preferredType);
+  await wanjuanTianjiStorageSet({
+    tianjiSeedanceGroups: nextGroups,
+  });
+  if (!nextGroups[targetKey]) throw Error(`天玑未返回${preferredType === `LivenessFace` ? `真人` : `虚拟`}人像组 ID，请确认极鑫令牌权限后重试`);
+  return nextGroups;
+};
+
 const wanjuanTianjiCreateLocalUploadAsset = ({ name: name, imageUrl: imageUrl, result: result }) => ({
   id: wanjuanTianjiFindDeep(result, [`portrait_asset_id`, `asset_id`, `assetId`, `id`, `AssetId`]) || `local-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
   portrait_asset_id: wanjuanTianjiFindDeep(result, [`portrait_asset_id`, `asset_id`, `assetId`, `id`, `AssetId`]) || ``,
@@ -16453,9 +16767,9 @@ const wanjuanUploadTianjiVirtualPortrait = async (imageUrl, options = {}) => {
     throw Error(`天玑人像审核只支持图片素材`);
   if (!window.wanjuanDesktop?.uploadPublicMedia)
     throw Error(`当前桌面端缺少公网图片上传能力，请重启应用后再试`);
-  let stored = await wanjuanTianjiStorageGet([`tianjiSeedanceConfig`]),
-    config = wanjuanNormalizeTianjiSeedanceConfig(stored.tianjiSeedanceConfig || {}),
+  let config = await wanjuanGetSyncedTianjiSeedanceConfig(),
     label = String(options.name || options.label || `虚拟人像素材`).trim() || `虚拟人像素材`,
+    groups = await wanjuanTianjiEnsurePortraitGroups(config, `AIGC`),
     uploaded = await window.wanjuanDesktop.uploadPublicMedia({
       url: sourceUrl,
       kind: `image`,
@@ -16487,6 +16801,7 @@ const wanjuanUploadTianjiVirtualPortrait = async (imageUrl, options = {}) => {
     asset: asset,
     imageUrl: uploaded.url,
     refresh: refresh,
+    groups: groups,
   };
 };
 
@@ -16636,8 +16951,7 @@ const wanjuanTianjiMediaUrl = async (mediaRef, mediaKind = `image`, uploadOption
 };
 
 async function wanjuanRunTianjiSeedanceVideo(options) {
-  let stored = await wanjuanTianjiStorageGet([`tianjiSeedanceConfig`]),
-    config = wanjuanNormalizeTianjiSeedanceConfig(stored.tianjiSeedanceConfig || {}),
+  let config = await wanjuanGetSyncedTianjiSeedanceConfig(),
     sourceData = options.sourceNode?.data || {},
     prompt =
     (Array.isArray(options.extraPrompts) && options.extraPrompts.length > 0 ?
@@ -20638,7 +20952,11 @@ ${combinedPrompt}`,
                 /!\[.*?\]\((data:image\/[^;]+;base64,[^)]+)\)/,
               );
               if (imageMatch && imageMatch[1]) imageDataUrl = imageMatch[1];
-              else
+              else {
+                let imageUrlMatch = textPart.text.match(/!\[.*?\]\((https?:\/\/[^)\s]+|blob:[^)\s]+)\)/i);
+                if (imageUrlMatch && imageUrlMatch[1]) imageDataUrl = imageUrlMatch[1].replace(/[`\s]/g, ``);
+              }
+              if (!imageDataUrl)
                 throw (
                   console.warn(`Model returned text:`, textPart.text),
                   showToast(`API返回文本: ${textPart.text.substring(0, 100)}...`),
@@ -29757,6 +30075,14 @@ function St() {
   [currentPage, setCurrentPage] = useState(1),
   [activeView, setActiveView] = useState(`canvas`),
   [activeSettingsTab, setActiveSettingsTab] = useState(`basic`),
+  [advancedSettingsUnlocked, setAdvancedSettingsUnlocked] = useState(() => {
+    try {
+      return localStorage.getItem(`wanjuanAdvancedSettingsUnlocked`) === `true`;
+    } catch {
+      return !1;
+    }
+  }),
+  [settingsNavUnlockClicks, setSettingsNavUnlockClicks] = useState(0),
   [te, R] = useState(!1),
   [ne, z] = useState(``),
   [re, B] = useState(null),
@@ -29767,13 +30093,13 @@ function St() {
   [toastMessage, setToastMessage] = useState(``),
   [textApiUrl, setTextApiUrl] = useState(``),
   [textApiKey, setTextApiKey] = useState(``),
-  [textModels, _e] = useState(``),
+  [textModels, _e] = useState(wanjuanMergeModelText(WANJUAN_JIXIN_BUILTIN_TEXT_MODELS)),
   [imageApiUrl, setImageApiUrl] = useState(``),
   [imageApiKey, setImageApiKey] = useState(``),
-  [imageModels, setImageModels] = useState(``),
+  [imageModels, setImageModels] = useState(wanjuanMergeModelText(WANJUAN_JIXIN_BUILTIN_IMAGE_MODELS)),
   [videoApiUrl, setVideoApiUrl] = useState(``),
   [videoApiKey, setVideoApiKey] = useState(``),
-  [videoModels, setVideoModels] = useState(``),
+  [videoModels, setVideoModels] = useState(wanjuanMergeModelText(WANJUAN_JIXIN_BUILTIN_VIDEO_MODELS)),
   [je, setVideoDurations] = useState(`5
 10
 11
@@ -29781,7 +30107,7 @@ function St() {
   [audioApiUrl, setAudioApiUrl] = useState(``),
   [audioApiKey, setAudioApiKey] = useState(``),
   [audioModels, setAudioModels] = useState(``),
-  [ttsMusicModel, setTtsMusicModel] = useState(``),
+  [ttsMusicModel, setTtsMusicModel] = useState(wanjuanMergeModelText(WANJUAN_JIXIN_BUILTIN_MUSIC_MODELS)),
   [modelProtocolRegistry, setModelProtocolRegistry] = useState(() => ({
     "Gemini 文本原生": {
       category: `text`,
@@ -29906,6 +30232,7 @@ function St() {
       submitPath: `/suno/submit/music`,
       pollPath: `/suno/fetch/{taskId}`,
     },
+    ...WANJUAN_JIXIN_BUILTIN_PROTOCOLS,
   })),
   [protocolNamesText, setProtocolNamesText] = useState(
     `Gemini 文本原生
@@ -29970,6 +30297,8 @@ Suno 音乐生成`,
   [configButlerRepairHistory, setConfigButlerRepairHistory] = useState([]),
   [configButlerRepairHistoryOpen, setConfigButlerRepairHistoryOpen] = useState(!1),
   [configButlerExpanded, setConfigButlerExpanded] = useState(!1),
+  [jixinModelScanNotice, setJixinModelScanNotice] = useState(null),
+  [jixinModelScanBusy, setJixinModelScanBusy] = useState(!1),
   [configButlerAgentExpanded, setConfigButlerAgentExpanded] = useState(
     !1,
   ),
@@ -30105,18 +30434,28 @@ time=1h`,
     key: ``,
     protocolFormat: `auto`,
   }]),
-  [textApiConfigId, setTextApiConfigId] = useState(``),
-  [imageApiConfigId, setImageApiConfigId] = useState(``),
-  [videoApiConfigId, setVideoApiConfigId] = useState(``),
-  [audioApiConfigId, setAudioApiConfigId] = useState(``),
-  [textModelApiBindings, setTextModelApiBindings] = useState({}),
-  [textModelProtocolBindings, setTextModelProtocolBindings] = useState({}, ),
-  [imageModelApiBindings, setImageModelApiBindings] = useState({}),
-  [imageModelProtocolBindings, setImageModelProtocolBindings] = useState({}),
-	  [videoModelProtocolBindings, setVideoModelProtocolBindings] = useState({}, ),
-	  [audioModelProtocolBindings, setAudioModelProtocolBindings] = useState({}, ),
-	  [audioModelApiBindings, setAudioModelApiBindings] = useState({}),
-	  [videoModelApiBindings, setVideoModelApiBindings] = useState({}),
+  [textApiConfigId, setTextApiConfigId] = useState(WANJUAN_JIXIN_DEFAULT_API_CONFIG_ID),
+  [imageApiConfigId, setImageApiConfigId] = useState(WANJUAN_JIXIN_DEFAULT_API_CONFIG_ID),
+  [videoApiConfigId, setVideoApiConfigId] = useState(WANJUAN_JIXIN_DEFAULT_API_CONFIG_ID),
+  [audioApiConfigId, setAudioApiConfigId] = useState(WANJUAN_JIXIN_DEFAULT_API_CONFIG_ID),
+  [textModelApiBindings, setTextModelApiBindings] = useState(() => wanjuanBuildJixinModelBindings(WANJUAN_JIXIN_BUILTIN_TEXT_MODELS)),
+  [textModelProtocolBindings, setTextModelProtocolBindings] = useState(() => ({
+    ...WANJUAN_JIXIN_BUILTIN_TEXT_PROTOCOLS
+  }), ),
+  [imageModelApiBindings, setImageModelApiBindings] = useState(() => wanjuanBuildJixinModelBindings(WANJUAN_JIXIN_BUILTIN_IMAGE_MODELS)),
+  [imageModelProtocolBindings, setImageModelProtocolBindings] = useState(() => ({
+    ...WANJUAN_JIXIN_BUILTIN_IMAGE_PROTOCOLS
+  })),
+	  [videoModelProtocolBindings, setVideoModelProtocolBindings] = useState(() =>
+	    WANJUAN_JIXIN_BUILTIN_VIDEO_MODELS.reduce((bindings, model) => ({
+	      ...bindings,
+	      [model]: `极鑫视频兼容`,
+	    }), {}), ),
+	  [audioModelProtocolBindings, setAudioModelProtocolBindings] = useState(() => ({
+	    suno_music: `极鑫 Suno 音乐生成`,
+	  }), ),
+	  [audioModelApiBindings, setAudioModelApiBindings] = useState(() => wanjuanBuildJixinModelBindings(WANJUAN_JIXIN_BUILTIN_MUSIC_MODELS)),
+	  [videoModelApiBindings, setVideoModelApiBindings] = useState(() => wanjuanBuildJixinModelBindings(WANJUAN_JIXIN_BUILTIN_VIDEO_MODELS)),
   [$, setIsReady] = useState(!1),
   normalizeThemeMode = (themeName) => ({
     "mist-blue": `light`,
@@ -30587,6 +30926,55 @@ time=1h`,
           setShowToast(!1);
         }, 2e3));
     },
+    WANJUAN_JIXIN_API_URL = `https://newapi.guancn.uk`,
+    WANJUAN_JIXIN_DOC_URL = `https://newapi.guancn.uk/docs`,
+    WANJUAN_CUSTOM_API_LIMIT = 3,
+    isJixinDefaultApiConfig = (config) =>
+    config?.id === `jixin-default` ||
+    normalizeButlerBaseUrl(config?.url) === normalizeButlerBaseUrl(WANJUAN_JIXIN_API_URL),
+    buildSyncedTianjiConfigFromJixinApi = (currentConfig = {}, jixinConfig = null) => ({
+      ...(currentConfig && typeof currentConfig == `object` ? currentConfig : {}),
+      baseUrl: String(jixinConfig?.url || WANJUAN_JIXIN_API_URL).replace(/\s+/g, ``).replace(/\/+$/, ``) || WANJUAN_JIXIN_API_URL,
+      token: String(jixinConfig?.key || ``).trim(),
+    }),
+    syncTianjiConfigFromJixinApi = async (configs = apiConfigs) => {
+      if (typeof chrome > `u` || !chrome.storage?.local) return null;
+      let jixinConfig = (Array.isArray(configs) ? configs : []).find(isJixinDefaultApiConfig) || null;
+      if (!jixinConfig) return null;
+      let stored = await readChromeStorage([`tianjiSeedanceConfig`]),
+        currentConfig = stored.tianjiSeedanceConfig && typeof stored.tianjiSeedanceConfig == `object` ?
+        stored.tianjiSeedanceConfig :
+        {},
+        nextConfig = buildSyncedTianjiConfigFromJixinApi(currentConfig, jixinConfig);
+      JSON.stringify(currentConfig) !== JSON.stringify(nextConfig) &&
+        writeChromeStorage({
+          tianjiSeedanceConfig: nextConfig,
+        });
+      return nextConfig;
+    },
+    getCustomApiConfigCount = (configs = apiConfigs) =>
+    (Array.isArray(configs) ? configs : []).filter((config) => !isJixinDefaultApiConfig(config)).length,
+    unlockAdvancedSettings = () => {
+      (setAdvancedSettingsUnlocked(!0),
+        setSettingsNavUnlockClicks(0));
+      try {
+        localStorage.setItem(`wanjuanAdvancedSettingsUnlocked`, `true`);
+        typeof chrome < `u` &&
+          chrome.storage?.local?.set?.({
+            advancedSettingsUnlocked: !0,
+          });
+      } catch {}
+      showToast2(`高级设置已解锁`);
+    },
+    handleSettingsNavClick = () => {
+      setActiveView(`settings`);
+      if (advancedSettingsUnlocked) return;
+      setSettingsNavUnlockClicks((clickCount) => {
+        let nextCount = clickCount + 1;
+        nextCount >= 10 && unlockAdvancedSettings();
+        return nextCount >= 10 ? 0 : nextCount;
+      });
+    },
     settingsHydratedRef = useRef(!1),
     projectHydratedRef = useRef(!1),
     nonModelSettingsSaveTimerRef = useRef(null),
@@ -30750,6 +31138,10 @@ time=1h`,
       );
     },
     applyTianjiSeedanceSettingsMode = (mode) => {
+      if (mode === `tianji` && !advancedSettingsUnlocked) {
+        showToast2(`连续点击顶部“设置”10次后可解锁天玑模式配置`);
+        return;
+      }
       let normalizedMode = mode === `tianji` ? `tianji` : `official`;
       setTianjiSeedanceSettingsMode(normalizedMode);
       try {
@@ -30778,6 +31170,52 @@ time=1h`,
     String(value || ``)
     .replace(/\s+/g, ``)
     .replace(/\/$/, ``),
+    normalizeButlerModelName = (modelName) =>
+    String(modelName || ``).trim(),
+    getButlerModelFamilyKey = (modelName) => {
+      let name = normalizeButlerModelName(modelName).toLowerCase();
+      return name
+        .replace(/(?:^|[-_])(?:preview|latest|exp|experimental|beta|alpha|fast|turbo|lite|pro|max|mini|all|hd|4k|8k|thinking|flash)(?:[-_]|$)/g, `-`)
+        .replace(/[-_]*\d{4}[-_]\d{2}[-_]\d{2}$/g, ``)
+        .replace(/[-_]*\d{6,8}$/g, ``)
+        .replace(/[-_]*v?\d+(?:\.\d+){0,2}.*$/g, ``)
+        .replace(/[-_]+/g, `-`)
+        .replace(/^-|-$/g, ``) ||
+        name;
+    },
+    getButlerModelGenerationRank = (modelName) => {
+      let name = normalizeButlerModelName(modelName).toLowerCase(),
+        dateMatch = name.match(/(?:^|[-_])(\d{4})[-_]?(\d{2})[-_]?(\d{2})(?:$|[-_])/);
+      if (dateMatch) return Number(`${dateMatch[1]}${dateMatch[2]}${dateMatch[3]}`);
+      let versionMatches = [...name.matchAll(/(?:^|[-_])v?(\d+)(?:\.(\d+))?(?:\.(\d+))?(?:$|[-_])/g)];
+      if (versionMatches.length) {
+        let version = versionMatches[versionMatches.length - 1];
+        return Number(version[1] || 0) * 1e6 + Number(version[2] || 0) * 1e3 + Number(version[3] || 0);
+      }
+      return 0;
+    },
+    filterButlerLatestTwoGenerations = (models) => {
+      let inputModels = (Array.isArray(models) ? models : [])
+          .map(normalizeButlerModelName)
+          .filter(Boolean),
+        groups = new Map();
+      inputModels.forEach((modelName) => {
+        let familyKey = getButlerModelFamilyKey(modelName),
+          rank = getButlerModelGenerationRank(modelName);
+        if (!groups.has(familyKey)) groups.set(familyKey, new Map());
+        let rankKey = String(rank || 0);
+        groups.get(familyKey).has(rankKey) || groups.get(familyKey).set(rankKey, []);
+        groups.get(familyKey).get(rankKey).push(modelName);
+      });
+      let allowed = new Set();
+      groups.forEach((rankMap) => {
+        [...rankMap.entries()]
+          .sort((first, second) => Number(second[0]) - Number(first[0]))
+          .slice(0, 2)
+          .forEach(([, names]) => names.forEach((name) => allowed.add(name)));
+      });
+      return inputModels.filter((modelName) => allowed.has(modelName));
+    },
     getDefaultButlerModel = () =>
     configButlerModel.trim() ||
     textModels
@@ -30951,6 +31389,7 @@ time=1h`,
       id: String(item.id),
       name: String(item.name),
       description: String(item.description || ``),
+      source: String(item.source || ``),
       apiDocUrl: String(item.apiDocUrl || item.config?.apiDocUrl || item.config?.configButlerDocUrl || ``),
       updatedAt: item.updatedAt || 0,
       config: normalizeStoredGlobalConfigBackup(item.config),
@@ -32414,16 +32853,19 @@ ${curlText}`,
         } catch {}
         return !0;
       })(),
-      callConfigButlerModel = async (prompt) => {
-          let baseUrl = normalizeButlerBaseUrl(configButlerApiUrl),
-            modelName = getDefaultButlerModel();
-          if (!baseUrl || !configButlerApiKey)
+      callConfigButlerModel = async (prompt, options = {}) => {
+          let butlerApiUrl = String(options.apiUrl ?? configButlerApiUrl ?? ``),
+            butlerApiKey = String(options.apiKey ?? configButlerApiKey ?? ``),
+            butlerProtocol = String(options.protocol || configButlerProtocol || `openai`),
+            baseUrl = normalizeButlerBaseUrl(butlerApiUrl),
+            modelName = String(options.model || getDefaultButlerModel() || ``).trim() || getDefaultButlerModel();
+          if (!baseUrl || !butlerApiKey)
             throw Error(`请先在配置管家中填写请求地址和 API Key`);
-          if (configButlerProtocol === `openai`) {
+          if (butlerProtocol === `openai`) {
             let response = await fetch(`${baseUrl}/v1/chat/completions`, {
               method: `POST`,
               headers: {
-                Authorization: `Bearer ${configButlerApiKey}`,
+                Authorization: `Bearer ${butlerApiKey}`,
                 "Content-Type": `application/json`,
               },
               body: JSON.stringify({
@@ -32450,7 +32892,7 @@ ${curlText}`,
           }
           let requestGemini = async (modelName2) => {
             let response = await fetch(
-              `${baseUrl}/v1beta/models/${encodeURIComponent(modelName2)}:generateContent?key=${encodeURIComponent(configButlerApiKey)}`, {
+              `${baseUrl}/v1beta/models/${encodeURIComponent(modelName2)}:generateContent?key=${encodeURIComponent(butlerApiKey)}`, {
                 method: `POST`,
                 headers: {
                   "Content-Type": `application/json`
@@ -33105,8 +33547,8 @@ ${model.apiConfigName || ``}`.toLowerCase();
 	              }
 	            };
 	        },
-	        scanButlerTargetModels = async () => {
-	          let apiConfig = getSelectedButlerTargetApiConfig(),
+	        scanButlerTargetModels = async (options = {}) => {
+	          let apiConfig = options.apiConfig || getSelectedButlerTargetApiConfig(),
 	            baseUrl = normalizeButlerBaseUrl(apiConfig?.url),
 	            apiKey = String(apiConfig?.key || ``).trim();
 	          if (!baseUrl || !apiKey) throw Error(`请先选择一个已填写 base URL 和 API Key 的统一 API 配置`);
@@ -33133,12 +33575,178 @@ ${model.apiConfigName || ``}`.toLowerCase();
 	              }
 	              let payload = await response.json(),
 	                models = extractButlerModelsFromPayload(payload).filter(Boolean);
-	              if (models.length) return models;
+	              if (models.length)
+	                return options.filterLatestTwo === !1 ? models : filterButlerLatestTwoGenerations(models);
 	              errorMessages.push(`${url}: 未返回模型列表`);
 	            } catch (error) {
 	              errorMessages.push(`${url}: ${error.message}`);
 	            }
 	          throw Error(`未能从目标统一 API 配置读取模型列表。${errorMessages[0] || ``}`);
+	        },
+	        readChromeStorage = (keys) =>
+	        new Promise((resolve) => {
+	          try {
+	            typeof chrome < `u` && chrome.storage?.local ?
+	              chrome.storage.local.get(keys, (result) => resolve(result || {})) :
+	              resolve({});
+	          } catch {
+	            resolve({});
+	          }
+	        }),
+	        writeChromeStorage = (items) => {
+	          try {
+	            typeof chrome < `u` && chrome.storage?.local?.set?.(items);
+	          } catch {}
+	        },
+	        getJixinApiConfig = () =>
+	        (Array.isArray(apiConfigs) ? apiConfigs : []).find(isJixinDefaultApiConfig) || null,
+	        compareButlerModelSnapshots = (previousModels = [], nextModels = []) => {
+	          let previousSet = new Set((Array.isArray(previousModels) ? previousModels : []).map(normalizeButlerModelName).filter(Boolean)),
+	            nextSet = new Set((Array.isArray(nextModels) ? nextModels : []).map(normalizeButlerModelName).filter(Boolean));
+	          return {
+	            added: [...nextSet].filter((modelName) => !previousSet.has(modelName)),
+	            removed: [...previousSet].filter((modelName) => !nextSet.has(modelName)),
+	          };
+	        },
+	        scanJixinGatewayModels = async (options = {}) => {
+	          let jixinConfig = options.apiConfig || getJixinApiConfig();
+	          if (!jixinConfig || !String(jixinConfig.key || ``).trim()) {
+	            options.force && showToast2(`请先在极鑫统一 API 配置中填写令牌`);
+	            return null;
+	          }
+	          try {
+	            setJixinModelScanBusy(!0);
+	            let rawModels = await scanButlerTargetModels({
+	                apiConfig: jixinConfig,
+	                filterLatestTwo: !1,
+	              }),
+	              filteredModels = filterButlerLatestTwoGenerations(rawModels),
+	              docText = await fetchDocAsPlainText(WANJUAN_JIXIN_DOC_URL).catch(() => ``),
+	              docHash = docText ? mt(docText) : ``,
+	              stored = await readChromeStorage([`jixinGatewayModelScanSnapshot`]),
+	              previousSnapshot = stored.jixinGatewayModelScanSnapshot || {},
+	              diff = compareButlerModelSnapshots(previousSnapshot.filteredModels || [], filteredModels),
+	              docChanged = !!(previousSnapshot.docHash && docHash && previousSnapshot.docHash !== docHash),
+	              snapshot = {
+	                checkedAt: Date.now(),
+	                apiUrl: WANJUAN_JIXIN_API_URL,
+	                rawCount: rawModels.length,
+	                filteredModels: filteredModels,
+	                docHash: docHash,
+	              };
+	            writeChromeStorage({
+	              jixinGatewayModelScanSnapshot: snapshot,
+	              jixinGatewayModelScanLastAt: Date.now(),
+	            });
+	            if ((previousSnapshot.filteredModels || []).length && (diff.added.length || diff.removed.length || docChanged)) {
+	              setJixinModelScanNotice({
+	                ...diff,
+	                docChanged: docChanged,
+	                rawCount: rawModels.length,
+	                filteredCount: filteredModels.length,
+	                models: filteredModels,
+	                checkedAt: Date.now(),
+	                apiConfigId: jixinConfig.id,
+	              });
+	              showToast2(`极鑫中转站配置有更新，可一键同步`);
+	            } else if (options.force) {
+	              showToast2(`极鑫模型扫描完成，未发现变化`);
+	            }
+	            return {
+	              rawModels,
+	              filteredModels,
+	              diff,
+	            };
+	          } catch (error) {
+	            console.warn(`Jixin gateway model scan failed`, error);
+	            options.force && showToast2(`极鑫模型扫描失败：${error.message || error}`);
+	            return null;
+	          } finally {
+	            setJixinModelScanBusy(!1);
+	          }
+	        },
+	        runJixinGatewaySync = async () => {
+	          let jixinConfig = getJixinApiConfig();
+	          if (!jixinConfig) {
+	            showToast2(`未找到极鑫统一 API 配置`);
+	            return;
+	          }
+	          if (!String(jixinConfig.key || ``).trim()) {
+	            showToast2(`请先在极鑫统一 API 配置中填写令牌`);
+	            return;
+	          }
+	          if (!String(configButlerApiKey || ``).trim()) {
+	            showToast2(`请先配置“配置管家”的基础智能体 API Key`);
+	            return;
+	          }
+	          setConfigButlerTargetApiConfigId(jixinConfig.id);
+	          setConfigButlerDocUrl(WANJUAN_JIXIN_DOC_URL);
+	          setConfigButlerMode(`batch`);
+	          setConfigButlerExpanded(!0);
+	          await runConfigButlerBatch({
+	            apiConfig: jixinConfig,
+	            docUrl: WANJUAN_JIXIN_DOC_URL,
+	            models: Array.isArray(jixinModelScanNotice?.models) && jixinModelScanNotice.models.length ?
+	              jixinModelScanNotice.models :
+	              null,
+	          });
+	        },
+	        runJixinGatewayFullModelSync = async () => {
+	          let jixinConfig = getJixinApiConfig();
+	          if (!jixinConfig) {
+	            showToast2(`未找到极鑫统一 API 配置`);
+	            return;
+	          }
+	          let jixinApiUrl = String(jixinConfig.url || WANJUAN_JIXIN_API_URL).trim() || WANJUAN_JIXIN_API_URL,
+	            jixinApiKey = String(jixinConfig.key || ``).trim();
+	          if (!jixinApiKey) {
+	            showToast2(`请先在极鑫统一 API 配置中填写令牌`);
+	            return;
+	          }
+	          let butlerConfig = {
+	            apiUrl: jixinApiUrl,
+	            apiKey: jixinApiKey,
+	            protocol: `openai`,
+	            model: `gpt-5.5`,
+	          };
+	          (setConfigButlerApiUrl(butlerConfig.apiUrl),
+	            setConfigButlerApiKey(butlerConfig.apiKey),
+	            setConfigButlerProtocol(butlerConfig.protocol),
+	            setConfigButlerModel(butlerConfig.model),
+	            setConfigButlerDocUrl(WANJUAN_JIXIN_DOC_URL),
+	            setConfigButlerTargetApiConfigId(jixinConfig.id),
+	            setConfigButlerMode(`batch`),
+	            setConfigButlerExpanded(!0),
+	            setConfigButlerAgentExpanded(!0));
+	          writeChromeStorage({
+	            configButlerApiUrl: butlerConfig.apiUrl,
+	            configButlerApiKey: butlerConfig.apiKey,
+	            configButlerProtocol: butlerConfig.protocol,
+	            configButlerModel: butlerConfig.model,
+	            configButlerDocUrl: WANJUAN_JIXIN_DOC_URL,
+	            configButlerMode: `batch`,
+	            configButlerTargetApiConfigId: jixinConfig.id,
+	          });
+	          showToast2(`正在同步极鑫中转站模型...`);
+	          let scanResult = await scanJixinGatewayModels({
+	            force: !0,
+	            apiConfig: jixinConfig,
+	          });
+	          if (!scanResult?.filteredModels?.length) {
+	            showToast2(`极鑫模型扫描未返回可同步模型`);
+	            return;
+	          }
+	          let batchResult = await runConfigButlerBatch({
+	            apiConfig: jixinConfig,
+	            docUrl: WANJUAN_JIXIN_DOC_URL,
+	            models: scanResult.filteredModels,
+	            butlerConfig: butlerConfig,
+	            autoApply: !0,
+	            silentToast: !0,
+	          });
+	          batchResult?.applyResult?.importedCount ?
+	            showToast2(`极鑫中转站模型已同步：${batchResult.applyResult.importedCount} 个模型`) :
+	            showToast2(`极鑫中转站模型同步完成，请检查批量识别结果`);
 	        },
 	        normalizeButlerBatchItems = (payload, modelNames, options = {}) => {
 	          let modelList = Array.isArray(payload?.models) ? payload.models : Array.isArray(payload?.data) ? payload.data : Array.isArray(payload) ? payload : [],
@@ -33458,15 +34066,16 @@ ${model.apiConfigName || ``}`.toLowerCase();
 	          setConfigButlerExpanded(!0);
 	          showToast2(`配置管家已应用 ${modelName} 的配置`);
 	        },
-	        applyConfigButlerBatchResults = () => {
-	          let validBatchItems = (configButlerBatchItems || []).filter((batchItem) =>
+	        applyConfigButlerBatchResults = (options = {}) => {
+	          let sourceBatchItems = Array.isArray(options.items) ? options.items : configButlerBatchItems,
+	            validBatchItems = (sourceBatchItems || []).filter((batchItem) =>
 	            String(batchItem?.modelName || ``).trim(),
 	          );
 	          if (!validBatchItems.length) {
 	            showToast2(`没有可导入的模型配置`);
 	            return;
 	          }
-	          let targetApiConfig = getSelectedButlerTargetApiConfig(),
+	          let targetApiConfig = options.apiConfig || getSelectedButlerTargetApiConfig(),
 	            apiUrl = String(targetApiConfig?.url || configButlerTargetApiUrl || ``).trim(),
 	            apiKey = String(targetApiConfig?.key || configButlerTargetApiKey || ``).trim();
 	          if (!apiUrl) {
@@ -33533,7 +34142,7 @@ ${model.apiConfigName || ``}`.toLowerCase();
 	            showToast2(`没有可导入的有效模型配置`);
 	            return;
 	          }
-	          let docUrl = String(configButlerDocUrl || ``).trim(),
+	          let docUrl = String(options.docUrl || configButlerDocUrl || ``).trim(),
 	            baseConfigName = String(apiConfigName || `配置管家批量配置`).trim() || `配置管家批量配置`,
 	            existingConfigNames = new Set((storedGlobalConfigs || []).map((globalConfig) => String(globalConfig?.name || ``))),
 	            configName = existingConfigNames.has(baseConfigName) ? `${baseConfigName} ${new Date().toLocaleString()}` : baseConfigName,
@@ -33651,18 +34260,27 @@ ${model.apiConfigName || ``}`.toLowerCase();
 	              configButlerMode: `batch`,
 	              configButlerTargetApiConfigId: newApiConfig.id
 	            }),
-	            showToast2(`已保存并切换到 ${configName}（${importedCount} 个模型）`));
+	            showToast2(options.silentToast ? `已同步极鑫中转站模型（${importedCount} 个）` : `已保存并切换到 ${configName}（${importedCount} 个模型）`));
+	          return {
+	            importedCount: importedCount,
+	            configId: configId,
+	            configName: configName,
+	            apiConfigId: newApiConfig.id,
+	          };
 	        },
-	        runConfigButlerBatch = async () => {
+	        runConfigButlerBatch = async (options = {}) => {
 	          try {
-	            if (!configButlerDocUrl.trim()) throw Error(`请填写 API 文档链接`);
-	            let targetApiConfig = getSelectedButlerTargetApiConfig();
+	            let docUrlForBatch = String(options.docUrl || configButlerDocUrl || ``).trim();
+	            if (!docUrlForBatch) throw Error(`请填写 API 文档链接`);
+	            let targetApiConfig = options.apiConfig || getSelectedButlerTargetApiConfig();
 	            if (!targetApiConfig || !String(targetApiConfig.url || ``).trim() || !String(targetApiConfig.key || ``).trim())
 	              throw Error(`请先选择一个已填写 base URL 和 API Key 的统一 API 配置`);
 	            setConfigButlerBatchLoading(!0);
-	            let scannedModels = await scanButlerTargetModels(),
-	              docText = await fetchDocAsPlainText(configButlerDocUrl.trim()),
-	              toolContext = buildConfigButlerToolContext(docText, configButlerDocUrl.trim(), {
+	            let scannedModels = Array.isArray(options.models) && options.models.length ?
+	              options.models :
+	              await scanButlerTargetModels({ apiConfig: targetApiConfig }),
+	              docText = await fetchDocAsPlainText(docUrlForBatch),
+	              toolContext = buildConfigButlerToolContext(docText, docUrlForBatch, {
 	                apiUrl: String(targetApiConfig.url || ``).trim(),
 	              }),
 	              basePrompt = `你是“配置管家”的全局批量模式，负责根据 API 文档和模型列表，为每个模型生成可直接应用到万卷灵境的结构化配置。
@@ -33703,7 +34321,7 @@ ${model.apiConfigName || ``}`.toLowerCase();
 }
 
 目标请求地址：${String(targetApiConfig.url || ``).trim()}
-文档链接：${configButlerDocUrl.trim()}
+文档链接：${docUrlForBatch}
 
 工具预解析结果：
 ${formatConfigButlerToolContext(toolContext)}
@@ -33738,7 +34356,7 @@ ${batchDocText}`);
 	                batchResult = null;
 	              try {
 	                showToast2(`配置管家正在分析第 ${batchIndex + 1}/${batchChunks.length} 批模型`);
-	                let responseText = await callConfigButlerModel(buildBatchPrompt(chunkModels, batchIndex, batchChunks.length));
+	                let responseText = await callConfigButlerModel(buildBatchPrompt(chunkModels, batchIndex, batchChunks.length), options.butlerConfig || {});
 	                batchResult = extractJsonBlock(responseText);
 	                batchRawResults.push({
 	                  batch: batchIndex + 1,
@@ -33809,6 +34427,22 @@ ${batchDocText}`);
 	                fixedCount && showToast2(`探活已自动修复 ${fixedCount} 个模型的协议参数`);
 	              }
 	            } catch (probeError) { console.warn(`Config butler probe skipped`, probeError); }
+	            if (options.autoApply) {
+	              setConfigButlerBatchItems(normalizedBatchItems);
+	              let applyResult = applyConfigButlerBatchResults({
+	                items: normalizedBatchItems,
+	                apiConfig: targetApiConfig,
+	                docUrl: docUrlForBatch,
+	                silentToast: options.silentToast,
+	              });
+	              setConfigButlerBatchModalOpen(!1);
+	              return {
+	                items: normalizedBatchItems,
+	                applyResult: applyResult,
+	                scannedModels: scannedModels,
+	                failedChunks: batchFailedChunks,
+	              };
+	            }
 	            (setConfigButlerBatchItems(normalizedBatchItems),
 	              setConfigButlerBatchActiveCategory(
 	                (configButlerCategoryOptions.find((categoryOption) =>
@@ -33822,6 +34456,11 @@ ${batchDocText}`);
 	              }, null, 2)),
 	              setConfigButlerBatchModalOpen(!0),
 	              showToast2(`已识别 ${normalizedBatchItems.length} 个模型，请确认后导入`));
+	            return {
+	              items: normalizedBatchItems,
+	              scannedModels: scannedModels,
+	              failedChunks: batchFailedChunks,
+	            };
 	          } catch (error) {
 	            (console.error(`Config butler batch failed`, error),
 	              showToast2(`批量配置分析失败：${error.message}`));
@@ -33909,6 +34548,30 @@ ${docText}`;
             setConfigButlerLoading(!1);
           }
         };
+  useEffect(() => {
+    if (!advancedSettingsUnlocked && tianjiSeedanceSettingsMode === `tianji`) {
+      applyTianjiSeedanceSettingsMode(`official`);
+    }
+  }, [advancedSettingsUnlocked, tianjiSeedanceSettingsMode]);
+  useEffect(() => {
+    if (!$ || !settingsHydratedRef.current) return;
+    syncTianjiConfigFromJixinApi(apiConfigs).catch((error) => console.warn(`Sync Tianji config from Jixin API failed`, error));
+  }, [$, apiConfigs]);
+  useEffect(() => {
+    if (!$ || !settingsHydratedRef.current) return;
+    if (!configButlerDocUrl) setConfigButlerDocUrl(WANJUAN_JIXIN_DOC_URL);
+    let cancelled = !1;
+    (async () => {
+      let stored = await readChromeStorage([`jixinGatewayModelScanLastAt`]),
+        lastScanAt = Number(stored.jixinGatewayModelScanLastAt || 0),
+        oneWeekMs = 7 * 24 * 60 * 60 * 1e3;
+      if (cancelled || Date.now() - lastScanAt < oneWeekMs) return;
+      await scanJixinGatewayModels();
+    })();
+    return () => {
+      cancelled = !0;
+    };
+  }, [$, apiConfigs, configButlerDocUrl]);
   useEffect(() => {
     if (activeView === `settings`) {
       let dailyLimitKey = `daily-limit-${new Date().toISOString().split(`T`)[0]}`;
@@ -34129,6 +34792,7 @@ ${docText}`;
                   `storageOptimizationPaused`,
                   `backupExportSelection`,
                   `backupImportSelection`,
+                  `advancedSettingsUnlocked`,
                   `audioModel`,
                   `ttsMusicModel`,
                   `dailyGenerationsUsed`,
@@ -34148,9 +34812,10 @@ ${docText}`;
         `configButlerTargetCategory`,
         `configButlerTargetApiConfigId`,
         `configButlerRepairHistory`,
-        `storedGlobalConfigs`,
-        `activeStoredGlobalConfigId`,
-        `textModelApiBindings`,
+                  `storedGlobalConfigs`,
+                  `activeStoredGlobalConfigId`,
+                  `jixinBuiltinBaseConfigVersion`,
+                  `textModelApiBindings`,
                   `textModelProtocolBindings`,
                   `imageModelApiBindings`,
                   `imageModelProtocolBindings`,
@@ -34167,6 +34832,59 @@ ${docText}`;
                   `agentConversations`,
                 ],
                 (settings) => {
+                  if (settings.jixinBuiltinBaseConfigVersion !== WANJUAN_JIXIN_BUILTIN_BASE_CONFIG_VERSION) {
+                    let shouldSeedJixinBuiltinConfig = !wanjuanHasUserModelConfiguration(settings);
+                    if (shouldSeedJixinBuiltinConfig) {
+                      let seededSettings = wanjuanBuildJixinBuiltinBasePatch(settings),
+                        builtinStoredConfig = wanjuanBuildJixinBuiltinStoredGlobalConfig(seededSettings);
+                      settings = {
+                        ...seededSettings,
+                        storedGlobalConfigs: [builtinStoredConfig],
+                        activeStoredGlobalConfigId: builtinStoredConfig.id,
+                        jixinBuiltinBaseConfigVersion: WANJUAN_JIXIN_BUILTIN_BASE_CONFIG_VERSION,
+                      };
+                    } else settings = {
+                      ...settings,
+                      jixinBuiltinBaseConfigVersion: WANJUAN_JIXIN_BUILTIN_BASE_CONFIG_VERSION,
+                    };
+                    if (typeof chrome < `u`) {
+                      let storagePatch = {
+                        jixinBuiltinBaseConfigVersion: WANJUAN_JIXIN_BUILTIN_BASE_CONFIG_VERSION,
+                      };
+                      shouldSeedJixinBuiltinConfig &&
+                        Object.assign(storagePatch, {
+                          apiConfigs: settings.apiConfigs,
+                          textApiConfigId: settings.textApiConfigId,
+                          imageApiConfigId: settings.imageApiConfigId,
+                          videoApiConfigId: settings.videoApiConfigId,
+                          audioApiConfigId: settings.audioApiConfigId,
+                          textApiUrl: settings.textApiUrl,
+                          imageApiUrl: settings.imageApiUrl,
+                          videoApiUrl: settings.videoApiUrl,
+                          audioApiUrl: settings.audioApiUrl,
+                          textModel: settings.textModel,
+                          drawingModel: settings.drawingModel,
+                          videoModel: settings.videoModel,
+                          ttsMusicModel: settings.ttsMusicModel,
+                          videoResolutions: settings.videoResolutions,
+                          videoAspectRatios: settings.videoAspectRatios,
+                          modelProtocolRegistry: settings.modelProtocolRegistry,
+                          textModelApiBindings: settings.textModelApiBindings,
+                          textModelProtocolBindings: settings.textModelProtocolBindings,
+                          imageModelApiBindings: settings.imageModelApiBindings,
+                          imageModelProtocolBindings: settings.imageModelProtocolBindings,
+                          videoModelApiBindings: settings.videoModelApiBindings,
+                          videoModelProtocolBindings: settings.videoModelProtocolBindings,
+                          audioModelApiBindings: settings.audioModelApiBindings,
+                          audioModelProtocolBindings: settings.audioModelProtocolBindings,
+                          storedGlobalConfigs: settings.storedGlobalConfigs,
+                          activeStoredGlobalConfigId: settings.activeStoredGlobalConfigId,
+                        });
+                      chrome.storage?.local?.set(storagePatch);
+                    }
+                  }
+                  let storedAdvancedSettingsUnlocked =
+                    advancedSettingsUnlocked || settings.advancedSettingsUnlocked === !0;
                   (Array.isArray(settings.apiConfigs) &&
                     (() => {
                       let normalizedApiConfigs = normalizeUnifiedApiConfigs(settings.apiConfigs);
@@ -34178,6 +34896,7 @@ ${docText}`;
                     })(),
 
                     settings.textApiConfigId && setTextApiConfigId(settings.textApiConfigId),
+                    storedAdvancedSettingsUnlocked && setAdvancedSettingsUnlocked(!0),
                     settings.imageApiConfigId && setImageApiConfigId(settings.imageApiConfigId),
                     settings.videoApiConfigId && setVideoApiConfigId(settings.videoApiConfigId),
                     settings.audioApiConfigId && setAudioApiConfigId(settings.audioApiConfigId),
@@ -34301,7 +35020,7 @@ ${docText}`;
                     ),
                     settings.tianjiSeedanceSettingsMode !== void 0 &&
                     setTianjiSeedanceSettingsMode(
-                      settings.tianjiSeedanceSettingsMode === `tianji` ?
+                      storedAdvancedSettingsUnlocked && settings.tianjiSeedanceSettingsMode === `tianji` ?
                       `tianji` :
                       `official`,
                     ),
@@ -38945,8 +39664,7 @@ ${String(l || ``).slice(0, 5e4)}`;
 	                      return;
                     }
                     if (task.provider === `tianji-seedance`) {
-                      let storage = await wanjuanTianjiStorageGet([`tianjiSeedanceConfig`]),
-                        config = wanjuanNormalizeTianjiSeedanceConfig(storage.tianjiSeedanceConfig || {}),
+                      let config = await wanjuanGetSyncedTianjiSeedanceConfig(),
                         result = await wanjuanTianjiRequest(config, `/api/cut/model/coze-run-seedance-special-history`, {
                           method: `GET`,
                           query: {
@@ -41997,7 +42715,7 @@ ${String(l || ``).slice(0, 5e4)}`;
               }),
             }),
             jsxs(`button`, {
-              onClick: () => setActiveView(`settings`),
+              onClick: handleSettingsNavClick,
 	              className: `wanjuan-app-nav-tab relative flex-1 py-4 text-base font-bold flex items-center justify-center gap-2 ${activeView === `settings` ? `wanjuan-app-nav-tab-active` : `wanjuan-app-nav-tab-idle`}`,
               children: [
                 jsxs(`span`, {
@@ -45538,18 +46256,6 @@ ${String(l || ``).slice(0, 5e4)}`;
                     }),
                     jsx(`div`, {
                       className: `text-[10px] text-gray-600 font-semibold px-3 pt-1 pb-1 uppercase tracking-wider wanjuan-settings-sidebar-group`,
-                      children: `基础`,
-                    }),
-                    jsxs(`button`, {
-                      onClick: () => setActiveSettingsTab(`basic`),
-                      className: `text-left px-3 py-2.5 rounded-lg text-sm transition-colors mb-1.5 flex items-center gap-2 wanjuan-settings-nav-item ${activeSettingsTab === `basic` ? `wanjuan-settings-nav-item-active bg-[#252525] text-blue-400 font-bold border border-[#333] shadow-sm` : `text-gray-300 hover:bg-[#222] hover:text-gray-100 border border-transparent`}`,
-                      children: [jsx(`span`, {
-                        className: `wanjuan-skeuo-icon wanjuan-skeuo-icon-basic`,
-                        children: `🪄`,
-	                      }), ` 外观与通用`],
-                    }),
-                    jsx(`div`, {
-                      className: `text-[10px] text-gray-600 font-semibold px-3 pt-3 pb-1 uppercase tracking-wider wanjuan-settings-sidebar-group`,
                       children: `模型服务`,
                     }),
                     jsxs(`button`, {
@@ -45624,6 +46330,18 @@ ${String(l || ``).slice(0, 5e4)}`;
                         className: `wanjuan-skeuo-icon wanjuan-skeuo-icon-data`,
                         children: `🗄️`,
 	                      }), ` 项目与备份`],
+                    }),
+                    jsx(`div`, {
+                      className: `text-[10px] text-gray-600 font-semibold px-3 pt-3 pb-1 uppercase tracking-wider wanjuan-settings-sidebar-group`,
+                      children: `基础`,
+                    }),
+                    jsxs(`button`, {
+                      onClick: () => setActiveSettingsTab(`basic`),
+                      className: `text-left px-3 py-2.5 rounded-lg text-sm transition-colors flex items-center gap-2 wanjuan-settings-nav-item ${activeSettingsTab === `basic` ? `wanjuan-settings-nav-item-active bg-[#252525] text-blue-400 font-bold border border-[#333] shadow-sm` : `text-gray-300 hover:bg-[#222] hover:text-gray-100 border border-transparent`}`,
+                      children: [jsx(`span`, {
+                        className: `wanjuan-skeuo-icon wanjuan-skeuo-icon-basic`,
+                        children: `🪄`,
+	                      }), ` 外观与通用`],
                     }),
                   ],
                 }),
@@ -47427,6 +48145,10 @@ ${String(l || ``).slice(0, 5e4)}`;
                                   ),
                                   jsx(`button`, {
                                     onClick: () => {
+                                      if (!advancedSettingsUnlocked && getCustomApiConfigCount() >= WANJUAN_CUSTOM_API_LIMIT) {
+                                        showToast2(`最多只能添加 ${WANJUAN_CUSTOM_API_LIMIT} 个自定义统一 API`);
+                                        return;
+                                      }
                                       setApiConfigs([
                                         ...apiConfigs,
                                         {
@@ -47438,13 +48160,85 @@ ${String(l || ``).slice(0, 5e4)}`;
                                         },
                                       ]);
                                     },
-                                    className: `w-full py-2 bg-[#222] text-gray-400 rounded-lg hover:bg-[#2a2a2a] hover:text-gray-200 transition-colors text-xs font-medium`,
-                                    children: `+ 添加统一配置`,
+                                    disabled: !advancedSettingsUnlocked && getCustomApiConfigCount() >= WANJUAN_CUSTOM_API_LIMIT,
+                                    className: `w-full py-2 rounded-lg transition-colors text-xs font-medium ${!advancedSettingsUnlocked && getCustomApiConfigCount() >= WANJUAN_CUSTOM_API_LIMIT ? `bg-[#1a1a1a] text-gray-600 border border-[#2a2a2a] cursor-not-allowed` : `bg-[#222] text-gray-400 hover:bg-[#2a2a2a] hover:text-gray-200`}`,
+                                    children: !advancedSettingsUnlocked && getCustomApiConfigCount() >= WANJUAN_CUSTOM_API_LIMIT ?
+                                      `已达到 ${WANJUAN_CUSTOM_API_LIMIT} 个自定义统一 API 上限` :
+                                      `+ 添加统一配置`,
                                   }),
                                 ],
                               }),
                             ],
                           }),
+                          activeSettingsTab === `api` &&
+                          jsxs(`div`, {
+                            className: `group bg-[#1a1a1a] rounded-xl overflow-hidden transition-all duration-300 pb-4 shadow-sm border border-[#222] wanjuan-settings-card`,
+                            children: [
+                              jsxs(`div`, {
+                                className: `flex items-center justify-between gap-3 p-4 border-b border-[#222] wanjuan-settings-card-header`,
+                                children: [
+                                  jsxs(`div`, {
+                                    children: [
+                                      jsx(`h2`, {
+                                        className: `font-bold text-gray-200 text-sm wanjuan-settings-card-title`,
+                                        children: `极鑫中转站模型同步`,
+                                      }),
+                                      jsx(`p`, {
+                                        className: `text-[11px] text-gray-500 mt-1 wanjuan-settings-help`,
+                                        children: `每周自动扫描一次；只保留各模型家族最新两代，发现变化后可同步到当前配置。`,
+                                      }),
+                                    ],
+                                  }),
+                                  jsxs(`div`, {
+                                    className: `flex flex-col items-end gap-2 sm:flex-row sm:items-center`,
+                                    children: [
+                                      jsx(`button`, {
+                                        type: `button`,
+                                        onClick: runJixinGatewayFullModelSync,
+                                        disabled: jixinModelScanBusy || configButlerBatchLoading,
+                                        className: `px-3 py-1.5 rounded-lg bg-emerald-600 text-xs font-medium text-white hover:bg-emerald-500 disabled:opacity-50 transition-colors`,
+                                        children: configButlerBatchLoading ? `同步中` : `同步极鑫中转站模型`,
+                                      }),
+                                      jsx(`button`, {
+                                        type: `button`,
+                                        onClick: () => scanJixinGatewayModels({ force: !0 }),
+                                        disabled: jixinModelScanBusy,
+                                        className: `px-3 py-1.5 rounded-lg border border-[#333] bg-[#222] text-xs text-gray-300 hover:bg-[#2a2a2a] disabled:opacity-50 transition-colors`,
+                                        children: jixinModelScanBusy ? `扫描中` : `立即扫描`,
+                                      }),
+                                      advancedSettingsUnlocked &&
+                                      jsx(`button`, {
+                                        type: `button`,
+                                        onClick: runJixinGatewaySync,
+                                        disabled: configButlerBatchLoading,
+                                        className: `px-3 py-1.5 rounded-lg bg-blue-600 text-xs font-medium text-white hover:bg-blue-500 disabled:opacity-50 transition-colors`,
+                                        children: configButlerBatchLoading ? `同步中` : `一键同步`,
+                                      }),
+                                    ],
+                                  }),
+                                ],
+                              }),
+                              jsx(`div`, {
+                                className: `px-4 pt-4`,
+                                children: jixinModelScanNotice ?
+                                  jsxs(`div`, {
+                                    className: `rounded-lg border border-blue-500/30 bg-blue-500/10 p-3 text-xs text-blue-100 leading-6`,
+                                    children: [
+                                      `发现配置变化：新增 ${jixinModelScanNotice.added?.length || 0} 个，下线 ${jixinModelScanNotice.removed?.length || 0} 个${jixinModelScanNotice.docChanged ? `，接口文档有更新` : ``}；过滤后保留 ${jixinModelScanNotice.filteredCount || 0} 个模型。`,
+                                      jsx(`div`, {
+                                        className: `mt-2 text-[11px] text-blue-100/75 line-clamp-3`,
+                                        children: (jixinModelScanNotice.added || []).slice(0, 12).join(`、`) || `暂无新增模型`,
+                                      }),
+                                    ],
+                                  }) :
+                                  jsx(`div`, {
+                                    className: `rounded-lg border border-[#2a2a2a] bg-[#151515] p-3 text-xs text-gray-500`,
+                                    children: `未检测到待同步的极鑫模型变化。`,
+                                  }),
+                              }),
+                            ],
+                          }),
+                          advancedSettingsUnlocked &&
                           activeSettingsTab === `api` &&
                           jsxs(`div`, {
                             className: `group bg-[#1a1a1a] rounded-xl overflow-hidden transition-all duration-300 pb-4 shadow-sm border border-[#222] wanjuan-settings-card`,
@@ -48636,45 +49430,61 @@ ${String(l || ``).slice(0, 5e4)}`;
 	                              jsxs(`div`, {
 	                                className: `px-4 pt-4 space-y-4 wanjuan-settings-card-body`,
 	                                children: [
-	                                  jsxs(`div`, {
-	                                    className: `wanjuan-tianji-mode-row flex items-center justify-between gap-3 rounded-lg border border-[#333] bg-[#121212] px-3 py-2`,
-	                                    children: [
-	                                      jsxs(`div`, {
-	                                        children: [
-	                                          jsx(`div`, {
-	                                            className: `wanjuan-tianji-mode-row-title`,
-	                                            children: `工作模式`,
-	                                          }),
-	                                          jsx(`div`, {
-	                                            className: `wanjuan-tianji-mode-row-help`,
-	                                            children: `选择普通即梦配置或天玑模式配置`,
-	                                          }),
-	                                        ],
-	                                      }),
-	                                      jsxs(`span`, {
-	                                        className: `wanjuan-tianji-mode-switch inline-flex items-center gap-1 rounded-lg border border-[#333] bg-[#181818] p-1`,
-	                                        "data-wanjuan-tianji-mode-switch": `true`,
-	                                        children: [
-	                                          jsx(`button`, {
-	                                            type: `button`,
-	                                            "data-tianji-mode": `official`,
-	                                            "aria-pressed": tianjiSeedanceSettingsMode === `official` ? `true` : `false`,
-	                                            onClick: () => applyTianjiSeedanceSettingsMode(`official`),
-	                                            className: `wanjuan-tianji-mode-option ${tianjiSeedanceSettingsMode === `official` ? `is-active` : ``}`,
-	                                            children: `普通模式`,
-	                                          }),
-	                                          jsx(`button`, {
-	                                            type: `button`,
-	                                            "data-tianji-mode": `tianji`,
-	                                            "aria-pressed": tianjiSeedanceSettingsMode === `tianji` ? `true` : `false`,
-	                                            onClick: () => applyTianjiSeedanceSettingsMode(`tianji`),
-	                                            className: `wanjuan-tianji-mode-option ${tianjiSeedanceSettingsMode === `tianji` ? `is-active` : ``}`,
-	                                            children: `天玑模式`,
-	                                          }),
-	                                        ],
-	                                      }),
-	                                    ],
-	                                  }),
+	                                  advancedSettingsUnlocked ?
+	                                    jsxs(`div`, {
+	                                      className: `wanjuan-tianji-mode-row is-unlocked flex items-center justify-between gap-3 rounded-lg border border-[#333] bg-[#121212] px-3 py-2`,
+	                                      children: [
+	                                        jsxs(`div`, {
+	                                          className: `min-w-0`,
+	                                          children: [
+	                                            jsx(`div`, {
+	                                              className: `wanjuan-tianji-mode-row-title`,
+	                                              children: `工作模式`,
+	                                            }),
+	                                            jsx(`div`, {
+	                                              className: `wanjuan-tianji-mode-row-help`,
+	                                              children: `选择普通即梦配置或天玑模式配置`,
+	                                            }),
+	                                          ],
+	                                        }),
+	                                        jsxs(`span`, {
+	                                          className: `wanjuan-tianji-mode-switch inline-flex items-center gap-1 rounded-lg border border-[#333] bg-[#181818] p-1`,
+	                                          "data-wanjuan-tianji-mode-switch": `true`,
+	                                          children: [
+	                                            jsx(`button`, {
+	                                              type: `button`,
+	                                              "data-tianji-mode": `official`,
+	                                              "aria-pressed": tianjiSeedanceSettingsMode === `official` ? `true` : `false`,
+	                                              onClick: () => applyTianjiSeedanceSettingsMode(`official`),
+	                                              className: `wanjuan-tianji-mode-option ${tianjiSeedanceSettingsMode === `official` ? `is-active` : ``}`,
+	                                              children: `普通模式`,
+	                                            }),
+	                                            jsx(`button`, {
+	                                              type: `button`,
+	                                              "data-tianji-mode": `tianji`,
+	                                              "aria-pressed": tianjiSeedanceSettingsMode === `tianji` ? `true` : `false`,
+	                                              onClick: () => applyTianjiSeedanceSettingsMode(`tianji`),
+	                                              className: `wanjuan-tianji-mode-option ${tianjiSeedanceSettingsMode === `tianji` ? `is-active` : ``}`,
+	                                              children: `天玑模式`,
+	                                            }),
+	                                          ],
+	                                        }),
+	                                      ],
+	                                    }) :
+	                                    jsxs(`div`, {
+	                                      className: `wanjuan-tianji-mode-locked-field`,
+	                                      children: [
+	                                        jsx(`label`, {
+	                                          className: `block text-xs font-medium text-gray-500 mb-2`,
+	                                          children: `工作模式`,
+	                                        }),
+	                                        jsx(`div`, {
+	                                          className: `wanjuan-tianji-mode-readonly w-full bg-[#121212] border border-[#333] rounded-lg px-3 py-2 text-sm text-gray-300`,
+	                                          "aria-label": `当前工作模式：普通模式`,
+	                                          children: `普通模式`,
+	                                        }),
+	                                      ],
+	                                    }),
 	                                  jsxs(`div`, {
 	                                    children: [
                                       jsx(`label`, {
@@ -49130,6 +49940,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                                     className: `text-[10px] text-gray-500`,
                                     children: `即梦节点会使用这里的专属模型、API 配置、比例、时长和默认开关；节点里也可以再单独覆盖 API。`,
                                   }),
+                                  advancedSettingsUnlocked &&
                                   jsx(`div`, {
                                     className: `wanjuan-tianji-settings-host`,
                                     "data-wanjuan-tianji-settings-host": `true`,
@@ -49828,7 +50639,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                 jsx(`div`, {
                   className: `wanjuan-settings-save-bar absolute bottom-0 left-48 right-0 p-4 bg-gradient-to-t from-[#121212] via-[#121212] to-transparent z-20 flex justify-center pointer-events-none`,
                   children: jsx(`button`, {
-                    onClick: (saveButtonClickEvent) => {
+                    onClick: async (saveButtonClickEvent) => {
                       // 点击后立即移除焦点：避免保存触发重渲染后 Chromium 把鼠标点击误判为
                       // :focus-visible，从而在按钮上残留 2px 强调色描边环（“选择状态异常”）。
                       // 键盘 Tab 导航的焦点环不受影响（那种场景不会走到这里的鼠标点击路径）。
@@ -49843,6 +50654,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                           console.error(`Invalid video model request profiles`, error));
                         return;
                       }
+                      let syncedTianjiSeedanceConfig = await syncTianjiConfigFromJixinApi(apiConfigs);
                       _
                         ?
                         chrome.storage.local.set({
@@ -49871,7 +50683,10 @@ ${String(l || ``).slice(0, 5e4)}`;
                             seedanceWatermark: seedanceWatermark,
                             seedanceEnableWebSearch: seedanceEnableWebSearch,
                             seedanceVirtualPortraits: seedanceVirtualPortraits,
-                            tianjiSeedanceSettingsMode: tianjiSeedanceSettingsMode,
+                            tianjiSeedanceSettingsMode: advancedSettingsUnlocked ? tianjiSeedanceSettingsMode : `official`,
+                            ...(syncedTianjiSeedanceConfig ? {
+                              tianjiSeedanceConfig: syncedTianjiSeedanceConfig,
+                            } : {}),
                             tongyiWanxiangTextModels: tongyiWanxiangTextModels,
                             tongyiWanxiangReferenceImageModels: tongyiWanxiangReferenceImageModels,
                             tongyiWanxiangImageModels: tongyiWanxiangImageModels,

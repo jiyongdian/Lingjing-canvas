@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.2.18-3 - 2026-06-19
+
+- Added a first-install-only built-in Jixin global model configuration preset with an empty token.
+- Kept the built-in Jixin preset parallel to user/imported Config Butler global configs so users can switch configs without overwrites.
+- Protected existing upgraded users by skipping built-in preset injection when any user model/API/global config already exists.
+- Synced Jixin unified API token/base URL into Jimeng Tianji mode and ensured Tianji portrait upload obtains a group ID before upload.
+- Added Jixin-compatible image, Gemini image, video, and Suno music protocols for the built-in preset.
+- Improved locked Tianji mode settings layout and moved settings navigation groups into the requested order.
+
 ## 1.2.18-2 - 2026-06-18
 
 - Fixed downstream nodes missing upstream reference images/videos after switching global unified API configs.
