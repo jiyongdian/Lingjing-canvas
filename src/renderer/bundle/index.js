@@ -4077,6 +4077,8 @@ var Le = reactMemo(({
       seedancePortraitPickerRef = useRef(null),
       [tianjiNodePortraitAssets, setTianjiNodePortraitAssets] = useState([]),
       [tianjiPortraitPickerRefreshing, setTianjiPortraitPickerRefreshing] = useState(!1),
+      [seedancePortraitPickerPage, setSeedancePortraitPickerPage] = useState(1),
+      [tianjiPortraitPickerReachedEnd, setTianjiPortraitPickerReachedEnd] = useState(!1),
       seedanceNodeVirtualPortraits = wanjuanNormalizeSeedanceVirtualPortraits(data.seedanceVirtualPortraits || []);
     let applyPreferredVideoModel = (favoritesOverride = favoriteModels.favorites) => {
       if (!data.videoModel) return;
@@ -4123,7 +4125,9 @@ var Le = reactMemo(({
         if (!isSeedanceOrWanxiang || seedanceModeValue !== `tianji`) return;
         let cancelled = !1,
           applyTianjiPortraitAssets = (stored) => {
-            cancelled || setTianjiNodePortraitAssets(wanjuanNormalizeTianjiPortraitAssets(stored?.tianjiSeedanceAssets || {}));
+            if (cancelled) return;
+            setTianjiNodePortraitAssets(wanjuanNormalizeTianjiPortraitAssets(stored?.tianjiSeedanceAssets || {}));
+            setTianjiPortraitPickerReachedEnd(!1);
           };
         if (typeof chrome < `u` && chrome.storage?.local) {
           chrome.storage.local.get([`tianjiSeedanceAssets`], applyTianjiPortraitAssets);
@@ -4437,26 +4441,50 @@ var Le = reactMemo(({
     let seedancePortraitPickerIsTianji = seedanceModeValue === `tianji`,
       seedancePortraitPickerTitle = seedancePortraitPickerIsTianji ? `天玑人像库` : `虚拟人像库`,
       seedancePortraitPickerItems = seedancePortraitPickerIsTianji ? tianjiNodePortraitAssets : seedanceNodeVirtualPortraits;
-    let refreshTianjiPortraitPicker = async () => {
-      if (!seedancePortraitPickerIsTianji || tianjiPortraitPickerRefreshing) return;
+    let seedancePortraitPickerPageSize = 10,
+      seedancePortraitPickerTotalPages = Math.max(1, Math.ceil(seedancePortraitPickerItems.length / seedancePortraitPickerPageSize)),
+      seedancePortraitPickerCurrentPage = Math.min(Math.max(seedancePortraitPickerPage, 1), seedancePortraitPickerTotalPages),
+      seedancePortraitPickerVisibleItems = seedancePortraitPickerItems.slice(
+        (seedancePortraitPickerCurrentPage - 1) * seedancePortraitPickerPageSize,
+        seedancePortraitPickerCurrentPage * seedancePortraitPickerPageSize,
+      ),
+      seedancePortraitPickerCanTryNextPage =
+      seedancePortraitPickerIsTianji &&
+      seedancePortraitPickerVisibleItems.length === seedancePortraitPickerPageSize &&
+      tianjiPortraitPickerReachedEnd !== !0;
+    let loadTianjiPortraitPickerPage = async (pageNumber, { showLoadingToast: showLoadingToast = !0 } = {}) => {
+      if (!seedancePortraitPickerIsTianji || tianjiPortraitPickerRefreshing) return 0;
       try {
         setTianjiPortraitPickerRefreshing(!0);
-        data.onShowToast?.(`正在刷新天玑人像库...`);
+        showLoadingToast && data.onShowToast?.(`正在加载天玑人像第 ${pageNumber} 页...`);
         let config = await wanjuanGetSyncedTianjiSeedanceConfig(),
           refresh = await wanjuanTianjiRefreshPortraitAssets(config, {
             preferredType: `AIGC`,
-            retries: 1,
+            retries: pageNumber === 1 ? 1 : 0,
             delayMs: 1200,
+            pageNumber: pageNumber,
+            pageSize: seedancePortraitPickerPageSize,
           }),
           nextAssets = wanjuanNormalizeTianjiPortraitAssets(refresh?.assets || {});
         (setTianjiNodePortraitAssets(nextAssets),
-          data.onShowToast?.(`天玑人像库已刷新：${nextAssets.length} 个可用素材`));
+          setTianjiPortraitPickerReachedEnd((refresh?.aigcCount || 0) < seedancePortraitPickerPageSize),
+          refresh?.aigcCount > 0 && setSeedancePortraitPickerPage(pageNumber));
+        return refresh?.aigcCount || 0;
       } catch (error) {
-        (console.error(`Refresh Tianji portrait picker failed`, error),
-          data.onShowToast?.(`刷新天玑人像库失败：${error?.message || error}`));
+        (console.error(`Load Tianji portrait page failed`, error),
+          data.onShowToast?.(`加载天玑人像失败：${error?.message || error}`));
+        return 0;
       } finally {
         setTianjiPortraitPickerRefreshing(!1);
       }
+    };
+    let refreshTianjiPortraitPicker = async () => {
+      if (!seedancePortraitPickerIsTianji || tianjiPortraitPickerRefreshing) return;
+      data.onShowToast?.(`正在刷新天玑人像库...`);
+      let loadedCount = await loadTianjiPortraitPickerPage(1, {
+        showLoadingToast: !1
+      });
+      loadedCount > 0 && data.onShowToast?.(`天玑人像库已刷新：第 1 页 ${loadedCount} 个素材`);
     };
     (useEffect(() => {
         data.prompt !== void 0 && data.prompt !== prompt && setPrompt(data.prompt);
@@ -4473,6 +4501,10 @@ var Le = reactMemo(({
         );
         normalizedAspectRatio !== selectedAspectRatio && setSelectedAspectRatio(normalizedAspectRatio);
       }, [data.selectedAspectRatio, data.size, size, selectedAspectRatio]),
+      useEffect(() => {
+        seedancePortraitPickerPage !== seedancePortraitPickerCurrentPage &&
+          setSeedancePortraitPickerPage(seedancePortraitPickerCurrentPage);
+      }, [seedancePortraitPickerCurrentPage, seedancePortraitPickerPage]),
       useEffect(() => {
         let sizeOptions = data.videoResolutions ?
           parseSeedanceList(data.videoResolutions) :
@@ -5842,42 +5874,93 @@ var Le = reactMemo(({
                                     className: `text-center text-gray-500 text-xs py-10 px-3`,
                                     children: seedancePortraitPickerIsTianji ? `暂无天玑人像，请先在设置中上传或刷新素材` : `暂无虚拟人像，请先在设置中添加`,
                                   }) :
-                                  jsx(`div`, {
-                                    className: `grid grid-cols-3 gap-2`,
-                                    children: seedancePortraitPickerItems.map((portrait, index) =>
-                                      jsxs(
-                                        `div`, {
-                                          className: `aspect-square bg-[#111] rounded border ${seedancePortraitPickerIsTianji && portrait.localUploaded ? `border-dashed border-[#444] opacity-60 cursor-not-allowed` : `border-[#333] hover:border-cyan-500 cursor-pointer`} overflow-hidden relative group wanjuan-mention-picker-item`,
-                                          title: seedancePortraitPickerIsTianji ? `${portrait.name || `天玑人像`} · ${portrait.localUploaded ? `待天玑素材库返回` : portrait.imageUrl || ``}` : `${portrait.name || `虚拟人像`} · ${wanjuanSeedanceAssetUrl(portrait.assetId)}`,
-                                          onMouseDown: (event) => event.preventDefault(),
-                                          onClick: () => seedancePortraitPickerIsTianji ? addTianjiPortraitToNode(portrait, index) : addSeedanceVirtualPortraitToNode(portrait, index),
-                                          children: [
-                                            (portrait.previewUrl || portrait.imageUrl) ?
-                                            jsx(`img`, {
-                                              src: portrait.previewUrl || portrait.imageUrl,
-                                              className: `w-full h-full object-cover`,
-                                              onError: wanjuanUseBrokenResourceImage,
-                                            }) :
-                                            jsx(`div`, {
-                                              className: `w-full h-full bg-[#151515] flex items-center justify-center p-1 text-[9px] text-gray-500 text-center`,
-                                              children: `无预览`,
-                                            }),
-                                            jsx(`div`, {
-                                              className: `absolute left-0 right-0 bottom-0 bg-black/75 text-[9px] text-cyan-100 text-center truncate px-1`,
-                                              children: portrait.localUploaded ? `待刷新 · ${portrait.name || portrait.assetId || portrait.portraitAssetId}` : portrait.name || portrait.assetId || portrait.portraitAssetId,
-                                            }),
-                                            jsx(`div`, {
-                                              className: `absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity`,
-                                              children: jsx(`span`, {
-                                                className: `text-[10px] text-white`,
-                                                children: portrait.localUploaded ? `待刷新` : `选择`,
-                                              }),
-                                            }),
-                                          ],
-                                        },
-                                        portrait.id || portrait.assetId || index,
-                                      ),
-                                    ),
+                                  jsxs(`div`, {
+                                    className: `flex flex-col gap-2`,
+                                    children: [
+                                      jsx(`div`, {
+                                        className: `grid grid-cols-3 gap-2`,
+                                        children: seedancePortraitPickerVisibleItems.map((portrait, index) => {
+                                          let absoluteIndex = (seedancePortraitPickerCurrentPage - 1) * seedancePortraitPickerPageSize + index;
+                                          return jsxs(
+                                            `div`, {
+                                              className: `aspect-square bg-[#111] rounded border ${seedancePortraitPickerIsTianji && portrait.localUploaded ? `border-dashed border-[#444] opacity-60 cursor-not-allowed` : `border-[#333] hover:border-cyan-500 cursor-pointer`} overflow-hidden relative group wanjuan-mention-picker-item`,
+                                              title: seedancePortraitPickerIsTianji ? `${portrait.name || `天玑人像`} · ${portrait.localUploaded ? `待天玑素材库返回` : portrait.imageUrl || ``}` : `${portrait.name || `虚拟人像`} · ${wanjuanSeedanceAssetUrl(portrait.assetId)}`,
+                                              onMouseDown: (event) => event.preventDefault(),
+                                              onClick: () => seedancePortraitPickerIsTianji ? addTianjiPortraitToNode(portrait, absoluteIndex) : addSeedanceVirtualPortraitToNode(portrait, absoluteIndex),
+                                              children: [
+                                                (portrait.previewUrl || portrait.imageUrl) ?
+                                                jsx(`img`, {
+                                                  src: portrait.previewUrl || portrait.imageUrl,
+                                                  className: `w-full h-full object-cover`,
+                                                  onError: wanjuanUseBrokenResourceImage,
+                                                }) :
+                                                jsx(`div`, {
+                                                  className: `w-full h-full bg-[#151515] flex items-center justify-center p-1 text-[9px] text-gray-500 text-center`,
+                                                  children: `无预览`,
+                                                }),
+                                                jsx(`div`, {
+                                                  className: `absolute left-0 right-0 bottom-0 bg-black/75 text-[9px] text-cyan-100 text-center truncate px-1`,
+                                                  children: portrait.localUploaded ? `待刷新 · ${portrait.name || portrait.assetId || portrait.portraitAssetId}` : portrait.name || portrait.assetId || portrait.portraitAssetId,
+                                                }),
+                                                jsx(`div`, {
+                                                  className: `absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity`,
+                                                  children: jsx(`span`, {
+                                                    className: `text-[10px] text-white`,
+                                                    children: portrait.localUploaded ? `待刷新` : `选择`,
+                                                  }),
+                                                }),
+                                              ],
+                                            },
+                                            portrait.id || portrait.assetId || absoluteIndex,
+                                          );
+                                        }),
+                                      }),
+                                      (seedancePortraitPickerItems.length > seedancePortraitPickerPageSize || seedancePortraitPickerCanTryNextPage) &&
+                                      jsxs(`div`, {
+                                        className: `flex items-center justify-between gap-2 border-t border-[#333] pt-2 text-[10px] text-gray-400`,
+                                        children: [
+                                          jsx(`button`, {
+                                            type: `button`,
+                                            disabled: seedancePortraitPickerCurrentPage <= 1,
+                                            onClick: (event) => {
+                                              (event.preventDefault(), event.stopPropagation(), setSeedancePortraitPickerPage((page) => Math.max(1, page - 1)));
+                                            },
+                                            className: `h-6 min-w-[54px] px-2 rounded-md border border-[#333] bg-[#202020] text-[10px] text-gray-300 hover:text-white hover:border-cyan-500 disabled:opacity-40 disabled:cursor-not-allowed transition-colors`,
+                                            children: `上一页`,
+                                          }),
+                                          jsxs(`span`, {
+                                            className: `min-w-[52px] text-center tabular-nums`,
+                                            children: [
+                                              seedancePortraitPickerCurrentPage,
+                                              ` / `,
+                                              seedancePortraitPickerCurrentPage >= seedancePortraitPickerTotalPages && seedancePortraitPickerCanTryNextPage ?
+                                              `?` :
+                                              seedancePortraitPickerTotalPages,
+                                            ],
+                                          }),
+                                          jsx(`button`, {
+                                            type: `button`,
+                                            disabled: tianjiPortraitPickerRefreshing || seedancePortraitPickerCurrentPage >= seedancePortraitPickerTotalPages && !seedancePortraitPickerCanTryNextPage,
+                                            onClick: async (event) => {
+                                              event.preventDefault();
+                                              event.stopPropagation();
+                                              let nextPage = seedancePortraitPickerCurrentPage + 1;
+                                              if (nextPage <= seedancePortraitPickerTotalPages) {
+                                                setSeedancePortraitPickerPage(nextPage);
+                                                return;
+                                              }
+                                              let loadedCount = await loadTianjiPortraitPickerPage(nextPage);
+                                              if (!loadedCount) {
+                                                setTianjiPortraitPickerReachedEnd(!0);
+                                                data.onShowToast?.(`天玑人像第 ${nextPage} 页暂无素材`);
+                                              }
+                                            },
+                                            className: `h-6 min-w-[54px] px-2 rounded-md border border-[#333] bg-[#202020] text-[10px] text-gray-300 hover:text-white hover:border-cyan-500 disabled:opacity-40 disabled:cursor-not-allowed transition-colors`,
+                                            children: tianjiPortraitPickerRefreshing ? `加载中` : `下一页`,
+                                          }),
+                                        ],
+                                      }),
+                                    ],
                                   }),
                               }),
                             ],
@@ -16092,6 +16175,8 @@ var at = {
   };
 
 const WANJUAN_TIANJI_DEFAULT_BASE_URL = `https://newapi.guancn.uk`;
+const WANJUAN_TIANJI_SYNC_SOURCE_JIXIN = `jixin-default`;
+const WANJUAN_TIANJI_SYNC_SOURCE_MANUAL = `manual`;
 const WANJUAN_JIXIN_DEFAULT_API_CONFIG_ID = `jixin-default`;
 const WANJUAN_JIXIN_DEFAULT_API_URL = `https://newapi.guancn.uk`;
 const WANJUAN_JIXIN_BUILTIN_GLOBAL_CONFIG_ID = `builtin-jixin-base`;
@@ -16370,6 +16455,7 @@ const wanjuanBuildJixinBuiltinStoredGlobalConfig = (config) => ({
 const wanjuanTianjiSeedanceDefaults = {
   baseUrl: WANJUAN_TIANJI_DEFAULT_BASE_URL,
   token: ``,
+  syncSource: WANJUAN_TIANJI_SYNC_SOURCE_JIXIN,
   sassId: `1`,
   platform: `web`,
   models: ``,
@@ -16416,6 +16502,7 @@ const wanjuanNormalizeTianjiSeedanceConfig = (config = {}) => ({
     .replace(/\s+/g, ``)
     .replace(/\/+$/, ``),
   token: String(config?.token || ``).trim(),
+  syncSource: config?.syncSource === WANJUAN_TIANJI_SYNC_SOURCE_MANUAL ? WANJUAN_TIANJI_SYNC_SOURCE_MANUAL : WANJUAN_TIANJI_SYNC_SOURCE_JIXIN,
   sassId: String(config?.sassId || `1`).trim() || `1`,
   platform: String(config?.platform || `web`).trim() || `web`,
   generateAudio: config?.generateAudio !== !1,
@@ -16431,16 +16518,33 @@ const wanjuanIsJixinApiConfig = (config) =>
   config?.id === `jixin-default` ||
   wanjuanNormalizeTianjiApiBaseUrl(config?.url) === wanjuanNormalizeTianjiApiBaseUrl(WANJUAN_TIANJI_DEFAULT_BASE_URL);
 
-const wanjuanGetSyncedTianjiSeedanceConfig = async () => {
+const wanjuanBuildSyncedTianjiConfigFromJixin = (currentConfig = {}, jixinConfig = null, {
+  force: force = !1
+} = {}) => {
+  let jixinBaseUrl = wanjuanNormalizeTianjiApiBaseUrl(jixinConfig?.url || WANJUAN_TIANJI_DEFAULT_BASE_URL) || WANJUAN_TIANJI_DEFAULT_BASE_URL,
+    rawCurrentBaseUrl = wanjuanNormalizeTianjiApiBaseUrl(currentConfig?.baseUrl || ``),
+    hasExplicitSyncSource = Object.prototype.hasOwnProperty.call(currentConfig || {}, `syncSource`);
+  if (!force && !hasExplicitSyncSource && rawCurrentBaseUrl && rawCurrentBaseUrl !== WANJUAN_TIANJI_DEFAULT_BASE_URL && rawCurrentBaseUrl !== jixinBaseUrl)
+    return {
+      ...wanjuanNormalizeTianjiSeedanceConfig(currentConfig),
+      syncSource: WANJUAN_TIANJI_SYNC_SOURCE_MANUAL,
+    };
+  let current = wanjuanNormalizeTianjiSeedanceConfig(currentConfig || {});
+  if (!force && current.syncSource === WANJUAN_TIANJI_SYNC_SOURCE_MANUAL) return current;
+  return wanjuanNormalizeTianjiSeedanceConfig({
+    ...current,
+    baseUrl: jixinBaseUrl,
+    token: String(jixinConfig?.key || ``).trim(),
+    syncSource: WANJUAN_TIANJI_SYNC_SOURCE_JIXIN,
+  });
+};
+
+const wanjuanGetSyncedTianjiSeedanceConfig = async (options = {}) => {
   let stored = await wanjuanTianjiStorageGet([`tianjiSeedanceConfig`, `apiConfigs`]),
     currentConfig = wanjuanNormalizeTianjiSeedanceConfig(stored.tianjiSeedanceConfig || {}),
     jixinConfig = (Array.isArray(stored.apiConfigs) ? stored.apiConfigs : []).find(wanjuanIsJixinApiConfig);
   if (!jixinConfig) return currentConfig;
-  let nextConfig = wanjuanNormalizeTianjiSeedanceConfig({
-    ...currentConfig,
-    baseUrl: wanjuanNormalizeTianjiApiBaseUrl(jixinConfig.url || WANJUAN_TIANJI_DEFAULT_BASE_URL) || WANJUAN_TIANJI_DEFAULT_BASE_URL,
-    token: String(jixinConfig.key || ``).trim(),
-  });
+  let nextConfig = wanjuanBuildSyncedTianjiConfigFromJixin(currentConfig, jixinConfig, options);
   JSON.stringify(currentConfig) !== JSON.stringify(nextConfig) &&
     await wanjuanTianjiStorageSet({
       tianjiSeedanceConfig: nextConfig,
@@ -16686,10 +16790,24 @@ const wanjuanTianjiMergeSubmittedPortraitAsset = async (asset) => {
   });
 };
 
+const WANJUAN_TIANJI_ASSET_PAGE_SIZE = 10;
+
+const wanjuanTianjiMergePagedAssets = (existing = [], incoming = [], pageNumber = 1, pageSize = WANJUAN_TIANJI_ASSET_PAGE_SIZE) => {
+  let next = Array.isArray(existing) ? existing.slice() : [];
+  (Array.isArray(incoming) ? incoming : [])
+    .filter((item) => item?.localUploaded !== !0)
+    .forEach((item, index) => {
+      next[(Math.max(1, pageNumber) - 1) * pageSize + index] = item;
+    });
+  return next.filter(Boolean);
+};
+
 const wanjuanTianjiRefreshPortraitAssets = async (config, {
   preferredType: preferredType = `AIGC`,
   retries: retries = 5,
   delayMs: delayMs = 2e3,
+  pageNumber: pageNumber = 1,
+  pageSize: pageSize = WANJUAN_TIANJI_ASSET_PAGE_SIZE,
 } = {}) => {
   let stored = await wanjuanTianjiStorageGet([`tianjiSeedanceAssets`, `tianjiSeedanceGroups`]),
     currentAssets = stored.tianjiSeedanceAssets && typeof stored.tianjiSeedanceAssets == `object` ? stored.tianjiSeedanceAssets : {},
@@ -16706,15 +16824,17 @@ const wanjuanTianjiRefreshPortraitAssets = async (config, {
       console.warn(`Tianji portrait group sync failed`, error);
     }
   }
-  let load = async (groupType, groupId) => {
+  let normalizedPageNumber = Math.max(1, Number(pageNumber) || 1),
+    normalizedPageSize = Math.max(1, Number(pageSize) || WANJUAN_TIANJI_ASSET_PAGE_SIZE),
+    load = async (groupType, groupId, nextPageNumber = normalizedPageNumber) => {
       if (!groupId) return [];
       let result = await wanjuanTianjiRequest(config, `/api/cut/model/get-list-assets`, {
         params: {
           group_ids: groupId,
           group_type: groupType,
           statuses: `Active`,
-          PageNumber: `1`,
-          PageSize: `60`,
+          PageNumber: String(Math.max(1, nextPageNumber)),
+          PageSize: String(normalizedPageSize),
           SortBy: `CreateTime`,
           SortOrder: `Desc`,
         },
@@ -16725,7 +16845,7 @@ const wanjuanTianjiRefreshPortraitAssets = async (config, {
     liveItems = Array.isArray(currentAssets.LivenessFace) ? currentAssets.LivenessFace : [];
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
-      groups.AIGC && (aigcItems = await load(`AIGC`, groups.AIGC));
+      groups.AIGC && (aigcItems = await load(`AIGC`, groups.AIGC, normalizedPageNumber));
       if (aigcItems.length > 0 || attempt >= retries) break;
     } catch (error) {
       if (attempt >= retries) throw error;
@@ -16739,14 +16859,16 @@ const wanjuanTianjiRefreshPortraitAssets = async (config, {
     (aigcItems = currentAssets.AIGC);
   if (preferredType === `LivenessFace` && groups.LivenessFace)
     try {
-      liveItems = await load(`LivenessFace`, groups.LivenessFace);
+      liveItems = await load(`LivenessFace`, groups.LivenessFace, normalizedPageNumber);
     } catch (error) {
       console.warn(`Tianji live portrait refresh skipped`, error);
     }
   let nextAssets = {
     ...currentAssets,
-    AIGC: aigcItems,
-    LivenessFace: liveItems,
+    AIGC: wanjuanTianjiMergePagedAssets(currentAssets.AIGC, aigcItems, normalizedPageNumber, normalizedPageSize),
+    LivenessFace: preferredType === `LivenessFace` ?
+      wanjuanTianjiMergePagedAssets(currentAssets.LivenessFace, liveItems, normalizedPageNumber, normalizedPageSize) :
+      liveItems,
   };
   await wanjuanTianjiStorageSet({
     tianjiSeedanceAssets: nextAssets,
@@ -16757,6 +16879,8 @@ const wanjuanTianjiRefreshPortraitAssets = async (config, {
     groups: groups,
     aigcCount: aigcItems.length,
     liveCount: liveItems.length,
+    pageNumber: normalizedPageNumber,
+    pageSize: normalizedPageSize,
   };
 };
 
@@ -30929,15 +31053,37 @@ time=1h`,
     WANJUAN_JIXIN_API_URL = `https://newapi.guancn.uk`,
     WANJUAN_JIXIN_DOC_URL = `https://newapi.guancn.uk/docs`,
     WANJUAN_CUSTOM_API_LIMIT = 3,
+    WANJUAN_TIANJI_SETTINGS_SYNC_SOURCE_JIXIN = `jixin-default`,
+    WANJUAN_TIANJI_SETTINGS_SYNC_SOURCE_MANUAL = `manual`,
     isJixinDefaultApiConfig = (config) =>
     config?.id === `jixin-default` ||
     normalizeButlerBaseUrl(config?.url) === normalizeButlerBaseUrl(WANJUAN_JIXIN_API_URL),
-    buildSyncedTianjiConfigFromJixinApi = (currentConfig = {}, jixinConfig = null) => ({
-      ...(currentConfig && typeof currentConfig == `object` ? currentConfig : {}),
-      baseUrl: String(jixinConfig?.url || WANJUAN_JIXIN_API_URL).replace(/\s+/g, ``).replace(/\/+$/, ``) || WANJUAN_JIXIN_API_URL,
-      token: String(jixinConfig?.key || ``).trim(),
-    }),
-    syncTianjiConfigFromJixinApi = async (configs = apiConfigs) => {
+    normalizeTianjiSettingsSyncSource = (source) =>
+    source === WANJUAN_TIANJI_SETTINGS_SYNC_SOURCE_MANUAL ?
+    WANJUAN_TIANJI_SETTINGS_SYNC_SOURCE_MANUAL :
+    WANJUAN_TIANJI_SETTINGS_SYNC_SOURCE_JIXIN,
+    buildSyncedTianjiConfigFromJixinApi = (currentConfig = {}, jixinConfig = null, options = {}) => {
+      let current = currentConfig && typeof currentConfig == `object` ? currentConfig : {},
+        currentSource = normalizeTianjiSettingsSyncSource(current.syncSource),
+        jixinBaseUrl = String(jixinConfig?.url || WANJUAN_JIXIN_API_URL).replace(/\s+/g, ``).replace(/\/+$/, ``) || WANJUAN_JIXIN_API_URL,
+        currentBaseUrl = String(current.baseUrl || ``).replace(/\s+/g, ``).replace(/\/+$/, ``),
+        hasExplicitSyncSource = Object.prototype.hasOwnProperty.call(current, `syncSource`);
+      if (!options.force && !hasExplicitSyncSource && currentBaseUrl && currentBaseUrl !== WANJUAN_JIXIN_API_URL && currentBaseUrl !== jixinBaseUrl) return {
+        ...current,
+        syncSource: WANJUAN_TIANJI_SETTINGS_SYNC_SOURCE_MANUAL,
+      };
+      if (!options.force && currentSource === WANJUAN_TIANJI_SETTINGS_SYNC_SOURCE_MANUAL) return {
+        ...current,
+        syncSource: WANJUAN_TIANJI_SETTINGS_SYNC_SOURCE_MANUAL,
+      };
+      return {
+        ...current,
+        baseUrl: jixinBaseUrl,
+        token: String(jixinConfig?.key || ``).trim(),
+        syncSource: WANJUAN_TIANJI_SETTINGS_SYNC_SOURCE_JIXIN,
+      };
+    },
+    syncTianjiConfigFromJixinApi = async (configs = apiConfigs, options = {}) => {
       if (typeof chrome > `u` || !chrome.storage?.local) return null;
       let jixinConfig = (Array.isArray(configs) ? configs : []).find(isJixinDefaultApiConfig) || null;
       if (!jixinConfig) return null;
@@ -30945,7 +31091,7 @@ time=1h`,
         currentConfig = stored.tianjiSeedanceConfig && typeof stored.tianjiSeedanceConfig == `object` ?
         stored.tianjiSeedanceConfig :
         {},
-        nextConfig = buildSyncedTianjiConfigFromJixinApi(currentConfig, jixinConfig);
+        nextConfig = buildSyncedTianjiConfigFromJixinApi(currentConfig, jixinConfig, options);
       JSON.stringify(currentConfig) !== JSON.stringify(nextConfig) &&
         writeChromeStorage({
           tianjiSeedanceConfig: nextConfig,

@@ -1254,10 +1254,13 @@ function installDesktopPatches() {
   let autoClicked = false;
   let projectNameSynced = false;
   const TIANJI_DEFAULT_BASE_URL = "https://newapi.guancn.uk";
+  const TIANJI_SYNC_SOURCE_JIXIN = "jixin-default";
+  const TIANJI_SYNC_SOURCE_MANUAL = "manual";
 
   const TIANJI_DEFAULT_CONFIG = {
     baseUrl: TIANJI_DEFAULT_BASE_URL,
     token: "",
+    syncSource: TIANJI_SYNC_SOURCE_JIXIN,
     sassId: "1",
     platform: "web",
     models: "",
@@ -1270,6 +1273,9 @@ function installDesktopPatches() {
   let tianjiSettingsInstalled = false;
   let tianjiSettingsState = null;
   let tianjiAssetsState = { LivenessFace: [], AIGC: [] };
+  let tianjiAssetPagesState = { LivenessFace: 1, AIGC: 1 };
+  let tianjiAssetPageEndState = { LivenessFace: false, AIGC: false };
+  const TIANJI_ASSET_PAGE_SIZE = 10;
   let tianjiGroupsState = {};
   let tianjiPointsLogsDialog = null;
   let tianjiSettingsStorageListener = null;
@@ -1307,6 +1313,7 @@ function installDesktopPatches() {
     ...TIANJI_DEFAULT_CONFIG,
     ...(value && typeof value === "object" ? value : {}),
     baseUrl: String(Object.prototype.hasOwnProperty.call(value || {}, "baseUrl") ? value?.baseUrl : TIANJI_DEFAULT_BASE_URL).replace(/\s+/g, "").replace(/\/+$/, ""),
+    syncSource: value?.syncSource === TIANJI_SYNC_SOURCE_MANUAL ? TIANJI_SYNC_SOURCE_MANUAL : TIANJI_SYNC_SOURCE_JIXIN,
     sassId: String(value?.sassId || "1").trim() || "1",
     platform: String(value?.platform || "web").trim() || "web",
     generateAudio: value?.generateAudio !== false,
@@ -1320,16 +1327,35 @@ function installDesktopPatches() {
     config?.id === "jixin-default" ||
     tianjiNormalizeApiBaseUrl(config?.url) === tianjiNormalizeApiBaseUrl(TIANJI_DEFAULT_BASE_URL);
 
-  const tianjiGetSyncedConfigFromJixin = async () => {
+  const tianjiBuildSyncedConfigFromJixin = (currentConfig = {}, jixinConfig = null, { force = false } = {}) => {
+    const jixinBaseUrl = tianjiNormalizeApiBaseUrl(jixinConfig?.url || TIANJI_DEFAULT_BASE_URL) || TIANJI_DEFAULT_BASE_URL;
+    const rawCurrentBaseUrl = tianjiNormalizeApiBaseUrl(currentConfig?.baseUrl || "");
+    const hasExplicitSyncSource = Object.prototype.hasOwnProperty.call(currentConfig || {}, "syncSource");
+    if (!force && !hasExplicitSyncSource && rawCurrentBaseUrl && rawCurrentBaseUrl !== TIANJI_DEFAULT_BASE_URL && rawCurrentBaseUrl !== jixinBaseUrl) {
+      return tianjiMarkManualConfig(currentConfig);
+    }
+    const current = tianjiNormalizeConfig(currentConfig || {});
+    if (!force && current.syncSource === TIANJI_SYNC_SOURCE_MANUAL) return current;
+    return tianjiNormalizeConfig({
+      ...current,
+      baseUrl: jixinBaseUrl,
+      token: String(jixinConfig?.key || "").trim(),
+      syncSource: TIANJI_SYNC_SOURCE_JIXIN
+    });
+  };
+
+  const tianjiMarkManualConfig = (config = {}) =>
+    tianjiNormalizeConfig({
+      ...(config && typeof config === "object" ? config : {}),
+      syncSource: TIANJI_SYNC_SOURCE_MANUAL
+    });
+
+  const tianjiGetSyncedConfigFromJixin = async (options = {}) => {
     const stored = await tianjiStorageGet(["tianjiSeedanceConfig", "apiConfigs"]);
     const currentConfig = tianjiNormalizeConfig(stored.tianjiSeedanceConfig || {});
     const jixinConfig = (Array.isArray(stored.apiConfigs) ? stored.apiConfigs : []).find(tianjiIsJixinApiConfig);
     if (!jixinConfig) return currentConfig;
-    const nextConfig = tianjiNormalizeConfig({
-      ...currentConfig,
-      baseUrl: tianjiNormalizeApiBaseUrl(jixinConfig.url || TIANJI_DEFAULT_BASE_URL) || TIANJI_DEFAULT_BASE_URL,
-      token: String(jixinConfig.key || "").trim()
-    });
+    const nextConfig = tianjiBuildSyncedConfigFromJixin(currentConfig, jixinConfig, options);
     if (JSON.stringify(currentConfig) !== JSON.stringify(nextConfig)) {
       await tianjiStorageSet({ tianjiSeedanceConfig: nextConfig });
     }
@@ -1781,7 +1807,7 @@ function installDesktopPatches() {
   };
 
   const tianjiSaveConfigFromPanel = async (panel) => {
-    const config = tianjiNormalizeConfig({
+    const config = tianjiMarkManualConfig({
       baseUrl: panel.querySelector("[data-tianji-field='baseUrl']")?.value,
       token: panel.querySelector("[data-tianji-field='token']")?.value,
       sassId: panel.querySelector("[data-tianji-field='sassId']")?.value,
@@ -1793,13 +1819,61 @@ function installDesktopPatches() {
     await tianjiStorageSet({ tianjiSeedanceConfig: config });
   };
 
+  const tianjiMergePagedAssets = (existing = [], incoming = [], pageNumber = 1) => {
+    const pageSize = TIANJI_ASSET_PAGE_SIZE;
+    const next = Array.isArray(existing) ? existing.slice() : [];
+    const normalizedIncoming = tianjiMergeLocalAssets(incoming);
+    normalizedIncoming.forEach((item, index) => {
+      next[(Math.max(1, pageNumber) - 1) * pageSize + index] = item;
+    });
+    return next.filter(Boolean);
+  };
+
+  const tianjiLoadAssetPage = async (panel, type, pageNumber = 1) => {
+    await tianjiSaveConfigFromPanel(panel);
+    const normalizedType = type === "LivenessFace" ? "LivenessFace" : "AIGC";
+    const groupId =
+      panel.querySelector(`[data-tianji-field='${normalizedType === "LivenessFace" ? "liveGroupId" : "aigcGroupId"}']`)?.value ||
+      tianjiGroupsState[normalizedType] ||
+      "";
+    if (!groupId) return [];
+    const result = await tianjiRequest(tianjiSettingsState, "/api/cut/model/get-list-assets", {
+      params: {
+        group_ids: groupId,
+        group_type: normalizedType,
+        statuses: "Active",
+        PageNumber: String(Math.max(1, pageNumber)),
+        PageSize: String(TIANJI_ASSET_PAGE_SIZE),
+        SortBy: "CreateTime",
+        SortOrder: "Desc"
+      }
+    });
+    const items = tianjiFindArray(result);
+    tianjiAssetsState = {
+      ...tianjiAssetsState,
+      [normalizedType]: tianjiMergePagedAssets(tianjiAssetsState[normalizedType], items, pageNumber)
+    };
+    tianjiAssetPageEndState = {
+      ...tianjiAssetPageEndState,
+      [normalizedType]: items.length < TIANJI_ASSET_PAGE_SIZE
+    };
+    await tianjiStorageSet({ tianjiSeedanceAssets: tianjiAssetsState });
+    return items;
+  };
+
   const tianjiRenderAssetList = (panel) => {
     const target = panel.querySelector("[data-tianji-assets]");
     if (!target) return;
+    const pageSize = TIANJI_ASSET_PAGE_SIZE;
     const renderGroup = (title, type) => {
       const assets = Array.isArray(tianjiAssetsState[type]) ? tianjiAssetsState[type] : [];
+      const totalPages = Math.max(1, Math.ceil(assets.length / pageSize));
+      const currentPage = Math.min(Math.max(Number(tianjiAssetPagesState[type] || 1), 1), totalPages);
+      tianjiAssetPagesState[type] = currentPage;
+      const pageAssets = assets.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+      const canTryNextPage = pageAssets.length === pageSize && tianjiAssetPageEndState[type] !== true;
       const body = assets.length
-        ? assets.slice(0, 60).map((item) => {
+        ? pageAssets.map((item) => {
             const isLocalPending = item?.localUploaded === true;
             const id = item.portrait_asset_id || item.asset_id || item.assetId || item.id || item.Id || item.AssetId || "";
             const name = item.name || item.Name || id || "未命名素材";
@@ -1814,9 +1888,44 @@ function installDesktopPatches() {
             </div>`;
           }).join("")
         : `<div class="wanjuan-tianji-empty">暂无素材，刷新列表或上传人像后查看。</div>`;
-      return `<section><div class="wanjuan-tianji-subtitle">${title} · ${assets.length} 个</div><div class="wanjuan-tianji-grid">${body}</div></section>`;
+      const pageControls = assets.length > pageSize || canTryNextPage
+        ? `<div class="wanjuan-tianji-pager" data-tianji-pager="${type}">
+            <button type="button" data-tianji-page="${type}" data-tianji-page-dir="-1" ${currentPage <= 1 ? "disabled" : ""}>上一页</button>
+            <span>${currentPage} / ${currentPage >= totalPages && canTryNextPage ? "?" : totalPages}</span>
+            <button type="button" data-tianji-page="${type}" data-tianji-page-dir="1" ${currentPage >= totalPages && !canTryNextPage ? "disabled" : ""}>下一页</button>
+          </div>`
+        : ``;
+      return `<section><div class="wanjuan-tianji-subtitle-row"><div class="wanjuan-tianji-subtitle">${title} · ${assets.length} 个</div>${pageControls}</div><div class="wanjuan-tianji-grid">${body}</div></section>`;
     };
     target.innerHTML = renderGroup("虚拟人像", "AIGC") + renderGroup("真人人像", "LivenessFace");
+    target.querySelectorAll("[data-tianji-page]").forEach((button) => {
+      button.addEventListener("click", async (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        const type = button.getAttribute("data-tianji-page");
+        const dir = Number(button.getAttribute("data-tianji-page-dir") || 0);
+        if (!type || !dir) return;
+        const assets = Array.isArray(tianjiAssetsState[type]) ? tianjiAssetsState[type] : [];
+        const totalPages = Math.max(1, Math.ceil(assets.length / pageSize));
+        const currentPage = Math.min(Math.max(Number(tianjiAssetPagesState[type] || 1), 1), totalPages);
+        const nextPage = Math.max(currentPage + dir, 1);
+        if (dir > 0 && nextPage > totalPages) {
+          const loaded = await tianjiLoadAssetPage(panel, type, nextPage);
+          if (!loaded.length) {
+            tianjiAssetPageEndState = {
+              ...tianjiAssetPageEndState,
+              [type]: true
+            };
+            tianjiRenderAssetList(panel);
+            return;
+          }
+        }
+        const nextAssets = Array.isArray(tianjiAssetsState[type]) ? tianjiAssetsState[type] : [];
+        const nextTotalPages = Math.max(1, Math.ceil(nextAssets.length / pageSize));
+        tianjiAssetPagesState[type] = Math.min(Math.max(nextPage, 1), nextTotalPages);
+        tianjiRenderAssetList(panel);
+      });
+    });
     target.querySelectorAll("[data-tianji-info]").forEach((button) => {
       button.addEventListener("click", async (event) => {
         event.preventDefault();
@@ -1852,15 +1961,15 @@ function installDesktopPatches() {
     await tianjiSaveConfigFromPanel(panel);
     let liveGroup = panel.querySelector("[data-tianji-field='liveGroupId']")?.value || "";
     let aigcGroup = panel.querySelector("[data-tianji-field='aigcGroupId']")?.value || "";
-    const load = async (groupType, groupId) => {
+    const load = async (groupType, groupId, pageNumber = 1) => {
       if (!groupId) return { items: [], raw: null, summary: "缺少 group_id" };
       const result = await tianjiRequest(tianjiSettingsState, "/api/cut/model/get-list-assets", {
         params: {
           group_ids: groupId,
           group_type: groupType,
           statuses: "Active",
-          PageNumber: "1",
-          PageSize: "60",
+          PageNumber: String(Math.max(1, pageNumber)),
+          PageSize: String(TIANJI_ASSET_PAGE_SIZE),
           SortBy: "CreateTime",
           SortOrder: "Desc"
         }
@@ -1872,7 +1981,7 @@ function installDesktopPatches() {
       const summaries = [];
       if (primaryGroupId) {
         tried.push(primaryGroupId);
-        const loaded = await load(groupType, primaryGroupId);
+        const loaded = await load(groupType, primaryGroupId, 1);
         summaries.push(`${primaryGroupId}: ${loaded.summary}`);
         return { items: loaded.items, groupId: primaryGroupId, tried, summaries };
       }
@@ -1892,6 +2001,11 @@ function installDesktopPatches() {
     tianjiAssetsState = {
       LivenessFace: tianjiMergeLocalAssets(loadedLive),
       AIGC: tianjiMergeLocalAssets(loadedAigc)
+    };
+    tianjiAssetPagesState = { LivenessFace: 1, AIGC: 1 };
+    tianjiAssetPageEndState = {
+      LivenessFace: loadedLive.length < TIANJI_ASSET_PAGE_SIZE,
+      AIGC: loadedAigc.length < TIANJI_ASSET_PAGE_SIZE
     };
     if (liveResult.groupId || aigcResult.groupId) await tianjiStorageSet({ tianjiSeedanceGroups: tianjiGroupsState });
     await tianjiStorageSet({ tianjiSeedanceAssets: tianjiAssetsState });
@@ -1985,7 +2099,13 @@ function installDesktopPatches() {
       .wanjuan-tianji-mode-switch button.is-active,.wanjuan-tianji-mode-switch button[aria-pressed="true"]{background:var(--wj-accent,#60a5fa)!important;border-color:color-mix(in srgb,var(--wj-accent,#60a5fa) 88%,var(--wj-text,#fff) 12%)!important;color:var(--wj-on-accent,#fff)!important;font-weight:750!important;text-shadow:none!important;box-shadow:inset 0 1px 0 color-mix(in srgb,#fff 22%,transparent),0 0 0 1px color-mix(in srgb,var(--wj-accent,#60a5fa) 34%,transparent),0 6px 14px color-mix(in srgb,var(--wj-accent,#60a5fa) 26%,transparent)!important}
       .wanjuan-tianji-mode-switch button.is-active::before,.wanjuan-tianji-mode-switch button[aria-pressed="true"]::before{content:"✓";display:inline-block;margin-right:4px;font-size:10px;font-weight:900;line-height:1;color:currentColor}
       .wanjuan-tianji-primary{background:color-mix(in srgb,var(--wj-accent,#2563eb) 76%,var(--wj-surface-3,#222))!important;border-color:color-mix(in srgb,var(--wj-accent,#60a5fa) 80%,var(--wj-border,#333))!important;color:var(--wj-text,#fff)!important}
+      .wanjuan-tianji-subtitle-row{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0;margin:8px 0}
       .wanjuan-tianji-subtitle{font-size:12px;font-weight:700;color:var(--wj-text,#e5e7eb);margin:8px 0}
+      .wanjuan-tianji-subtitle-row .wanjuan-tianji-subtitle{margin:0;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      .wanjuan-tianji-pager{display:inline-flex;align-items:center;gap:6px;flex:0 0 auto;color:var(--wj-muted,#9ca3af);font-size:10px;line-height:1}
+      .wanjuan-tianji-pager span{min-width:38px;text-align:center;font-variant-numeric:tabular-nums}
+      .wanjuan-tianji-pager button{height:24px!important;min-width:46px!important;padding:0 7px!important;border-radius:6px!important;font-size:10px!important}
+      .wanjuan-tianji-pager button:disabled{opacity:.42;cursor:not-allowed}
       .wanjuan-tianji-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(86px,1fr));gap:8px;max-height:260px;overflow:auto}
       .wanjuan-tianji-asset{position:relative;background:color-mix(in srgb,var(--wj-surface,#151515) 92%,transparent);border:1px solid color-mix(in srgb,var(--wj-border,#2f2f2f) 72%,transparent);border-radius:8px;padding:6px;display:grid;gap:4px;text-align:center;min-width:0}
       .wanjuan-tianji-asset.is-pending{opacity:.72;border-style:dashed}
@@ -2044,6 +2164,7 @@ function installDesktopPatches() {
           <button data-tianji-action="pointsLogs">积分明细</button>
           <button data-tianji-action="groups">获取组 ID</button>
           <button data-tianji-action="refresh">刷新素材</button>
+          <button data-tianji-action="syncJixin">同步极鑫配置</button>
           <button class="wanjuan-tianji-primary" data-tianji-action="save">保存</button>
           <span data-tianji-status-top style="font-size:11px;color:var(--wj-muted,#9ca3af);align-self:center"></span>
         </div>
@@ -2130,8 +2251,16 @@ function installDesktopPatches() {
       if (!action) return;
       try {
         status("处理中...");
-        tianjiSettingsState = await tianjiGetSyncedConfigFromJixin();
-        tianjiApplyConfigToPanel(panel, tianjiSettingsState);
+        if (action === "syncJixin") {
+          tianjiSettingsState = await tianjiGetSyncedConfigFromJixin({ force: true });
+          tianjiApplyConfigToPanel(panel, tianjiSettingsState);
+          status("已同步极鑫配置");
+          return;
+        }
+        if (action !== "save") {
+          tianjiSettingsState = await tianjiGetSyncedConfigFromJixin();
+          tianjiApplyConfigToPanel(panel, tianjiSettingsState);
+        }
         if (action === "save") await tianjiSaveConfigFromPanel(panel);
         if (action === "save") status("已保存");
         if (action === "balance") {

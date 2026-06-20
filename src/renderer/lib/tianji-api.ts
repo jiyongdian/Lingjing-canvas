@@ -26,6 +26,8 @@ declare global {
 }
 
 export const WANJUAN_TIANJI_DEFAULT_BASE_URL = `https://newapi.guancn.uk`;
+export const WANJUAN_TIANJI_SYNC_SOURCE_JIXIN = `jixin-default`;
+export const WANJUAN_TIANJI_SYNC_SOURCE_MANUAL = `manual`;
 
 /** 即梦天玑配置结构（字段较动态，使用宽松类型）。 */
 export interface TianjiSeedanceConfig {
@@ -80,6 +82,7 @@ interface RunTianjiSeedanceVideoOptions {
 export const wanjuanTianjiSeedanceDefaults: TianjiSeedanceConfig = {
   baseUrl: WANJUAN_TIANJI_DEFAULT_BASE_URL,
   token: ``,
+  syncSource: WANJUAN_TIANJI_SYNC_SOURCE_JIXIN,
   sassId: `1`,
   platform: `web`,
   models: ``,
@@ -111,11 +114,47 @@ export const wanjuanNormalizeTianjiSeedanceConfig = (config: any = {}): TianjiSe
       .replace(/\s+/g, ``)
       .replace(/\/+$/, ``),
   token: String(config?.token || ``).trim(),
+  syncSource:
+    config?.syncSource === WANJUAN_TIANJI_SYNC_SOURCE_MANUAL
+      ? WANJUAN_TIANJI_SYNC_SOURCE_MANUAL
+      : WANJUAN_TIANJI_SYNC_SOURCE_JIXIN,
   sassId: String(config?.sassId || `1`).trim() || `1`,
   platform: String(config?.platform || `web`).trim() || `web`,
   generateAudio: config?.generateAudio !== false,
   watermark: config?.watermark === true,
 });
+
+export const wanjuanNormalizeTianjiApiBaseUrl = (value: any): string =>
+  String(value || ``)
+    .replace(/\s+/g, ``)
+    .replace(/\/+$/, ``);
+
+export const wanjuanBuildSyncedTianjiConfigFromJixin = (
+  currentConfig: any = {},
+  jixinConfig: any = null,
+  { force = false }: { force?: boolean } = {},
+): TianjiSeedanceConfig => {
+  let jixinBaseUrl = wanjuanNormalizeTianjiApiBaseUrl(jixinConfig?.url || WANJUAN_TIANJI_DEFAULT_BASE_URL) || WANJUAN_TIANJI_DEFAULT_BASE_URL,
+    rawCurrentBaseUrl = wanjuanNormalizeTianjiApiBaseUrl(currentConfig?.baseUrl || ``),
+    hasExplicitSyncSource = Object.prototype.hasOwnProperty.call(currentConfig || {}, `syncSource`);
+  if (!force && !hasExplicitSyncSource && rawCurrentBaseUrl && rawCurrentBaseUrl !== WANJUAN_TIANJI_DEFAULT_BASE_URL && rawCurrentBaseUrl !== jixinBaseUrl) {
+    return wanjuanMarkTianjiConfigManual(currentConfig);
+  }
+  let current = wanjuanNormalizeTianjiSeedanceConfig(currentConfig || {});
+  if (!force && current.syncSource === WANJUAN_TIANJI_SYNC_SOURCE_MANUAL) return current;
+  return wanjuanNormalizeTianjiSeedanceConfig({
+    ...current,
+    baseUrl: jixinBaseUrl,
+    token: String(jixinConfig?.key || ``).trim(),
+    syncSource: WANJUAN_TIANJI_SYNC_SOURCE_JIXIN,
+  });
+};
+
+export const wanjuanMarkTianjiConfigManual = (config: any = {}): TianjiSeedanceConfig =>
+  wanjuanNormalizeTianjiSeedanceConfig({
+    ...(config && typeof config === `object` ? config : {}),
+    syncSource: WANJUAN_TIANJI_SYNC_SOURCE_MANUAL,
+  });
 
 /** 把以空白 / 逗号 / 顿号分隔的字符串拆为列表，返回首个非空项，无则返回 fallback。 */
 export const wanjuanTianjiFirstListValue = (list: any, fallback = ``): string =>

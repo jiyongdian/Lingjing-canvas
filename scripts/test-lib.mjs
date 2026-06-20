@@ -50,7 +50,14 @@ async function run() {
 
   const { wanjuanResourceKind, wanjuanResourceSourceKind } = await import(pathToFileURL(join(outDir, "resource.js")).href);
   const { normalizeVideoAspectRatioValue, normalizeVideoSizeValue } = await import(pathToFileURL(join(outDir, "video-aspect-ratio.js")).href);
-  const { WANJUAN_TIANJI_DEFAULT_BASE_URL, wanjuanNormalizeTianjiSeedanceConfig } = await import(pathToFileURL(join(outDir, "tianji-api.js")).href);
+  const {
+    WANJUAN_TIANJI_DEFAULT_BASE_URL,
+    WANJUAN_TIANJI_SYNC_SOURCE_JIXIN,
+    WANJUAN_TIANJI_SYNC_SOURCE_MANUAL,
+    wanjuanBuildSyncedTianjiConfigFromJixin,
+    wanjuanMarkTianjiConfigManual,
+    wanjuanNormalizeTianjiSeedanceConfig
+  } = await import(pathToFileURL(join(outDir, "tianji-api.js")).href);
 
   console.log("运行用例...");
   // wanjuanResourceKind
@@ -78,6 +85,73 @@ async function run() {
   check("tianji missing base url uses default", wanjuanNormalizeTianjiSeedanceConfig({}).baseUrl, "https://newapi.guancn.uk");
   check("tianji trims default trailing slash", wanjuanNormalizeTianjiSeedanceConfig({ baseUrl: " https://newapi.guancn.uk/ " }).baseUrl, "https://newapi.guancn.uk");
   check("tianji saved empty base url stays empty", wanjuanNormalizeTianjiSeedanceConfig({ baseUrl: "" }).baseUrl, "");
+  check("tianji default sync source follows jixin", wanjuanNormalizeTianjiSeedanceConfig({}).syncSource, WANJUAN_TIANJI_SYNC_SOURCE_JIXIN);
+  check(
+    "tianji jixin sync fills untouched config",
+    wanjuanBuildSyncedTianjiConfigFromJixin({}, { url: " https://api.example.com/ ", key: " token-a " }),
+    {
+      baseUrl: "https://api.example.com",
+      token: "token-a",
+      syncSource: WANJUAN_TIANJI_SYNC_SOURCE_JIXIN,
+      sassId: "1",
+      platform: "web",
+      models: "",
+      durations: "5\n10",
+      resolutions: "720p\n1080p",
+      ratios: "16:9\n9:16\n1:1\n4:3\n3:4\n21:9",
+      generateAudio: true,
+      watermark: false
+    }
+  );
+  check(
+    "tianji manual config is not overwritten by jixin sync",
+    wanjuanBuildSyncedTianjiConfigFromJixin(
+      wanjuanMarkTianjiConfigManual({ baseUrl: "https://manual.example.com", token: "manual-token" }),
+      { url: "https://api.example.com", key: "token-a" }
+    ).baseUrl,
+    "https://manual.example.com"
+  );
+  check(
+    "tianji legacy custom base url becomes manual config",
+    wanjuanBuildSyncedTianjiConfigFromJixin(
+      { baseUrl: " https://legacy.example.com/ ", token: "legacy-token" },
+      { url: "https://api.example.com", key: "token-a" }
+    ),
+    {
+      baseUrl: "https://legacy.example.com",
+      token: "legacy-token",
+      syncSource: WANJUAN_TIANJI_SYNC_SOURCE_MANUAL,
+      sassId: "1",
+      platform: "web",
+      models: "",
+      durations: "5\n10",
+      resolutions: "720p\n1080p",
+      ratios: "16:9\n9:16\n1:1\n4:3\n3:4\n21:9",
+      generateAudio: true,
+      watermark: false
+    }
+  );
+  check(
+    "tianji forced jixin sync can relink manual config",
+    wanjuanBuildSyncedTianjiConfigFromJixin(
+      { baseUrl: "https://manual.example.com", token: "manual-token", syncSource: WANJUAN_TIANJI_SYNC_SOURCE_MANUAL },
+      { url: "https://api.example.com", key: "token-a" },
+      { force: true }
+    ),
+    {
+      baseUrl: "https://api.example.com",
+      token: "token-a",
+      syncSource: WANJUAN_TIANJI_SYNC_SOURCE_JIXIN,
+      sassId: "1",
+      platform: "web",
+      models: "",
+      durations: "5\n10",
+      resolutions: "720p\n1080p",
+      ratios: "16:9\n9:16\n1:1\n4:3\n3:4\n21:9",
+      generateAudio: true,
+      watermark: false
+    }
+  );
 
   console.log(`\n结果：${pass} 通过，${fail} 失败`);
   rmSync(outDir, { recursive: true, force: true });
