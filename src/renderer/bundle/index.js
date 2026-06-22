@@ -836,8 +836,8 @@ var TongyiWanxiangLogo = ({
               reader.readAsDataURL(file),
               (event.target.value = ``));
           },
-        }),
-        jsx(`div`, {
+			                              }),
+	                              jsx(`div`, {
           className: `absolute -top-12 left-1/2 -translate-x-1/2 z-20 opacity-0 group-hover/node:opacity-100 transition-opacity pointer-events-none group-hover/node:pointer-events-auto nodrag pb-4`,
           children: jsxs(`div`, {
             className: `flex items-center gap-1 px-3 py-2 bg-[#1c1c1c]/90 backdrop-blur-md border border-[#333] rounded-full shadow-lg`,
@@ -1670,9 +1670,9 @@ var TongyiWanxiangLogo = ({
 	                            },
                             autoFocus: isExpanded,
                             onWheel: (event) => event.stopPropagation(),
-                          }),
-                          g &&
-                          jsxs(`div`, {
+	                          }),
+	                          g &&
+	                          jsxs(`div`, {
                             className: `wanjuan-mention-picker absolute top-full left-0 mt-1 w-[380px] bg-[#22272f] border border-[#3a4250] rounded-lg shadow-2xl z-[100] flex flex-col overflow-hidden nopan`,
                             onWheel: (event) => event.stopPropagation(),
                             onClick: (event) => event.stopPropagation(),
@@ -6137,12 +6137,12 @@ var Le = reactMemo(({
                           }),
                         ],
                       }),
-                      data.presetPrompts &&
-                      data.presetPrompts.filter(
-                        (apiConfig) =>
-                        apiConfig.enabled !== !1 &&
-                        (apiConfig.type === `video` || apiConfig.type === `all` || !apiConfig.type),
-                      ).length > 0 &&
+                      (isSeedanceOrWanxiang ||
+                        (data.presetPrompts || []).filter(
+                          (apiConfig) =>
+                          apiConfig.enabled !== !1 &&
+                          (apiConfig.type === `video` || apiConfig.type === `all` || !apiConfig.type),
+                        ).length > 0) &&
                       jsxs(`div`, {
                         className: `relative nodrag flex items-center`,
                         ref: M,
@@ -6157,12 +6157,12 @@ var Le = reactMemo(({
 	                            },
                             children: jsx(`span`, {
                               className: `truncate`,
-                              children: `预设词`,
+                              children: `预设`,
                             }),
                           }),
                           k &&
 	                          jsxs(`div`, {
-	                            className: `absolute bottom-full left-0 mb-1 w-48 bg-[#222] border border-[#333] rounded-lg shadow-xl p-2 z-50 flex flex-col gap-1 max-h-48 overflow-y-auto custom-scrollbar`,
+	                            className: `absolute bottom-full left-0 mb-1 w-56 bg-[#222] border border-[#333] rounded-lg shadow-xl p-2 z-50 flex flex-col gap-1 max-h-64 overflow-y-auto custom-scrollbar`,
 	                            style: {
 	                              zIndex: 13000
 	                            },
@@ -6170,9 +6170,34 @@ var Le = reactMemo(({
                             children: [
                               jsx(`div`, {
                                 className: `text-[10px] text-gray-500 mb-1 px-1`,
-                                children: `预设词`,
+                                children: `预设`,
                               }),
-                              data.presetPrompts
+                              isSeedanceOrWanxiang &&
+                              jsx(`button`, {
+                                className: `wanjuan-node-preset-save-button text-left px-2 py-2 text-[11px] rounded-md transition-colors`,
+                                onClick: () => {
+                                  (window.dispatchEvent(new CustomEvent(`wanjuan:workspace-save-node-template`, {
+                                      detail: {
+                                        nodeId
+                                      }
+                                    })),
+                                    j(!1));
+                                },
+                                children: `保存当前为模板`,
+                              }),
+                              isSeedanceOrWanxiang &&
+                              (data.presetPrompts || []).filter(
+                                (apiConfig) =>
+                                apiConfig.enabled !== !1 &&
+                                (apiConfig.type === `video` ||
+                                  apiConfig.type === `all` ||
+                                  !apiConfig.type),
+                              ).length > 0 &&
+                              jsx(`div`, {
+                                className: `mt-1 pt-2 border-t border-[#333] text-[10px] text-gray-500 px-1`,
+                                children: `功能提示词`,
+                              }),
+                              (data.presetPrompts || [])
                               .filter(
                                 (apiConfig) =>
                                 apiConfig.enabled !== !1 &&
@@ -6198,6 +6223,17 @@ var Le = reactMemo(({
                                   t,
                                 ),
                               ),
+                              (data.presetPrompts || []).filter(
+                                  (apiConfig) =>
+                                  apiConfig.enabled !== !1 &&
+                                  (apiConfig.type === `video` ||
+                                    apiConfig.type === `all` ||
+                                    !apiConfig.type),
+                                ).length === 0 &&
+                              jsx(`div`, {
+                                className: `px-2 py-2 text-[11px] text-gray-500`,
+                                children: `暂无功能提示词`,
+                              }),
                             ],
                           }),
                         ],
@@ -6227,24 +6263,24 @@ var Le = reactMemo(({
                         ],
                       }) :
                       jsxs(`div`, {
-                        className: `flex items-center bg-[#2a2a2a] rounded-full p-1 pl-3 border border-[#333] hover:border-gray-500 transition-colors cursor-pointer group/btn`,
-                        onClick: (event) => {
-                          (event.stopPropagation(), handleGenerate());
-                        },
-                        children: [
-                          jsx(`div`, {
-                            className: `flex items-center gap-1 mr-3 text-xs text-gray-300 group-hover/btn:text-white`,
-                            children: `生成`,
+                            className: `flex items-center bg-[#2a2a2a] rounded-full p-1 pl-3 border border-[#333] hover:border-gray-500 transition-colors cursor-pointer group/btn`,
+                            onClick: (event) => {
+                              (event.stopPropagation(), handleGenerate());
+                            },
+                            children: [
+                              jsx(`div`, {
+                                className: `flex items-center gap-1 mr-3 text-xs text-gray-300 group-hover/btn:text-white`,
+                                children: `生成`,
+                              }),
+                              jsx(`button`, {
+                                className: `bg-white text-black w-6 h-6 rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors`,
+                                children: jsx(t, {
+                                  size: 14,
+                                  strokeWidth: 3,
+                                }),
+                              }),
+                            ],
                           }),
-                          jsx(`button`, {
-                            className: `bg-white text-black w-6 h-6 rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors`,
-                            children: jsx(t, {
-                              size: 14,
-                              strokeWidth: 3,
-                            }),
-                          }),
-                        ],
-                      }),
                   }),
                 ],
               }),
@@ -27983,16 +28019,112 @@ ${combinedPrompt}`,
 		        null;
 		      $(nodeType, getShortcutNodePosition(), nodeData, activeMenu?.connection);
 		    },
-		    clipboardHasPastePayload = async () => {
-		      let text = await navigator.clipboard?.readText?.().catch(() => ``);
-		      if (text && text.trim()) return !0;
-		      let items = await navigator.clipboard?.read?.().catch(() => []);
-		      return Array.isArray(items) && items.some((item) =>
-		        Array.from(item.types || []).some((type) => /^image\//i.test(type) || type === `text/plain`),
-		      );
-		    };
-		  return (
-    useEffect(() => {
+			    clipboardHasPastePayload = async () => {
+			      let text = await navigator.clipboard?.readText?.().catch(() => ``);
+			      if (text && text.trim()) return !0;
+			      let items = await navigator.clipboard?.read?.().catch(() => []);
+			      return Array.isArray(items) && items.some((item) =>
+			        Array.from(item.types || []).some((type) => /^image\//i.test(type) || type === `text/plain`),
+			      );
+			    };
+			  useEffect(() => {
+			    let buildWorkspaceTemplateFromNode = (node) => {
+				        let nodeData = node?.data || {},
+				          promptText = String(nodeData.prompt || ``).trim(),
+				          resultUrl = String(nodeData.videoUrl || nodeData.resultVideoUrl || nodeData.outputVideoUrl || nodeData.mediaUrl || ``).trim(),
+				          videoBinding = nodeData.projectAssetBindings?.videoUrl || {},
+				          thumbnailBinding = nodeData.projectAssetBindings?.thumbnailUrl || {},
+				          resultLocalPath = String(nodeData.localPath || nodeData.filePath || videoBinding.localPath || localPathFromProjectFileUrl(resultUrl) || ``).trim(),
+				          thumbnailUrl = String(nodeData.thumbnailUrl || nodeData.posterUrl || nodeData.coverUrl || ``).trim(),
+				          thumbnailLocalPath = String(thumbnailBinding.localPath || localPathFromProjectFileUrl(thumbnailUrl) || ``).trim(),
+				          selectedModel = String(nodeData.selectedModel || ``).trim(),
+				          modelName = selectedModel || String(nodeData.videoModel || ``).split(/[\s,，、]+/)[0]?.trim() || ``;
+			        if (!promptText) throw Error(`这个节点没有可保存的提示词`);
+			        if (!resultUrl) throw Error(`这个节点还没有可保存的视频结果`);
+			        return {
+			          id: `workspace-template-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+			          title: String(nodeData.label || nodeData.name || promptText.slice(0, 28) || `即梦提示词模板`).trim(),
+			          prompt: promptText,
+			          type: `video`,
+			          groupId: ``,
+			          sourceProvider: node?.type === `tongyiWanxiangNode` ? `tongyi-wanxiang` : nodeData.seedanceMode === `tianji` ? `tianji-seedance` : `seedance`,
+			          sourceNodeId: node?.id || ``,
+			          sourceProjectId: projectIdRef.current || projectId || `default`,
+			          modelName,
+			          generationMode: nodeData.tianjiSeedanceGenerationMode || nodeData.tongyiWanxiangMode || `text-to-video`,
+			          params: {
+			            seedanceMode: nodeData.seedanceMode || (node?.type === `seedanceNode` ? `official` : ``),
+			            tianjiSeedanceGenerationMode: nodeData.tianjiSeedanceGenerationMode || ``,
+			            selectedSeconds: nodeData.selectedSeconds || ``,
+			            selectedResolution: nodeData.selectedResolution || ``,
+			            size: nodeData.size || ``,
+			            generateAudio: nodeData.generateAudio,
+			            watermark: nodeData.watermark,
+				          },
+				          resultUrl,
+				          resultLocalPath,
+				          thumbnailUrl,
+				          thumbnailLocalPath,
+				          createdAt: Date.now(),
+				          updatedAt: Date.now(),
+				        };
+			      },
+			      handleCreateSeedanceNodeFromWorkspace = (event) => {
+			        let template = event?.detail?.template || {},
+			          params = template.params && typeof template.params == `object` ? template.params : {},
+			          position = screenToFlowPosition({
+			            x: Math.max(220, (wrapperRef.current?.getBoundingClientRect?.().left || 0) + 360),
+			            y: Math.max(180, (wrapperRef.current?.getBoundingClientRect?.().top || 0) + 220),
+			          }),
+			          nodeData = {
+			            prompt: String(template.prompt || ``),
+			            selectedModel: String(template.modelName || ``),
+			            seedanceMode: params.seedanceMode === `tianji` || template.sourceProvider === `tianji-seedance` ? `tianji` : `official`,
+			            tianjiSeedanceGenerationMode: params.tianjiSeedanceGenerationMode || template.generationMode || `text-to-video`,
+			            selectedSeconds: params.selectedSeconds || void 0,
+			            selectedResolution: params.selectedResolution || void 0,
+			            size: params.size || void 0,
+			            generateAudio: params.generateAudio,
+			            watermark: params.watermark,
+			            workspaceTemplateId: template.id || ``,
+			            workspaceTemplateSource: template.memberName || template.sourceMemberName || ``,
+			          };
+			        $(
+			          template.sourceProvider === `tongyi-wanxiang` ? `tongyiWanxiangNode` : `seedanceNode`,
+			          position,
+			          nodeData
+			        );
+			        showToast(`已从工作空间创建即梦节点`);
+			      },
+			      handleSaveWorkspaceTemplateFromNode = (event) => {
+			        try {
+			          let targetNodeId = String(event?.detail?.nodeId || ``).trim(),
+			            node = targetNodeId ?
+			            getNodes().find((item) => item.id === targetNodeId) :
+			            getNodes().find((item) => item.selected && [`seedanceNode`, `videoNode`, `tongyiWanxiangNode`].includes(item.type));
+			          if (!node) throw Error(`请先选中一个已生成视频的即梦节点`);
+			          let template = buildWorkspaceTemplateFromNode(node);
+			          window.dispatchEvent(new CustomEvent(`wanjuan:workspace-template-captured`, {
+			            detail: {
+			              template
+			            }
+			          }));
+			          showToast(`已保存到工作空间提示词模板`);
+			        } catch (error) {
+			          showToast(`保存模板失败：${error?.message || error}`);
+			        }
+			      };
+			    return (
+			      window.addEventListener(`wanjuan:workspace-create-seedance-node`, handleCreateSeedanceNodeFromWorkspace),
+			      window.addEventListener(`wanjuan:workspace-save-node-template`, handleSaveWorkspaceTemplateFromNode),
+			      () => {
+			        window.removeEventListener(`wanjuan:workspace-create-seedance-node`, handleCreateSeedanceNodeFromWorkspace);
+			        window.removeEventListener(`wanjuan:workspace-save-node-template`, handleSaveWorkspaceTemplateFromNode);
+			      }
+			    );
+			  }, [getNodes, screenToFlowPosition, $, showToast, projectId]);
+			  return (
+	    useEffect(() => {
       let guard = (event) => {
           let targetElement = event.target;
           return !!(
@@ -30717,6 +30849,29 @@ time=1h`,
 	      setExtensionToolInstalling((prev) => ({ ...prev, [toolName]: !1 }));
 	    }
 	  };
+	  const importExtensionToolPack = async () => {
+	    try {
+	      if (extensionToolInstalling.toolpack) return;
+	      if (typeof window > `u` || typeof window.wanjuanDesktop?.importExtensionToolPack != `function`) {
+	        showToast2(`离线工具包导入能力不可用，请重启应用`);
+	        return;
+	      }
+	      setExtensionToolInstalling((prev) => ({ ...prev, toolpack: !0 }));
+	      let importResult = await window.wanjuanDesktop.importExtensionToolPack();
+	      if (importResult?.canceled) return;
+	      if (!importResult?.ok) {
+	        showToast2(importResult?.error || `离线工具包导入失败`);
+	        return;
+	      }
+	      [`deface`, `qwen-tts`, `real-esrgan`].forEach((toolName) => refreshExtensionToolStatus(toolName));
+	      let toolNames = (importResult.imported || []).map((item) => item.name || item.id).filter(Boolean).join(`、`);
+	      showToast2(`离线工具包导入完成${toolNames ? `：${toolNames}` : ``}`);
+	    } catch (error) {
+	      showToast2(`离线工具包导入失败：${error?.message || error}`);
+	    } finally {
+	      setExtensionToolInstalling((prev) => ({ ...prev, toolpack: !1 }));
+	    }
+	  };
 	  const formatExtensionToolError = (status) => {
 	    let message = status?.error || ``,
 	      logPath = status?.logPath || ``;
@@ -30943,7 +31098,7 @@ time=1h`,
         "当前已启用全局统一API配置": "目前已啟用全域統一 API 配置",
         "切换石墨灰、曜石黑、晴空蓝、暖砂白、樱雾粉、薄荷绿或跟随系统外观，不改变现有布局结构": "切換石墨灰、曜石黑、晴空藍、暖砂白、櫻霧粉、薄荷綠或跟隨系統外觀，不改變現有布局結構",
         "选择界面语言偏好，后续多语言文案将按此设置展示": "選擇介面語言偏好，介面文案會依此設定顯示",
-        "1.2.18：重绘暖砂白与薄荷绿开屏动画；优化天玑默认接口、储存优化模块对齐，并继续完善更新下载与本地工具兜底。": "1.2.18：重繪暖砂白與薄荷綠開屏動畫；優化天璣預設介面、儲存最佳化模組對齊，並持續完善更新下載與本機工具兜底。",
+        "1.3.0：新增工作空间、团队空间与离线工具包导入；优化本地工具、提示词模板、团队模板视频播放和跨平台协同。": "1.3.0：新增工作空間、團隊空間與離線工具包匯入；優化本機工具、提示詞模板、團隊模板影片播放和跨平台協同。",
         "1.2.13：修复即梦/Seedance 视频节点多次生成后仍显示第一次生成结果的问题；新任务、任务刷新和项目重开都会清理旧媒体绑定并优先回填最新结果。": "1.2.13：修復即夢/Seedance 影片節點多次生成後仍顯示第一次生成結果的問題；新任務、任務刷新和專案重開都會清理舊媒體綁定並優先回填最新結果。",
         "1.2.11：修复部分视频节点已下载到资源库但重新打开仍显示过期云端链接的问题；任务刷新会优先回填本地资源副本，并修正旧设备路径误判为有效文件的情况。": "1.2.11：修復部分影片節點已下載到資源庫但重新開啟仍顯示過期雲端連結的問題；任務刷新會優先回填本地資源副本，並修正舊裝置路徑誤判為有效檔案的情況。",
         "1.2.9：优化大画布渲染流畅度；改进选择素材弹窗布局、筛选选中态和音视频素材预览；修复部分生成视频下载路径不一致；整理项目、备份中心和即梦节点菜单图标等界面细节。": "1.2.9：優化大畫布渲染流暢度；改進選擇素材彈窗布局、篩選選中態和音影片素材預覽；修復部分生成影片下載路徑不一致；整理專案、備份中心和即夢節點選單圖示等介面細節。",
@@ -31002,7 +31157,7 @@ time=1h`,
         "当前已启用全局统一API配置": "Global unified API config is enabled",
         "切换石墨灰、曜石黑、晴空蓝、暖砂白、樱雾粉、薄荷绿或跟随系统外观，不改变现有布局结构": "Switch the visual theme without changing the current layout.",
         "选择界面语言偏好，后续多语言文案将按此设置展示": "Choose the interface language. Supported interface text follows this setting.",
-        "1.2.18：重绘暖砂白与薄荷绿开屏动画；优化天玑默认接口、储存优化模块对齐，并继续完善更新下载与本地工具兜底。": "1.2.18: Redesigned the Warm Sand and Mint boot animations, improved Tianji defaults, aligned storage optimization UI, and refined update/tool fallbacks.",
+        "1.3.0：新增工作空间、团队空间与离线工具包导入；优化本地工具、提示词模板、团队模板视频播放和跨平台协同。": "1.3.0: Added Workspace, Team Space, and offline tool pack import; improved local tools, prompt templates, team template video playback, and cross-platform collaboration.",
         "1.2.13：修复即梦/Seedance 视频节点多次生成后仍显示第一次生成结果的问题；新任务、任务刷新和项目重开都会清理旧媒体绑定并优先回填最新结果。": "1.2.13: Fixed Jimeng/Seedance video nodes still showing the first generated result after repeated generations; new tasks, task refresh, and project reopen now clear stale media bindings and prefer the latest result.",
         "1.2.11：修复部分视频节点已下载到资源库但重新打开仍显示过期云端链接的问题；任务刷新会优先回填本地资源副本，并修正旧设备路径误判为有效文件的情况。": "1.2.11: Fixed video nodes that had already downloaded results into the resource library but reopened with expired cloud links; task refresh now prefers local resource copies and stale paths from older devices are no longer treated as valid files.",
         "1.2.9：优化大画布渲染流畅度；改进选择素材弹窗布局、筛选选中态和音视频素材预览；修复部分生成视频下载路径不一致；整理项目、备份中心和即梦节点菜单图标等界面细节。": "1.2.9: Improved large-canvas rendering responsiveness; polished the asset picker layout, selected filter state, and audio/video previews; fixed inconsistent save paths for some generated videos; refined project, Backup Center, and Jimeng node menu icon details.",
@@ -42290,7 +42445,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                           [],
                         ),
                         buildBackupPayload = async (e, t, n, r = {}) => ({
-		                            version: `1.2.18-2`,
+			                            version: `1.3.0`,
                             backupFormat: `4`,
                             exportedAt: new Date().toISOString(),
                             modules: await buildBackupModules(e, t, n, r),
@@ -42861,6 +43016,21 @@ ${String(l || ``).slice(0, 5e4)}`;
               }),
             }),
             jsxs(`button`, {
+              onClick: () => {
+                window.dispatchEvent(new CustomEvent(`wanjuan:workspace-open`));
+              },
+	              className: `wanjuan-workspace-nav-tab wanjuan-app-nav-tab relative flex-1 py-4 text-base font-bold flex items-center justify-center gap-2 wanjuan-app-nav-tab-idle`,
+              children: jsxs(`span`, {
+                className: `wanjuan-app-nav-click-zone`,
+                children: [jsx(`span`, {
+                  className: `wanjuan-skeuo-icon wanjuan-skeuo-icon-workspace`,
+                  children: `🗃️`,
+                }), jsx(`span`, {
+                  children: `工作空间`,
+                })],
+              }),
+            }),
+            jsxs(`button`, {
               onClick: handleSettingsNavClick,
 	              className: `wanjuan-app-nav-tab relative flex-1 py-4 text-base font-bold flex items-center justify-center gap-2 ${activeView === `settings` ? `wanjuan-app-nav-tab-active` : `wanjuan-app-nav-tab-idle`}`,
               children: [
@@ -42875,7 +43045,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                 }),
                 jsx(`span`, {
                   className: `absolute bottom-1 right-2 text-[8px] text-gray-600 font-normal`,
-			                  children: `v1.2.18-2`,
+				                  children: `v1.3.0`,
                 }),
                 updateInfo?.hasUpdate &&
                 jsx(`span`, {
@@ -46815,7 +46985,7 @@ ${String(l || ``).slice(0, 5e4)}`;
 	                                        }),
 	                                        jsx(`div`, {
 	                                          className: `pt-2 border-t border-[#262626] text-[11px] text-gray-500`,
-		                                          children: wanjuanT(`1.2.18：重绘暖砂白与薄荷绿开屏动画；优化天玑默认接口、储存优化模块对齐，并继续完善更新下载与本地工具兜底。`),
+			                                          children: wanjuanT(`1.3.0：新增工作空间、团队空间与离线工具包导入；优化本地工具、提示词模板、团队模板视频播放和跨平台协同。`),
 	                                        }),
 	                                      ],
 	                                    }),
@@ -46832,7 +47002,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                                       children: [
                                         jsx(`span`, {
                                           className: `text-sm font-semibold text-gray-100`,
-		                                          children: `1.2.18-2`,
+				                                          children: `1.3.0`,
 	                                        }),
 	                                        jsx(`span`, {
 	                                          className: `text-[10px] text-gray-500`,
@@ -46844,12 +47014,12 @@ ${String(l || ``).slice(0, 5e4)}`;
                                 }),
 	                              ],
 	                            }),
-	                          }),
-                          false &&
-                          jsxs(`div`, {
-                            className: `group bg-[#1a1a1a] rounded-xl overflow-hidden transition-all duration-300 pb-4 shadow-sm border border-[#222] wanjuan-settings-card`,
-                            children: [
-                              jsxs(`div`, {
+		                          }),
+		                          false &&
+		                          jsxs(`div`, {
+	                            className: `group bg-[#1a1a1a] rounded-xl overflow-hidden transition-all duration-300 pb-4 shadow-sm border border-[#222] wanjuan-settings-card`,
+	                            children: [
+	                              jsxs(`div`, {
                                 className: `flex justify-between items-center p-4 border-b border-[#222] wanjuan-settings-card-header`,
                                 children: [
                                   jsxs(`h2`, {
@@ -47061,30 +47231,30 @@ ${String(l || ``).slice(0, 5e4)}`;
                       jsxs(`div`, {
                         className: `space-y-6 animate-fade-in wanjuan-settings-section`,
                         children: [
-                          jsxs(`div`, {
-                            className: `group bg-[#1a1a1a] rounded-xl overflow-hidden transition-all duration-300 pb-4 shadow-sm border border-[#222] wanjuan-settings-card`,
-                            children: [
-                              jsx(`div`, {
-                                className: `flex justify-between items-center p-4 border-b border-[#222] wanjuan-settings-card-header`,
-                                children: jsxs(`div`, {
-                                  children: [
-                                    jsxs(`h2`, {
-                                      className: `font-bold text-gray-200 text-sm flex items-center gap-2 wanjuan-settings-card-title`,
-                                      children: [
-                                        jsx(`span`, {
+	                          jsxs(`div`, {
+	                            className: `group bg-[#1a1a1a] rounded-xl overflow-hidden transition-all duration-300 pb-4 shadow-sm border border-[#222] wanjuan-settings-card`,
+	                            children: [
+	                              jsx(`div`, {
+	                                className: `flex justify-between items-center p-4 border-b border-[#222] wanjuan-settings-card-header`,
+	                                children: jsxs(`div`, {
+	                                  children: [
+		                                    jsxs(`h2`, {
+	                                      className: `font-bold text-gray-200 text-sm flex items-center gap-2 wanjuan-settings-card-title`,
+	                                      children: [
+	                                        jsx(`span`, {
                                           className: `text-cyan-400`,
                                           children: `☁`,
                                         }),
                                         ` 上传与直链`,
                                       ],
-                                    }),
-                                    jsx(`p`, {
-                                      className: `text-[11px] text-gray-500 mt-1 wanjuan-settings-help`,
-                                      children: `管理参考图、视频、音频上传到公网 URL 的通道，不是项目备份或文件下载目录。`,
-                                    }),
-                                  ],
-                                }),
-                              }),
+	                                    }),
+	                                    jsx(`p`, {
+	                                      className: `text-[11px] text-gray-500 mt-1 wanjuan-settings-help`,
+	                                      children: `管理参考图、视频、音频上传到公网 URL 的通道，不是项目备份或文件下载目录。`,
+	                                    }),
+	                                  ],
+		                                }),
+		                              }),
                               jsx(`div`, {
                                 className: `px-4 pt-4 wanjuan-settings-card-body`,
                                 children: jsxs(`div`, {
@@ -47676,19 +47846,20 @@ ${String(l || ``).slice(0, 5e4)}`;
                                             ),
                                           ),
                                       }),
-                                      jsx(`p`, {
-                                        className: `text-[10px] text-gray-500 mt-1 wanjuan-settings-help`,
-                                        children: `右键菜单中的“按层级运行后续节点”会使用这里选中的最大并发数。同一层节点按依赖满足情况并发运行，失败分支不会继续向下触发。`,
-                                      }),
-                                    ],
-                                  }),
-                                ],
-                              }),
-                            ],
-                          }),
-                          jsxs(`div`, {
-                            className: `group bg-[#1a1a1a] rounded-xl overflow-hidden transition-all duration-300 pb-4 shadow-sm border border-[#222] wanjuan-settings-card`,
-                            children: [
+	                                      jsx(`p`, {
+	                                        className: `text-[10px] text-gray-500 mt-1 wanjuan-settings-help`,
+	                                        children: `右键菜单中的“按层级运行后续节点”会使用这里选中的最大并发数。同一层节点按依赖满足情况并发运行，失败分支不会继续向下触发。`,
+	                                      }),
+	                                    ],
+	                                  }),
+	                                ],
+	                              }),
+	                            ],
+		                          }),
+		                          false &&
+		                          jsxs(`div`, {
+		                            className: `group bg-[#1a1a1a] rounded-xl overflow-hidden transition-all duration-300 pb-4 shadow-sm border border-[#222] wanjuan-settings-card`,
+		                            children: [
                               jsxs(`div`, {
                                 className: `flex justify-between items-center p-4 border-b border-[#222] wanjuan-settings-card-header`,
                                 children: [
@@ -47704,17 +47875,17 @@ ${String(l || ``).slice(0, 5e4)}`;
                                         className: `text-xs text-gray-500 font-normal ml-2 bg-[#222] px-2 py-0.5 rounded-full`,
                                         children: [`(`, presetPrompts.length, `)`],
                                       }),
-                                    ],
-                                  }),
-                                  jsx(`button`, {
+				                                ],
+				                                  }),
+				                                  jsx(`button`, {
                                     onClick: handleAddPreset,
                                     className: `text-xs px-3 py-1.5 rounded-lg transition-colors bg-[#222] text-gray-300 hover:bg-[#2a2a2a] hover:text-blue-400 wanjuan-settings-button`,
                                     disabled: !1,
                                     title: `添加预设`,
                                     children: `+ 添加新预设`,
                                   }),
-                                ],
-                              }),
+				                                ],
+				                              }),
                               jsx(`div`, {
                                 className: `px-4 pt-4`,
                                 children: jsxs(`div`, {
@@ -47833,45 +48004,55 @@ ${String(l || ``).slice(0, 5e4)}`;
 	                          jsxs(`div`, {
 	                            className: `group bg-[#1a1a1a] rounded-xl overflow-hidden transition-all duration-300 pb-4 shadow-sm border border-[#222] wanjuan-settings-card`,
 	                            children: [
-	                              jsx(`div`, {
-	                                className: `flex justify-between items-center p-4 border-b border-[#222] wanjuan-settings-card-header`,
-	                                children: jsxs(`div`, {
-	                                  children: [
-	                                    jsxs(`h2`, {
-	                                      className: `font-bold text-gray-200 text-sm flex items-center gap-2 wanjuan-settings-card-title`,
-	                                      children: [
-	                                        jsx(`span`, {
-	                                          className: `text-rose-300`,
-	                                          children: `🧩`,
-	                                        }),
-		                                      ` 本地工具`,
+		                              jsxs(`div`, {
+		                                className: `flex justify-between items-center gap-3 p-4 border-b border-[#222] wanjuan-settings-card-header`,
+		                                children: [
+		                                  jsxs(`div`, {
+		                                    className: `min-w-0`,
+		                                    children: [
+		                                      jsxs(`h2`, {
+		                                        className: `font-bold text-gray-200 text-sm flex items-center gap-2 wanjuan-settings-card-title`,
+		                                        children: [
+		                                          jsx(`span`, {
+		                                            className: `text-rose-300`,
+		                                            children: `🧩`,
+		                                          }),
+		                                          ` 本地工具`,
+		                                        ],
+		                                      }),
+		                                      jsx(`p`, {
+		                                        className: `text-[11px] text-gray-500 mt-1 wanjuan-settings-help`,
+		                                        children: `管理需要安装在本机的媒体处理能力，例如打码、声音克隆和视频超分。`,
+		                                      }),
 		                                    ],
 		                                  }),
-		                                  jsx(`p`, {
-		                                    className: `text-[11px] text-gray-500 mt-1 wanjuan-settings-help`,
-		                                    children: `管理需要安装在本机的媒体处理能力，例如打码、声音克隆和视频超分。`,
+		                                  jsx(`button`, {
+		                                    type: `button`,
+		                                    disabled: !!extensionToolInstalling.toolpack,
+		                                    onClick: importExtensionToolPack,
+		                                    className: `shrink-0 min-h-9 px-3 py-2 rounded-lg text-xs leading-4 font-bold border transition-all whitespace-nowrap ${extensionToolInstalling.toolpack ? `bg-[#222] text-gray-500 border-[#333] cursor-wait` : `bg-sky-600/15 text-sky-200 border-sky-500/35 hover:bg-sky-600/25 hover:text-white`}`,
+		                                    children: extensionToolInstalling.toolpack ? `导入中` : `导入离线工具包`,
 		                                  }),
 		                                ],
-		                              }),
 		                              }),
 		                              jsxs(`div`, {
 	                                className: `px-4 pt-4 space-y-4 wanjuan-settings-card-body`,
 	                                children: [
 	                                  jsx(`p`, {
 	                                    className: `text-xs text-gray-500 leading-6 wanjuan-settings-help`,
-	                                    children: `软件会优先使用随包或本地便携运行环境；点击安装后会在应用数据目录补齐缺少的工具，必要时再使用系统环境兜底。`,
+		                                    children: `推荐导入对应系统的离线工具包，软件会复制到应用数据目录并自动注册；在线安装保留为备用方式，适合网络和系统环境稳定时使用。`,
 	                                  }),
-	                                  jsxs(`div`, {
-	                                    className: `rounded-xl border border-[#333] bg-[#121212] p-4 flex flex-col gap-4`,
+		                                  jsxs(`div`, {
+		                                    className: `rounded-lg border border-[#333] bg-[#121212] p-4`,
 	                                    children: [
-	                                      jsxs(`div`, {
-	                                        className: `flex items-start justify-between gap-4`,
+		                                      jsxs(`div`, {
+		                                        className: `grid grid-cols-[minmax(0,1fr)_112px] items-start gap-4`,
 	                                        children: [
-	                                          jsxs(`div`, {
-	                                            className: `min-w-0`,
+		                                          jsxs(`div`, {
+		                                            className: `min-w-0 pr-1`,
 	                                            children: [
-	                                              jsxs(`div`, {
-	                                                className: `flex items-center gap-2`,
+		                                              jsxs(`div`, {
+		                                                className: `flex flex-wrap items-center gap-2`,
 	                                                children: [
 	                                                  jsx(`span`, {
 	                                                    className: `text-lg`,
@@ -47899,8 +48080,8 @@ ${String(l || ``).slice(0, 5e4)}`;
 	                                                className: `mt-2 text-xs text-gray-500 leading-6`,
 	                                                children: `用于“视频人脸打码”节点的本地视频匿名化处理。安装后节点会调用本机 deface 命令，不会改变现有模型生成逻辑。`,
 	                                              }),
-	                                              jsxs(`div`, {
-	                                                className: `mt-3 text-[11px] text-gray-500 leading-5 font-mono break-all`,
+		                                              jsxs(`div`, {
+		                                                className: `mt-3 max-h-24 overflow-y-auto rounded-lg border border-[#2a2f38] bg-[#0d1015] px-3 py-2 text-[11px] text-gray-400 leading-5 font-mono whitespace-pre-wrap break-all custom-scrollbar`,
 	                                                children: [
 	                                                  `来源：github.com/ORB-HD/deface`,
 	                                                  extensionToolStatus.deface?.command ?
@@ -47931,21 +48112,21 @@ ${String(l || ``).slice(0, 5e4)}`;
 	                                              }),
 	                                            ],
 	                                          }),
-	                                          jsxs(`div`, {
-	                                            className: `flex flex-col gap-2 shrink-0`,
+		                                          jsxs(`div`, {
+		                                            className: `flex w-[112px] flex-col gap-2 shrink-0`,
 	                                            children: [
 	                                              jsx(`button`, {
 	                                                type: `button`,
 	                                                onClick: () => refreshExtensionToolStatus(`deface`),
-	                                                className: `px-3 py-2 rounded-lg text-xs font-bold bg-[#222] text-gray-300 border border-[#333] hover:bg-[#2a2a2a] hover:text-white transition-all`,
+		                                                className: `w-full min-h-9 px-2 py-2 rounded-lg text-xs leading-4 font-bold bg-[#222] text-gray-300 border border-[#333] hover:bg-[#2a2a2a] hover:text-white transition-all whitespace-normal text-center`,
 	                                                children: `检测状态`,
 	                                              }),
 	                                              jsx(`button`, {
 	                                                type: `button`,
 	                                                disabled: !!extensionToolInstalling.deface,
 	                                                onClick: () => installExtensionTool(`deface`),
-	                                                className: `px-3 py-2 rounded-lg text-xs font-bold border transition-all ${extensionToolInstalling.deface ? `bg-[#222] text-gray-500 border-[#333] cursor-wait` : extensionToolStatus.deface?.installed ? `bg-emerald-600/15 text-emerald-200 border-emerald-500/35 hover:bg-emerald-600/25` : `bg-rose-600 text-white border-rose-400/50 hover:bg-rose-500 shadow-lg shadow-rose-950/30`}`,
-	                                                children: extensionToolInstalling.deface ? `正在安装...` : extensionToolStatus.deface?.installed ? `重新安装/更新` : `安装`,
+		                                                className: `w-full min-h-9 px-2 py-2 rounded-lg text-xs leading-4 font-bold border transition-all whitespace-normal text-center ${extensionToolInstalling.deface ? `bg-[#222] text-gray-500 border-[#333] cursor-wait` : extensionToolStatus.deface?.installed ? `bg-emerald-600/15 text-emerald-200 border-emerald-500/35 hover:bg-emerald-600/25` : `bg-rose-600 text-white border-rose-400/50 hover:bg-rose-500 shadow-lg shadow-rose-950/30`}`,
+		                                                children: extensionToolInstalling.deface ? `正在安装` : extensionToolStatus.deface?.installed ? `重装/更新` : `安装`,
 	                                              }),
 	                                            ],
 	                                          }),
@@ -47953,17 +48134,17 @@ ${String(l || ``).slice(0, 5e4)}`;
 	                                      }),
 	                                    ],
 	                                  }),
-	                                  jsxs(`div`, {
-	                                    className: `rounded-xl border border-[#333] bg-[#121212] p-4 flex flex-col gap-4`,
+		                                  jsxs(`div`, {
+		                                    className: `rounded-lg border border-[#333] bg-[#121212] p-4`,
 	                                    children: [
-	                                      jsxs(`div`, {
-	                                        className: `flex items-start justify-between gap-4`,
+		                                      jsxs(`div`, {
+		                                        className: `grid grid-cols-[minmax(0,1fr)_112px] items-start gap-4`,
 	                                        children: [
-	                                          jsxs(`div`, {
-	                                            className: `min-w-0`,
+		                                          jsxs(`div`, {
+		                                            className: `min-w-0 pr-1`,
 	                                            children: [
-	                                              jsxs(`div`, {
-	                                                className: `flex items-center gap-2`,
+		                                              jsxs(`div`, {
+		                                                className: `flex flex-wrap items-center gap-2`,
 	                                                children: [
 	                                                  jsx(`span`, {
 	                                                    className: `text-lg`,
@@ -47991,8 +48172,8 @@ ${String(l || ``).slice(0, 5e4)}`;
 	                                                className: `mt-2 text-xs text-gray-500 leading-6`,
 	                                                children: `用于“Qwen-TTS 语音生成”节点的本地语音生成，支持参考音色克隆和预设自定义语音两种模式。`,
 	                                              }),
-	                                              jsxs(`div`, {
-	                                                className: `mt-3 text-[11px] text-gray-500 leading-5 font-mono break-all`,
+		                                              jsxs(`div`, {
+		                                                className: `mt-3 max-h-24 overflow-y-auto rounded-lg border border-[#2a2f38] bg-[#0d1015] px-3 py-2 text-[11px] text-gray-400 leading-5 font-mono whitespace-pre-wrap break-all custom-scrollbar`,
 	                                                children: [
 	                                                  `来源：github.com/daliusd/qtts`,
 	                                                  extensionToolStatus[`qwen-tts`]?.command ?
@@ -48023,21 +48204,21 @@ ${String(l || ``).slice(0, 5e4)}`;
 	                                              }),
 	                                            ],
 	                                          }),
-	                                          jsxs(`div`, {
-	                                            className: `flex flex-col gap-2 shrink-0`,
+		                                          jsxs(`div`, {
+		                                            className: `flex w-[112px] flex-col gap-2 shrink-0`,
 	                                            children: [
 	                                              jsx(`button`, {
 	                                                type: `button`,
 	                                                onClick: () => refreshExtensionToolStatus(`qwen-tts`),
-	                                                className: `px-3 py-2 rounded-lg text-xs font-bold bg-[#222] text-gray-300 border border-[#333] hover:bg-[#2a2a2a] hover:text-white transition-all`,
+		                                                className: `w-full min-h-9 px-2 py-2 rounded-lg text-xs leading-4 font-bold bg-[#222] text-gray-300 border border-[#333] hover:bg-[#2a2a2a] hover:text-white transition-all whitespace-normal text-center`,
 	                                                children: `检测状态`,
 	                                              }),
 	                                              jsx(`button`, {
 	                                                type: `button`,
 	                                                disabled: !!extensionToolInstalling[`qwen-tts`],
 	                                                onClick: () => installExtensionTool(`qwen-tts`),
-	                                                className: `px-3 py-2 rounded-lg text-xs font-bold border transition-all ${extensionToolInstalling[`qwen-tts`] ? `bg-[#222] text-gray-500 border-[#333] cursor-wait` : extensionToolStatus[`qwen-tts`]?.installed ? `bg-emerald-600/15 text-emerald-200 border-emerald-500/35 hover:bg-emerald-600/25` : `bg-amber-600 text-white border-amber-400/50 hover:bg-amber-500 shadow-lg shadow-amber-950/30`}`,
-	                                                children: extensionToolInstalling[`qwen-tts`] ? `正在安装...` : extensionToolStatus[`qwen-tts`]?.installed ? `重新安装/更新` : `安装`,
+		                                                className: `w-full min-h-9 px-2 py-2 rounded-lg text-xs leading-4 font-bold border transition-all whitespace-normal text-center ${extensionToolInstalling[`qwen-tts`] ? `bg-[#222] text-gray-500 border-[#333] cursor-wait` : extensionToolStatus[`qwen-tts`]?.installed ? `bg-emerald-600/15 text-emerald-200 border-emerald-500/35 hover:bg-emerald-600/25` : `bg-amber-600 text-white border-amber-400/50 hover:bg-amber-500 shadow-lg shadow-amber-950/30`}`,
+		                                                children: extensionToolInstalling[`qwen-tts`] ? `正在安装` : extensionToolStatus[`qwen-tts`]?.installed ? `重装/更新` : `安装`,
 	                                              }),
 	                                            ],
 	                                          }),
@@ -48045,17 +48226,17 @@ ${String(l || ``).slice(0, 5e4)}`;
 	                                      }),
 	                                    ],
 	                                  }),
-	                                  jsxs(`div`, {
-	                                    className: `rounded-xl border border-[#333] bg-[#121212] p-4 flex flex-col gap-4`,
+		                                  jsxs(`div`, {
+		                                    className: `rounded-lg border border-[#333] bg-[#121212] p-4`,
 	                                    children: [
-	                                      jsxs(`div`, {
-	                                        className: `flex items-start justify-between gap-4`,
+		                                      jsxs(`div`, {
+		                                        className: `grid grid-cols-[minmax(0,1fr)_112px] items-start gap-4`,
 	                                        children: [
-	                                          jsxs(`div`, {
-	                                            className: `min-w-0`,
+		                                          jsxs(`div`, {
+		                                            className: `min-w-0 pr-1`,
 	                                            children: [
-	                                              jsxs(`div`, {
-	                                                className: `flex items-center gap-2`,
+		                                              jsxs(`div`, {
+		                                                className: `flex flex-wrap items-center gap-2`,
 	                                                children: [
 	                                                  jsx(`span`, {
 	                                                    className: `text-lg`,
@@ -48083,8 +48264,8 @@ ${String(l || ``).slice(0, 5e4)}`;
 	                                                className: `mt-2 text-xs text-gray-500 leading-6`,
 	                                                children: `用于“本地视频超分”节点的本机视频清晰度增强。安装后会调用官方 NCNN Vulkan 便携版，并通过 ffmpeg 拆帧与合成视频。`,
 	                                              }),
-	                                              jsxs(`div`, {
-	                                                className: `mt-3 text-[11px] text-gray-500 leading-5 font-mono break-all`,
+		                                              jsxs(`div`, {
+		                                                className: `mt-3 max-h-24 overflow-y-auto rounded-lg border border-[#2a2f38] bg-[#0d1015] px-3 py-2 text-[11px] text-gray-400 leading-5 font-mono whitespace-pre-wrap break-all custom-scrollbar`,
 	                                                children: [
 	                                                  `来源：github.com/xinntao/Real-ESRGAN/releases`,
 	                                                  extensionToolStatus[`real-esrgan`]?.command ?
@@ -48115,21 +48296,21 @@ ${String(l || ``).slice(0, 5e4)}`;
 	                                              }),
 	                                            ],
 	                                          }),
-	                                          jsxs(`div`, {
-	                                            className: `flex flex-col gap-2 shrink-0`,
+		                                          jsxs(`div`, {
+		                                            className: `flex w-[112px] flex-col gap-2 shrink-0`,
 	                                            children: [
 	                                              jsx(`button`, {
 	                                                type: `button`,
 	                                                onClick: () => refreshExtensionToolStatus(`real-esrgan`),
-	                                                className: `px-3 py-2 rounded-lg text-xs font-bold bg-[#222] text-gray-300 border border-[#333] hover:bg-[#2a2a2a] hover:text-white transition-all`,
+		                                                className: `w-full min-h-9 px-2 py-2 rounded-lg text-xs leading-4 font-bold bg-[#222] text-gray-300 border border-[#333] hover:bg-[#2a2a2a] hover:text-white transition-all whitespace-normal text-center`,
 	                                                children: `检测状态`,
 	                                              }),
 	                                              jsx(`button`, {
 	                                                type: `button`,
 	                                                disabled: !!extensionToolInstalling[`real-esrgan`],
 	                                                onClick: () => installExtensionTool(`real-esrgan`),
-	                                                className: `px-3 py-2 rounded-lg text-xs font-bold border transition-all ${extensionToolInstalling[`real-esrgan`] ? `bg-[#222] text-gray-500 border-[#333] cursor-wait` : extensionToolStatus[`real-esrgan`]?.installed ? `bg-emerald-600/15 text-emerald-200 border-emerald-500/35 hover:bg-emerald-600/25` : `bg-sky-600 text-white border-sky-400/50 hover:bg-sky-500 shadow-lg shadow-sky-950/30`}`,
-	                                                children: extensionToolInstalling[`real-esrgan`] ? `正在安装...` : extensionToolStatus[`real-esrgan`]?.installed ? `重新安装/更新` : `安装`,
+		                                                className: `w-full min-h-9 px-2 py-2 rounded-lg text-xs leading-4 font-bold border transition-all whitespace-normal text-center ${extensionToolInstalling[`real-esrgan`] ? `bg-[#222] text-gray-500 border-[#333] cursor-wait` : extensionToolStatus[`real-esrgan`]?.installed ? `bg-emerald-600/15 text-emerald-200 border-emerald-500/35 hover:bg-emerald-600/25` : `bg-sky-600 text-white border-sky-400/50 hover:bg-sky-500 shadow-lg shadow-sky-950/30`}`,
+		                                                children: extensionToolInstalling[`real-esrgan`] ? `正在安装` : extensionToolStatus[`real-esrgan`]?.installed ? `重装/更新` : `安装`,
 	                                              }),
 	                                            ],
 	                                          }),

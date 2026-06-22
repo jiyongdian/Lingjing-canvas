@@ -67,6 +67,70 @@ function installDesktopPatches() {
     return false;
   };
 
+  const installDesktopUiStateStyle = () => {
+    const existingStyle = document.getElementById("wanjuan-desktop-ui-state-style");
+    if (existingStyle) {
+      document.head.appendChild(existingStyle);
+      return;
+    }
+    const style = document.createElement("style");
+    style.id = "wanjuan-desktop-ui-state-style";
+    style.textContent = `
+      .wanjuan-node-popover-option:not(.wanjuan-node-popover-option-active):hover,
+      .wanjuan-node-popover-option:not(.wanjuan-node-popover-option-active):focus-visible{
+        background:color-mix(in srgb,var(--wj-surface-3,#2a2a2a) 86%,var(--wj-accent,#60a5fa) 14%)!important;
+        color:var(--wj-text,#f3f4f6)!important;
+        border-color:color-mix(in srgb,var(--wj-accent,#60a5fa) 34%,var(--wj-border,#333))!important;
+        box-shadow:none!important;
+      }
+      .wanjuan-node-popover-option-active,
+      .wanjuan-node-popover-option-active:hover,
+      .wanjuan-node-popover-option-active:focus-visible{
+        background:var(--wj-accent,#2563eb)!important;
+        background-color:var(--wj-accent,#2563eb)!important;
+        color:var(--wj-on-accent,#fff)!important;
+        border-color:color-mix(in srgb,var(--wj-accent,#60a5fa) 78%,#fff 22%)!important;
+        box-shadow:none!important;
+      }
+      .wanjuan-node-preset-save-button{
+        background:color-mix(in srgb,var(--wj-accent,#2563eb) 14%,var(--wj-surface-3,#27303a))!important;
+        background-color:color-mix(in srgb,var(--wj-accent,#2563eb) 14%,var(--wj-surface-3,#27303a))!important;
+        background-image:none!important;
+        border:1px solid color-mix(in srgb,var(--wj-accent,#60a5fa) 32%,var(--wj-border,#3a414c))!important;
+        color:color-mix(in srgb,var(--wj-accent,#93c5fd) 62%,var(--wj-text,#f3f4f6))!important;
+        box-shadow:none!important;
+        outline:none!important;
+      }
+      .wanjuan-node-preset-save-button:hover,
+      .wanjuan-node-preset-save-button:focus,
+      .wanjuan-node-preset-save-button:focus-visible{
+        background:color-mix(in srgb,var(--wj-accent,#2563eb) 24%,var(--wj-surface-3,#2d3540))!important;
+        background-color:color-mix(in srgb,var(--wj-accent,#2563eb) 24%,var(--wj-surface-3,#2d3540))!important;
+        background-image:none!important;
+        border-color:color-mix(in srgb,var(--wj-accent,#60a5fa) 58%,var(--wj-border,#3a414c))!important;
+        color:var(--wj-text,#fff)!important;
+        box-shadow:0 0 0 1px color-mix(in srgb,var(--wj-accent,#60a5fa) 24%,transparent)!important;
+        outline:none!important;
+      }
+      .wanjuan-settings-save-button{
+        background:var(--wj-accent,#2563eb)!important;
+        background-color:var(--wj-accent,#2563eb)!important;
+        background-image:none!important;
+        color:var(--wj-on-accent,#fff)!important;
+        box-shadow:0 10px 28px color-mix(in srgb,var(--wj-accent,#2563eb) 24%,transparent)!important;
+      }
+      .wanjuan-settings-save-button:hover,
+      .wanjuan-settings-save-button:focus-visible{
+        background:color-mix(in srgb,var(--wj-accent,#2563eb) 86%,#fff 14%)!important;
+        background-color:color-mix(in srgb,var(--wj-accent,#2563eb) 86%,#fff 14%)!important;
+        background-image:none!important;
+        color:var(--wj-on-accent,#fff)!important;
+        box-shadow:0 10px 28px color-mix(in srgb,var(--wj-accent,#2563eb) 30%,transparent)!important;
+      }
+    `;
+    document.head.appendChild(style);
+  };
+
   const hideSettingsCardByTitle = (title) => {
     const headings = Array.from(document.querySelectorAll("h1, h2, h3, h4"));
     for (const heading of headings) {
@@ -371,6 +435,7 @@ function installDesktopPatches() {
   let canvasPressureMeterRaf = 0;
   let canvasPressureMonitorStarted = false;
   let canvasPressureFrameRaf = 0;
+  let canvasPressureFrameTimer = 0;
   let canvasPressureLastFrame = 0;
   let canvasPressureLastLagTick = 0;
   const canvasPressureFrameDeltas = [];
@@ -386,10 +451,13 @@ function installDesktopPatches() {
     if (canvasPressureMonitorStarted) return;
     canvasPressureMonitorStarted = true;
 
-    const sampleFrame = (now) => {
+    const startFrameSampleBurst = () => {
+      let sampleCount = 0;
+      const sampleFrame = (now) => {
       if (document.hidden) {
         canvasPressureLastFrame = now;
-        canvasPressureFrameRaf = window.requestAnimationFrame(sampleFrame);
+        canvasPressureFrameRaf = 0;
+        canvasPressureFrameTimer = window.setTimeout(startFrameSampleBurst, 2200);
         return;
       }
       if (canvasPressureLastFrame > 0) {
@@ -402,9 +470,17 @@ function installDesktopPatches() {
         }
       }
       canvasPressureLastFrame = now;
+        sampleCount += 1;
+        if (sampleCount < 18) {
+          canvasPressureFrameRaf = window.requestAnimationFrame(sampleFrame);
+        } else {
+          canvasPressureFrameRaf = 0;
+          canvasPressureFrameTimer = window.setTimeout(startFrameSampleBurst, 1600);
+        }
+      };
       canvasPressureFrameRaf = window.requestAnimationFrame(sampleFrame);
     };
-    canvasPressureFrameRaf = window.requestAnimationFrame(sampleFrame);
+    startFrameSampleBurst();
 
     canvasPressureLastLagTick = performance.now();
     window.setInterval(() => {
@@ -437,6 +513,7 @@ function installDesktopPatches() {
 
     window.addEventListener("beforeunload", () => {
       if (canvasPressureFrameRaf) window.cancelAnimationFrame(canvasPressureFrameRaf);
+      if (canvasPressureFrameTimer) window.clearTimeout(canvasPressureFrameTimer);
     }, { once: true });
   };
 
@@ -847,7 +924,8 @@ function installDesktopPatches() {
 
   const installSeedreamOfficialIcons = () => {
     cleanupSeedreamOuterIcons();
-    const candidates = document.querySelectorAll("button, h1, h2, h3, div, [role='menuitem'], [role='button'], label");
+    const root = document.querySelector(".react-flow") || document.querySelector(".wanjuan-settings-page") || document.body;
+    const candidates = root.querySelectorAll("button, h1, h2, h3, div, [role='menuitem'], [role='button'], label");
     for (const candidate of candidates) replaceSeedreamIconIn(candidate);
   };
 
@@ -1279,6 +1357,262 @@ function installDesktopPatches() {
   let tianjiGroupsState = {};
   let tianjiPointsLogsDialog = null;
   let tianjiSettingsStorageListener = null;
+  let workspacePanelInstalled = false;
+  let workspaceState = {
+    activeSection: "templates",
+    activeSpace: "personal",
+    query: "",
+    selectedGroupId: "",
+    teamMemberAddress: "",
+    teamResults: [],
+    teamRefreshing: false,
+    teamServiceError: "",
+    status: null,
+  };
+  let workspaceRenderTimer = null;
+  let workspaceRenderSeq = 0;
+
+  const WORKSPACE_KEYS = [
+    "presetPrompts",
+    "workspacePromptTemplates",
+    "workspacePromptTemplateGroups",
+    "workspaceTeamSettings",
+    "workspacePublishedTemplates",
+  ];
+
+  const workspaceStorageGet = (keys) => getDesktopStorageItems(keys);
+  const workspaceStorageSet = (items) => setDesktopStorageItems(items);
+  const workspaceId = (prefix) => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const workspaceEscapeHtml = (value) =>
+    String(value == null ? "" : value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  const workspaceDateLabel = (value) => {
+    let date = new Date(Number(value || Date.now()));
+    return Number.isNaN(date.getTime()) ? "" : date.toLocaleString();
+  };
+  const workspaceNormalizeTemplate = (template = {}) => ({
+    id: String(template.id || workspaceId("workspace-template")),
+    title: String(template.title || "未命名提示词模板").trim() || "未命名提示词模板",
+    prompt: String(template.prompt || ""),
+    type: String(template.type || "video"),
+    groupId: String(template.groupId || ""),
+    sourceProvider: String(template.sourceProvider || "seedance"),
+    sourceNodeId: String(template.sourceNodeId || ""),
+    sourceProjectId: String(template.sourceProjectId || ""),
+    modelName: String(template.modelName || ""),
+    generationMode: String(template.generationMode || template.tianjiSeedanceGenerationMode || "text-to-video"),
+    params: template.params && typeof template.params === "object" ? template.params : {},
+    resultUrl: String(template.resultUrl || template.videoUrl || ""),
+    resultLocalPath: String(template.resultLocalPath || template.videoLocalPath || template.localPath || ""),
+    thumbnailUrl: String(template.thumbnailUrl || template.posterUrl || ""),
+    thumbnailLocalPath: String(template.thumbnailLocalPath || template.posterLocalPath || ""),
+    createdAt: Number(template.createdAt || Date.now()),
+    updatedAt: Number(template.updatedAt || template.createdAt || Date.now()),
+  });
+  const workspaceNormalizeGroup = (group = {}) => ({
+    id: String(group.id || workspaceId("workspace-group")),
+    name: String(group.name || "未命名分组").trim() || "未命名分组",
+    collapsed: group.collapsed === true,
+    createdAt: Number(group.createdAt || Date.now()),
+    updatedAt: Number(group.updatedAt || group.createdAt || Date.now()),
+  });
+  const workspaceDefaultTeamSettings = () => ({
+    enabled: false,
+    port: 39218,
+    memberName: "",
+    deviceId: "",
+    members: [],
+  });
+  const workspaceReadAll = async () => {
+    let stored = await workspaceStorageGet(WORKSPACE_KEYS);
+    return {
+      presetPrompts: Array.isArray(stored.presetPrompts) ? stored.presetPrompts : [],
+      templates: (Array.isArray(stored.workspacePromptTemplates) ? stored.workspacePromptTemplates : []).map(workspaceNormalizeTemplate),
+      groups: (Array.isArray(stored.workspacePromptTemplateGroups) ? stored.workspacePromptTemplateGroups : []).map(workspaceNormalizeGroup),
+      teamSettings: {
+        ...workspaceDefaultTeamSettings(),
+        ...(stored.workspaceTeamSettings && typeof stored.workspaceTeamSettings === "object" ? stored.workspaceTeamSettings : {}),
+      },
+      publishedTemplates: (Array.isArray(stored.workspacePublishedTemplates) ? stored.workspacePublishedTemplates : []).map(workspaceNormalizeTemplate),
+    };
+  };
+  const workspaceSyncPublishedTemplates = async (publishedTemplates) => {
+    try {
+      await window.wanjuanDesktop?.workspaceTeamUpdateTemplates?.({ templates: publishedTemplates || [] });
+    } catch (error) {
+      console.warn("workspace published template sync failed", error);
+    }
+  };
+  const workspaceEnsureTeamService = async (data = null) => {
+    const nextData = data || await workspaceReadAll();
+    if (!nextData.teamSettings?.enabled) return null;
+    try {
+      const statusResult = await Promise.resolve(window.wanjuanDesktop?.workspaceTeamStatus?.()).catch(() => null);
+      if (statusResult?.status?.running) {
+        await workspaceSyncPublishedTemplates(nextData.publishedTemplates);
+        workspaceState.teamServiceError = "";
+        return statusResult.status;
+      }
+      const startResult = await window.wanjuanDesktop?.workspaceTeamStart?.({
+        ...nextData.teamSettings,
+        templates: nextData.publishedTemplates,
+      });
+      if (!startResult?.ok) {
+        workspaceState.teamServiceError = startResult?.error || "团队空间服务未能开启";
+        return startResult?.status || statusResult?.status || null;
+      }
+      workspaceState.teamServiceError = "";
+      return startResult.status || null;
+    } catch (error) {
+      workspaceState.teamServiceError = error?.message || String(error);
+      return null;
+    }
+  };
+  const workspaceSaveTemplate = async (template) => {
+    let data = await workspaceReadAll(),
+      normalized = workspaceNormalizeTemplate(template),
+      nextTemplates = [normalized, ...data.templates.filter((item) => item.id !== normalized.id)];
+    await workspaceStorageSet({ workspacePromptTemplates: nextTemplates });
+    return normalized;
+  };
+  const workspaceScheduleRender = () => {
+    if (!document.documentElement.classList.contains("wanjuan-workspace-open")) return;
+    if (workspaceRenderTimer) window.clearTimeout(workspaceRenderTimer);
+    workspaceRenderTimer = window.setTimeout(() => {
+      workspaceRenderTimer = null;
+      renderWorkspacePanel();
+    }, 160);
+  };
+  const workspaceFindTeamTemplate = (id) => {
+    for (const result of workspaceState.teamResults || []) {
+      const template = (result.templates || []).find((item) => String(item.id) === String(id));
+      if (template) {
+        return workspaceNormalizeTemplate({
+          ...template,
+          memberName: result.manifest?.memberName || result.name || result.address,
+          sourceMemberName: result.manifest?.memberName || result.name || result.address,
+          sourceMemberAddress: result.address,
+        });
+      }
+    }
+    return null;
+  };
+  const workspaceCopyText = async (text) => {
+    try {
+      await navigator.clipboard?.writeText?.(String(text || ""));
+      workspaceToast("已复制");
+    } catch {
+      workspaceToast("复制失败");
+    }
+  };
+  const workspaceToast = (message) => {
+    let toast = document.createElement("div");
+    toast.textContent = String(message || "");
+    toast.className = "wanjuan-workspace-toast";
+    document.body.appendChild(toast);
+    window.setTimeout(() => toast.remove(), 1800);
+  };
+  const workspaceOpenCanvas = () => {
+    let canvasTab = Array.from(document.querySelectorAll(".wanjuan-app-nav-tab")).find((button) =>
+      /灵境画布/.test(button.textContent || "")
+    );
+    canvasTab?.click?.();
+    document.documentElement.classList.remove("wanjuan-workspace-open");
+  };
+  const workspaceUseTemplate = (template) => {
+    workspaceOpenCanvas();
+    window.setTimeout(() => {
+      window.dispatchEvent(new CustomEvent("wanjuan:workspace-create-seedance-node", {
+        detail: { template: workspaceNormalizeTemplate(template) }
+      }));
+    }, 120);
+  };
+  const workspaceRefreshTeamMembers = async () => {
+    let overlay = document.querySelector(".wanjuan-workspace-page");
+    if (!overlay) return;
+    workspaceState.teamRefreshing = true;
+    renderWorkspacePanel();
+    try {
+      let data = await workspaceReadAll(),
+        members = Array.isArray(data.teamSettings.members) ? data.teamSettings.members : [],
+        results = [];
+      for (let member of members) {
+        let address = typeof member === "string" ? member : member.address;
+        if (!address) continue;
+        let result = await window.wanjuanDesktop?.workspaceTeamFetchMember?.({ address, timeoutMs: 8000 });
+        results.push({
+          address,
+          name: member.name || result?.manifest?.memberName || address,
+          ...result,
+        });
+      }
+      workspaceState.teamResults = results;
+      workspaceToast(`已刷新 ${results.length} 个成员`);
+    } finally {
+      workspaceState.teamRefreshing = false;
+      renderWorkspacePanel();
+    }
+  };
+  const workspaceToggleTeamServer = async (enabled) => {
+    let data = await workspaceReadAll(),
+      teamSettings = {
+        ...data.teamSettings,
+        enabled: !!enabled,
+      },
+      result;
+    if (enabled) {
+      result = await window.wanjuanDesktop?.workspaceTeamStart?.({
+        ...teamSettings,
+        templates: data.publishedTemplates,
+      });
+      if (!result?.ok) {
+        workspaceToast(`团队空间开启失败：${result?.error || "端口可能被占用或被防火墙拦截"}`);
+        teamSettings.enabled = false;
+      }
+    } else {
+      result = await window.wanjuanDesktop?.workspaceTeamStop?.();
+    }
+    await workspaceStorageSet({ workspaceTeamSettings: teamSettings });
+    workspaceState.status = result?.status || null;
+    renderWorkspacePanel();
+  };
+  const workspacePublishTemplate = async (template) => {
+    let data = await workspaceReadAll(),
+      normalized = workspaceNormalizeTemplate(template),
+      nextPublished = [normalized, ...data.publishedTemplates.filter((item) => item.id !== normalized.id)];
+    await workspaceStorageSet({ workspacePublishedTemplates: nextPublished });
+    await workspaceSyncPublishedTemplates(nextPublished);
+    if (data.teamSettings.enabled) {
+      await workspaceEnsureTeamService({
+        ...data,
+        publishedTemplates: nextPublished,
+      });
+    }
+    workspaceToast(data.teamSettings.enabled ? "已发布到团队空间" : "已加入团队发布列表，开启团队空间后可被成员拉取");
+    renderWorkspacePanel();
+  };
+  const workspaceAddMember = async () => {
+    let raw = workspaceState.teamMemberAddress || "";
+    if (!raw.trim()) return;
+    let data = await workspaceReadAll(),
+      address = /^https?:\/\//i.test(raw.trim()) ? raw.trim() : `http://${raw.trim()}`,
+      members = Array.isArray(data.teamSettings.members) ? data.teamSettings.members : [];
+    if (!members.some((member) => (typeof member === "string" ? member : member.address) === address)) {
+      members.push({ address, name: "" });
+    }
+    workspaceState.teamMemberAddress = "";
+    await workspaceStorageSet({
+      workspaceTeamSettings: {
+        ...data.teamSettings,
+        members,
+      }
+    });
+    workspaceRefreshTeamMembers();
+  };
 
   const tianjiStorageGet = (keys) =>
     new Promise((resolve) => {
@@ -2340,7 +2674,607 @@ function installDesktopPatches() {
     tianjiRenderAssetList(panel);
   };
 
+  const ensureWorkspaceStyle = () => {
+    const existingStyle = document.getElementById("wanjuan-workspace-style");
+    if (existingStyle) {
+      document.head.appendChild(existingStyle);
+      return;
+    }
+    const style = document.createElement("style");
+    style.id = "wanjuan-workspace-style";
+    style.textContent = `
+      html.wanjuan-workspace-open .wanjuan-workspace-page{display:flex}
+      html.wanjuan-workspace-open .wanjuan-app-nav-tab:not(.wanjuan-workspace-nav-tab){filter:saturate(.76);opacity:.72;color:var(--wanjuan-nav-text,#b6beca)!important}
+      html.wanjuan-workspace-open .wanjuan-app-nav-tab:not(.wanjuan-workspace-nav-tab)::after{opacity:0!important;transform:translateX(-50%) scaleX(.16)!important}
+      html.wanjuan-workspace-open .wanjuan-app-nav-tab:not(.wanjuan-workspace-nav-tab).wanjuan-app-nav-tab-active{color:var(--wanjuan-nav-text,#b6beca)!important}
+      html.wanjuan-workspace-open .wanjuan-workspace-nav-tab{opacity:1!important;color:var(--wanjuan-nav-text-active,#f8fafc)!important}
+      .wanjuan-workspace-page{position:absolute;inset:0;z-index:18;display:none;flex-direction:column;background:var(--wj-bg,#101214);color:var(--wj-text,#e5e7eb)}
+      .wanjuan-workspace-header{height:58px;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:0 18px;border-bottom:1px solid var(--wj-border,#2b2f36);background:var(--wj-surface,#171a1f)}
+      .wanjuan-workspace-title{font-size:16px;font-weight:800;color:var(--wj-text,#f8fafc)}
+      .wanjuan-workspace-subtitle{font-size:11px;color:var(--wj-muted,#8b949e);margin-top:2px}
+      .wanjuan-workspace-tabs,.wanjuan-workspace-sections,.wanjuan-workspace-segment{display:inline-flex;align-items:center;gap:4px;padding:4px;border:1px solid var(--wj-border,#303640);border-radius:10px;background:var(--wj-surface-2,#111419)}
+      .wanjuan-workspace-tabs button,.wanjuan-workspace-sections button,.wanjuan-workspace-segment button{height:30px;border:0;border-radius:7px;padding:0 12px;background:transparent;color:var(--wj-muted,#9ca3af);font-size:12px;font-weight:700;cursor:pointer}
+      .wanjuan-workspace-tabs button.is-active,.wanjuan-workspace-sections button.is-active,.wanjuan-workspace-segment button.is-active{background:var(--wj-accent,#2563eb)!important;color:var(--wj-on-accent,var(--wanjuan-theme-on-primary,#fff))!important}
+      .wanjuan-workspace-body{min-height:0;flex:1;display:grid;grid-template-columns:230px minmax(0,1fr);overflow:hidden}
+      .wanjuan-workspace-sidebar{border-right:1px solid var(--wj-border,#2b2f36);background:var(--wj-surface-2,#14171c);padding:14px;display:flex;flex-direction:column;gap:12px;overflow:auto}
+      .wanjuan-workspace-group-list{display:grid;grid-template-columns:1fr;gap:8px;width:100%;align-items:stretch}
+      .wanjuan-workspace-content{min-width:0;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+      .wanjuan-workspace-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-bottom:1px solid var(--wj-border,#252a31);background:var(--wj-surface-2,#111419)}
+      .wanjuan-workspace-toolbar-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex:0 0 auto;min-width:0}
+      .wanjuan-workspace-search{height:34px;min-width:220px;max-width:420px;flex:1;border:1px solid var(--wj-border,#303640);border-radius:8px;background:var(--wj-surface,#171a1f);color:var(--wj-text,#e5e7eb);padding:0 11px;font-size:12px;outline:none}
+      .wanjuan-workspace-search:focus{border-color:var(--wj-accent,#3b82f6)}
+      .wanjuan-workspace-button{height:32px;min-width:0;border:1px solid var(--wj-border,#303640);border-radius:8px;background:var(--wj-surface-3,#1d222a);color:var(--wj-text,#d1d5db);padding:0 11px;font-size:12px;font-weight:700;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      .wanjuan-workspace-button:hover{border-color:color-mix(in srgb,var(--wj-accent,#3b82f6) 40%,var(--wj-border,#4b5563));background:color-mix(in srgb,var(--wj-surface-3,#252b35) 84%,var(--wj-accent,#3b82f6) 16%);color:var(--wj-text,#fff)}
+      .wanjuan-workspace-button.primary{background:var(--wj-accent,#2563eb)!important;border-color:color-mix(in srgb,var(--wj-accent,#3b82f6) 78%,#fff 22%)!important;color:var(--wj-on-accent,var(--wanjuan-theme-on-primary,#fff))!important}
+      .wanjuan-workspace-button.danger:hover{border-color:#ef4444;color:#fecaca}
+      .wanjuan-workspace-list{min-height:0;flex:1;overflow:auto;padding:14px;display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));align-content:start;gap:12px}
+      .wanjuan-workspace-list.wanjuan-workspace-function-list{grid-template-columns:repeat(auto-fill,minmax(300px,1fr));grid-auto-rows:max-content;align-content:start;align-items:start;gap:12px;overflow-y:auto;padding-bottom:24px}
+      .wanjuan-workspace-card{border:1px solid var(--wj-border,#2c323b);border-radius:10px;background:var(--wj-surface,#171a1f);overflow:hidden;display:grid;grid-template-columns:minmax(112px,32%) minmax(0,1fr);min-width:0}
+      .wanjuan-workspace-function-card{border:1px solid var(--wj-border,#2c323b);border-radius:10px;background:var(--wj-surface,#171a1f);overflow:hidden;display:flex;flex-direction:column;min-width:0;min-height:270px;height:auto;align-self:start;padding:12px;gap:10px}
+      .wanjuan-workspace-function-card input[data-function-field='title']{height:36px;font-weight:750}
+      .wanjuan-workspace-function-card textarea{height:128px!important;min-height:128px!important;max-height:220px;line-height:1.55;resize:vertical;flex:0 0 auto}
+      .wanjuan-workspace-function-card .wanjuan-workspace-segment{width:100%;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;padding:4px}
+      .wanjuan-workspace-function-card .wanjuan-workspace-segment button{height:32px;min-width:0;padding:0 6px;white-space:normal;line-height:1.12;overflow:hidden}
+      .wanjuan-workspace-function-card-footer{display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0}
+      .wanjuan-workspace-function-enabled{display:inline-flex;align-items:center;gap:7px;min-width:0;color:var(--wj-muted,#9ca3af);font-size:12px;line-height:1}
+      .wanjuan-workspace-function-enabled input{width:14px!important;height:14px!important;min-width:14px;padding:0;accent-color:var(--wj-accent,#3b82f6)}
+      .wanjuan-workspace-function-card-footer .wanjuan-workspace-button{width:76px;flex:0 0 auto}
+      .wanjuan-workspace-card-media{aspect-ratio:9/16;width:100%;min-height:188px;background:color-mix(in srgb,var(--wj-bg,#0b0d10) 92%,#000 8%);display:grid;place-items:center;color:var(--wj-muted,#5f6b7a);font-size:12px;overflow:hidden;border-right:1px solid var(--wj-border,#2c323b)}
+      .wanjuan-workspace-card-media img,.wanjuan-workspace-card-media video{width:100%;height:100%;object-fit:contain;background:#05070a}
+      .wanjuan-workspace-card-media video{display:block}
+      .wanjuan-workspace-card-body{padding:12px;display:grid;gap:8px;align-content:start;min-width:0}
+      .wanjuan-workspace-card-title{font-size:13px;font-weight:800;color:var(--wj-text,#f3f4f6);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      .wanjuan-workspace-card-meta{font-size:10px;color:var(--wj-muted,#7d8794);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      .wanjuan-workspace-card-prompt{font-size:12px;line-height:1.55;color:color-mix(in srgb,var(--wj-text,#cbd5e1) 82%,var(--wj-muted,#7d8794));display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;min-height:0}
+      .wanjuan-workspace-card-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+      .wanjuan-workspace-group{width:100%;min-height:36px;display:flex;align-items:center;justify-content:space-between;gap:8px;border:1px solid var(--wj-border,#2b3038);border-radius:8px;background:var(--wj-surface,#171a1f);padding:8px 9px;font-size:12px;color:var(--wj-text,#d1d5db);cursor:pointer;text-align:left}
+      .wanjuan-workspace-group span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      .wanjuan-workspace-group span:last-child{flex:0 0 auto}
+      .wanjuan-workspace-group small{min-width:0;flex:1;color:var(--wj-muted,#7d8794);font-size:10px;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right}
+      .wanjuan-workspace-group.is-active{border-color:var(--wj-accent,#3b82f6);background:color-mix(in srgb,var(--wj-accent,#3b82f6) 18%,var(--wj-surface,#171a1f));color:var(--wj-text,#dbeafe)}
+      .wanjuan-workspace-group.is-online{border-color:color-mix(in srgb,#22c55e 48%,var(--wj-border,#2b3038));background:color-mix(in srgb,#22c55e 10%,var(--wj-surface,#171a1f))}
+      .wanjuan-workspace-group.is-error{border-color:color-mix(in srgb,#ef4444 44%,var(--wj-border,#2b3038));background:color-mix(in srgb,#ef4444 9%,var(--wj-surface,#171a1f))}
+      .wanjuan-workspace-group.is-online small{color:#86efac}
+      .wanjuan-workspace-group.is-error small{color:#fecaca}
+      .wanjuan-workspace-empty{grid-column:1/-1;border:1px dashed var(--wj-border,#374151);border-radius:12px;padding:34px;text-align:center;color:var(--wj-muted,#7d8794);font-size:13px}
+      .wanjuan-workspace-form{display:grid;gap:9px;padding:12px;border:1px solid var(--wj-border,#2c323b);border-radius:10px;background:var(--wj-surface,#171a1f)}
+      .wanjuan-workspace-field-label{display:grid;gap:5px;min-width:0;font-size:11px;font-weight:700;color:var(--wj-muted,#9ca3af)}
+      .wanjuan-workspace-field-help{font-size:10px;line-height:1.45;color:var(--wj-muted,#7d8794);margin-top:-2px}
+      .wanjuan-workspace-form input,.wanjuan-workspace-form textarea,.wanjuan-workspace-form select,.wanjuan-workspace-card input,.wanjuan-workspace-card textarea,.wanjuan-workspace-card select{width:100%;min-width:0;border:1px solid var(--wj-border,#303640);border-radius:8px;background:var(--wj-surface-2,#111419);color:var(--wj-text,#e5e7eb);padding:9px 10px;font-size:12px;outline:none}
+      .wanjuan-workspace-form textarea,.wanjuan-workspace-card textarea{min-height:92px;resize:vertical}
+      .wanjuan-workspace-team-status{font-size:11px;color:var(--wj-muted,#9ca3af);line-height:1.6;border:1px solid var(--wj-border,#2c323b);border-radius:10px;background:var(--wj-surface,#171a1f);padding:10px;overflow-wrap:anywhere}
+      .wanjuan-workspace-team-status strong{display:block;color:var(--wj-text,#e5e7eb);font-weight:800;margin:2px 0}
+      .wanjuan-workspace-team-status small{display:block;color:var(--wj-muted,#7d8794);line-height:1.5;margin-top:4px}
+      .wanjuan-workspace-toast{position:fixed;right:18px;bottom:22px;z-index:2147483600;background:var(--wj-surface-2,#111827);color:var(--wj-text,#fff);border:1px solid var(--wj-border,#374151);border-radius:10px;padding:10px 13px;font-size:12px;box-shadow:var(--wj-shadow-popover,0 18px 50px rgba(0,0,0,.42))}
+      html.wanjuan-workspace-open .wanjuan-workspace-page .wanjuan-workspace-tabs button.is-active,
+      html.wanjuan-workspace-open .wanjuan-workspace-page .wanjuan-workspace-sections button.is-active,
+      html.wanjuan-workspace-open .wanjuan-workspace-page .wanjuan-workspace-segment button.is-active,
+      html.wanjuan-workspace-open .wanjuan-workspace-page .wanjuan-workspace-button.primary{
+        background:var(--wj-accent,#2563eb)!important;
+        background-color:var(--wj-accent,#2563eb)!important;
+        border-color:color-mix(in srgb,var(--wj-accent,#3b82f6) 78%,#fff 22%)!important;
+        color:var(--wj-on-accent,var(--wanjuan-theme-on-primary,#fff))!important;
+      }
+      .wanjuan-node-popover-option:not(.wanjuan-node-popover-option-active):hover,
+      .wanjuan-node-popover-option:not(.wanjuan-node-popover-option-active):focus-visible{background:color-mix(in srgb,var(--wj-surface-3,#2a2a2a) 86%,var(--wj-accent,#60a5fa) 14%)!important;color:var(--wj-text,#f3f4f6)!important;border-color:color-mix(in srgb,var(--wj-accent,#60a5fa) 34%,var(--wj-border,#333))!important;box-shadow:none!important}
+      .wanjuan-node-popover-option-active,
+      .wanjuan-node-popover-option-active:hover,
+      .wanjuan-node-popover-option-active:focus-visible{background:var(--wj-accent,#2563eb)!important;background-color:var(--wj-accent,#2563eb)!important;color:var(--wj-on-accent,#fff)!important;border-color:color-mix(in srgb,var(--wj-accent,#60a5fa) 78%,#fff 22%)!important;box-shadow:none!important}
+      .wanjuan-settings-save-button{background:var(--wj-accent,#2563eb)!important;background-color:var(--wj-accent,#2563eb)!important;background-image:none!important;color:var(--wj-on-accent,#fff)!important;box-shadow:0 10px 28px color-mix(in srgb,var(--wj-accent,#2563eb) 24%,transparent)!important}
+      .wanjuan-settings-save-button:hover,
+      .wanjuan-settings-save-button:focus-visible{background:color-mix(in srgb,var(--wj-accent,#2563eb) 86%,#fff 14%)!important;background-color:color-mix(in srgb,var(--wj-accent,#2563eb) 86%,#fff 14%)!important;background-image:none!important;color:var(--wj-on-accent,#fff)!important;box-shadow:0 10px 28px color-mix(in srgb,var(--wj-accent,#2563eb) 30%,transparent)!important}
+      @media(max-width:900px){.wanjuan-workspace-body{grid-template-columns:1fr}.wanjuan-workspace-sidebar{display:none}.wanjuan-workspace-toolbar{flex-wrap:wrap}.wanjuan-workspace-search{max-width:none}.wanjuan-workspace-toolbar-actions{width:100%;justify-content:flex-start}.wanjuan-workspace-toolbar-actions .wanjuan-workspace-button{flex:0 0 auto}}
+      @media(max-width:560px){.wanjuan-workspace-list{grid-template-columns:1fr}.wanjuan-workspace-card{grid-template-columns:104px minmax(0,1fr)}.wanjuan-workspace-card-media{min-height:184px}.wanjuan-workspace-card-actions{grid-template-columns:1fr}.wanjuan-workspace-function-card .wanjuan-workspace-segment{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    `;
+    document.head.appendChild(style);
+  };
+
+  const renderWorkspaceGroups = (groups, templates) => {
+    const counts = new Map();
+    templates.forEach((template) => counts.set(template.groupId || "", (counts.get(template.groupId || "") || 0) + 1));
+    return [
+      `<button class="wanjuan-workspace-group ${workspaceState.selectedGroupId === "" ? "is-active" : ""}" data-workspace-group=""><span>全部模板</span><span>${templates.length}</span></button>`,
+      `<button class="wanjuan-workspace-group ${workspaceState.selectedGroupId === "__ungrouped" ? "is-active" : ""}" data-workspace-group="__ungrouped"><span>未分组</span><span>${counts.get("") || 0}</span></button>`,
+      ...groups.map((group) => `<button class="wanjuan-workspace-group ${workspaceState.selectedGroupId === group.id ? "is-active" : ""}" data-workspace-group="${workspaceEscapeHtml(group.id)}"><span>${workspaceEscapeHtml(group.name)}</span><span>${counts.get(group.id) || 0}</span></button>`)
+    ].join("");
+  };
+
+  const renderWorkspaceTemplateCard = (template, options = {}) => {
+    const sourceName = options.memberName || template.memberName || template.sourceMemberName || "";
+    const groups = Array.isArray(options.groups) ? options.groups : [];
+    const isLocalTeamTemplate = options.team && template.sourceMemberAddress === "local";
+    const groupSelect = options.team ? "" : `
+      <select data-workspace-template-group title="模板分组">
+        <option value="" ${template.groupId ? "" : "selected"}>未分组</option>
+        ${groups.map((group) => `<option value="${workspaceEscapeHtml(group.id)}" ${template.groupId === group.id ? "selected" : ""}>${workspaceEscapeHtml(group.name)}</option>`).join("")}
+      </select>
+    `;
+    const media = template.resultUrl ?
+      `<video src="${workspaceEscapeHtml(template.resultUrl)}" ${template.thumbnailUrl ? `poster="${workspaceEscapeHtml(template.thumbnailUrl)}"` : ""} controls playsinline preload="metadata"></video>` :
+      template.thumbnailUrl ?
+        `<img src="${workspaceEscapeHtml(template.thumbnailUrl)}" alt="">` :
+        `<span>无结果预览</span>`;
+    return `
+      <article class="wanjuan-workspace-card" data-template-id="${workspaceEscapeHtml(template.id)}">
+        <div class="wanjuan-workspace-card-media">${media}</div>
+        <div class="wanjuan-workspace-card-body">
+          <div class="wanjuan-workspace-card-title" title="${workspaceEscapeHtml(template.title)}">${workspaceEscapeHtml(template.title)}</div>
+          <div class="wanjuan-workspace-card-meta">${workspaceEscapeHtml([sourceName, template.modelName || template.sourceProvider, workspaceDateLabel(template.updatedAt)].filter(Boolean).join(" · "))}</div>
+          <div class="wanjuan-workspace-card-prompt">${workspaceEscapeHtml(template.prompt)}</div>
+          ${groupSelect}
+          <div class="wanjuan-workspace-card-actions">
+            ${options.team ? `<button class="wanjuan-workspace-button primary" data-workspace-action="use-team-template">使用</button>${isLocalTeamTemplate ? `<button class="wanjuan-workspace-button danger" data-workspace-action="delete-team-template">删除</button>` : `<button class="wanjuan-workspace-button" data-workspace-action="copy-team-template">存到个人</button>`}` : `<button class="wanjuan-workspace-button primary" data-workspace-action="use-template">使用</button><button class="wanjuan-workspace-button" data-workspace-action="publish-template">发到团队</button>`}
+            <button class="wanjuan-workspace-button" data-workspace-action="copy-prompt">复制提示词</button>
+            ${options.team ? "" : `<button class="wanjuan-workspace-button danger" data-workspace-action="delete-template">删除</button>`}
+          </div>
+        </div>
+      </article>
+    `;
+  };
+
+  const renderWorkspaceFunctionTypeSegment = (type = "all") => {
+    const normalizedType = String(type || "all");
+    return `
+      <div class="wanjuan-workspace-segment" data-function-field="type" role="group" aria-label="功能提示词类型">
+        ${[
+          ["all", "通用"],
+          ["text", "文本"],
+          ["image", "图片"],
+          ["video", "视频"],
+        ].map(([value, label]) => `<button type="button" data-function-type="${value}" class="${normalizedType === value ? "is-active" : ""}">${label}</button>`).join("")}
+      </div>
+    `;
+  };
+
+  const renderWorkspacePanel = async () => {
+    const page = document.querySelector(".wanjuan-workspace-page");
+    if (!page) return;
+    const renderSeq = ++workspaceRenderSeq;
+    const activeElement = document.activeElement;
+    const activeWorkspaceField = activeElement instanceof HTMLInputElement || activeElement instanceof HTMLTextAreaElement || activeElement instanceof HTMLSelectElement ?
+      activeElement.getAttribute("data-workspace-field") || "" :
+      "";
+    const activeSelectionStart = activeElement instanceof HTMLInputElement || activeElement instanceof HTMLTextAreaElement ?
+      activeElement.selectionStart :
+      null;
+    const activeSelectionEnd = activeElement instanceof HTMLInputElement || activeElement instanceof HTMLTextAreaElement ?
+      activeElement.selectionEnd :
+      null;
+    const data = await workspaceReadAll();
+    const restoredStatus = workspaceState.activeSpace === "team" ? await workspaceEnsureTeamService(data) : null;
+    const statusResult = restoredStatus ? { ok: true, status: restoredStatus } : await Promise.resolve(window.wanjuanDesktop?.workspaceTeamStatus?.()).catch(() => null);
+    if (renderSeq !== workspaceRenderSeq) return;
+    workspaceState.status = statusResult?.status || workspaceState.status;
+    const query = workspaceState.query.trim().toLowerCase();
+    const filterTemplates = (templates) => templates.filter((template) => {
+      if (workspaceState.selectedGroupId === "__ungrouped" && template.groupId) return false;
+      if (workspaceState.selectedGroupId && workspaceState.selectedGroupId !== "__ungrouped" && template.groupId !== workspaceState.selectedGroupId) return false;
+      if (!query) return true;
+      return `${template.title} ${template.prompt} ${template.modelName}`.toLowerCase().includes(query);
+    });
+    const filterFunctionPrompts = (prompts) => prompts
+      .map((prompt, index) => ({ prompt, index }))
+      .filter(({ prompt }) => !query || `${prompt.title || ""} ${prompt.prompt || ""} ${prompt.type || ""}`.toLowerCase().includes(query));
+    const personalTemplates = filterTemplates(data.templates);
+    const functionPrompts = filterFunctionPrompts(data.presetPrompts);
+    const localTeamTemplates = data.publishedTemplates.map((template) => ({
+      ...template,
+      memberName: data.teamSettings.memberName || "本机",
+      sourceMemberAddress: "local",
+    }));
+    const remoteTeamTemplates = workspaceState.teamResults.flatMap((result) =>
+      (result.templates || []).map((template) => ({
+        ...template,
+        memberName: result.manifest?.memberName || result.name || result.address,
+        sourceMemberAddress: result.address,
+      }))
+    );
+    const teamTemplates = [...localTeamTemplates, ...remoteTeamTemplates]
+      .filter((template) => !query || `${template.title} ${template.prompt} ${template.modelName} ${template.memberName}`.toLowerCase().includes(query));
+    const teamUrls = workspaceState.status?.urls || [];
+    const allTeamUrls = workspaceState.status?.allUrls || teamUrls;
+    const preferredUrl = workspaceState.status?.preferredUrl || teamUrls[0] || "";
+    const otherTeamUrls = allTeamUrls.filter((url) => url && url !== preferredUrl);
+    const teamStatusHtml = data.teamSettings.enabled && workspaceState.status?.running ?
+      `
+        已开启，其他成员优先添加：
+        <strong>${workspaceEscapeHtml(preferredUrl || `端口 ${workspaceState.status.port}`)}</strong>
+        <small>当前共享模板：${data.publishedTemplates.length} 个。可在另一台电脑浏览器打开此地址检查是否连通。</small>
+        ${otherTeamUrls.length ? `<small>其他可用地址：${workspaceEscapeHtml(otherTeamUrls.join("，"))}</small>` : ""}
+        <small>如果推荐地址连不上，让对方改用同一 Wi-Fi/网线网段里的另一个 192.168/10/172 地址。</small>
+      ` :
+      `未开启。Windows 首次开启如无法访问，请允许防火墙访问当前端口。${workspaceState.teamServiceError ? `<small>错误：${workspaceEscapeHtml(workspaceState.teamServiceError)}</small>` : ""}`;
+    const teamMemberStatusHtml = (data.teamSettings.members || []).map((member) => {
+      const address = typeof member === "string" ? member : member.address;
+      const result = (workspaceState.teamResults || []).find((item) =>
+        item.address === address ||
+        item.inputAddress === address ||
+        item.address === String(address || "").replace(/\/$/, "") ||
+        item.inputAddress === String(address || "").replace(/\/$/, "")
+      );
+      const statusText = result ? (result.ok ? `${(result.templates || []).length} 个模板` : `连接失败：${result.error || "未知错误"}`) : "未刷新";
+      return `<button class="wanjuan-workspace-group ${result?.ok ? "is-online" : result ? "is-error" : ""}" data-workspace-member="${workspaceEscapeHtml(address)}"><span>${workspaceEscapeHtml(address)}</span><small>${workspaceEscapeHtml(statusText)}</small><span>移除</span></button>`;
+    }).join("");
+    page.innerHTML = `
+      <div class="wanjuan-workspace-header">
+        <div><div class="wanjuan-workspace-title">工作空间</div><div class="wanjuan-workspace-subtitle">个人提示词资产和局域网团队模板共享</div></div>
+        <div class="wanjuan-workspace-tabs">
+          <button data-workspace-space="personal" class="${workspaceState.activeSpace === "personal" ? "is-active" : ""}">个人空间</button>
+          <button data-workspace-space="team" class="${workspaceState.activeSpace === "team" ? "is-active" : ""}">团队空间</button>
+        </div>
+      </div>
+      <div class="wanjuan-workspace-body">
+        <aside class="wanjuan-workspace-sidebar">
+          ${workspaceState.activeSpace === "personal" ? `
+            <div class="wanjuan-workspace-sections">
+              <button data-workspace-section="templates" class="${workspaceState.activeSection === "templates" ? "is-active" : ""}">提示词模板</button>
+              <button data-workspace-section="functionPrompts" class="${workspaceState.activeSection === "functionPrompts" ? "is-active" : ""}">功能提示词</button>
+            </div>
+            ${workspaceState.activeSection === "templates" ? `
+              <button class="wanjuan-workspace-button primary" data-workspace-action="save-selected-node">保存选中节点</button>
+              <button class="wanjuan-workspace-button" data-workspace-action="new-group">新建分组</button>
+              <div class="wanjuan-workspace-group-list">${renderWorkspaceGroups(data.groups, data.templates)}</div>
+            ` : `<button class="wanjuan-workspace-button primary" data-workspace-action="add-function-prompt">新增功能提示词</button>`}
+          ` : `
+            <div class="wanjuan-workspace-team-status">${teamStatusHtml}</div>
+            <button class="wanjuan-workspace-button ${data.teamSettings.enabled ? "" : "primary"}" data-workspace-action="${data.teamSettings.enabled ? "stop-team" : "start-team"}">${data.teamSettings.enabled ? "关闭团队空间" : "开启团队空间"}</button>
+            <div class="wanjuan-workspace-form">
+              <label class="wanjuan-workspace-field-label">我的团队昵称<input data-workspace-field="memberName" value="${workspaceEscapeHtml(data.teamSettings.memberName || "")}" placeholder="例如：设计一号机"></label>
+              <label class="wanjuan-workspace-field-label">团队空间端口<input data-workspace-field="teamPort" value="${workspaceEscapeHtml(data.teamSettings.port || 39218)}" placeholder="39218" inputmode="numeric"></label>
+              <div class="wanjuan-workspace-field-help">这是本机对外共享团队空间使用的端口；其他电脑共享时可使用各自设置的端口。</div>
+              <button class="wanjuan-workspace-button" data-workspace-action="save-team-settings">保存团队设置</button>
+            </div>
+            <div class="wanjuan-workspace-form">
+              <input data-workspace-field="memberAddress" value="${workspaceEscapeHtml(workspaceState.teamMemberAddress)}" placeholder="成员地址，如 192.168.1.8:39218">
+              <button class="wanjuan-workspace-button primary" data-workspace-action="add-member">添加成员</button>
+              <button class="wanjuan-workspace-button" data-workspace-action="refresh-team">${workspaceState.teamRefreshing ? "刷新中" : "刷新团队"}</button>
+            </div>
+            <div class="wanjuan-workspace-group-list">${teamMemberStatusHtml}</div>
+          `}
+        </aside>
+        <main class="wanjuan-workspace-content">
+          <div class="wanjuan-workspace-toolbar">
+            <input class="wanjuan-workspace-search" data-workspace-field="query" value="${workspaceEscapeHtml(workspaceState.query)}" placeholder="搜索标题、提示词、模型">
+            <div class="wanjuan-workspace-toolbar-actions">
+              ${workspaceState.activeSpace === "personal" && workspaceState.activeSection === "functionPrompts" ? `<button class="wanjuan-workspace-button primary" data-workspace-action="add-function-prompt">新增功能提示词</button>` : ""}
+              <button class="wanjuan-workspace-button" data-workspace-action="close">返回</button>
+            </div>
+          </div>
+          ${workspaceState.activeSpace === "personal" && workspaceState.activeSection === "functionPrompts" ? `
+            <div class="wanjuan-workspace-list wanjuan-workspace-function-list">
+              ${functionPrompts.length ? functionPrompts.map(({ prompt, index }) => `
+                <article class="wanjuan-workspace-function-card" data-function-prompt-index="${index}">
+                  <input data-function-field="title" value="${workspaceEscapeHtml(prompt.title || "")}" placeholder="标题">
+                  ${renderWorkspaceFunctionTypeSegment(prompt.type)}
+                  <textarea data-function-field="prompt" placeholder="提示词内容">${workspaceEscapeHtml(prompt.prompt || "")}</textarea>
+                  <div class="wanjuan-workspace-function-card-footer">
+                    <label class="wanjuan-workspace-function-enabled"><input type="checkbox" data-function-field="enabled" ${prompt.enabled !== false ? "checked" : ""}>启用</label>
+                    <button class="wanjuan-workspace-button danger" data-workspace-action="delete-function-prompt">删除</button>
+                  </div>
+                </article>
+              `).join("") : `<div class="wanjuan-workspace-empty">${query ? "没有匹配的功能提示词" : "暂无功能提示词"}</div>`}
+            </div>
+          ` : `
+            <div class="wanjuan-workspace-list">
+              ${workspaceState.activeSpace === "team" ?
+                (teamTemplates.length ? teamTemplates.map((template) => renderWorkspaceTemplateCard(template, { team: true, memberName: template.memberName })).join("") : `<div class="wanjuan-workspace-empty">暂无团队模板。先添加成员地址并刷新，或让本机发布模板。</div>`) :
+                (personalTemplates.length ? personalTemplates.map((template) => renderWorkspaceTemplateCard(template, { groups: data.groups })).join("") : `<div class="wanjuan-workspace-empty">暂无提示词模板。可以从画布选中生成完成的即梦节点后点击“保存选中节点”。</div>`)
+              }
+            </div>
+          `}
+        </main>
+      </div>
+    `;
+    if (activeWorkspaceField) {
+      const nextActive = page.querySelector(`[data-workspace-field='${activeWorkspaceField}']`);
+      if (nextActive instanceof HTMLInputElement || nextActive instanceof HTMLTextAreaElement || nextActive instanceof HTMLSelectElement) {
+        nextActive.focus();
+        if (
+          activeSelectionStart != null &&
+          activeSelectionEnd != null &&
+          (nextActive instanceof HTMLInputElement || nextActive instanceof HTMLTextAreaElement)
+        ) {
+          nextActive.setSelectionRange(activeSelectionStart, activeSelectionEnd);
+        }
+      }
+    }
+  };
+
+  const bindWorkspacePanelEvents = () => {
+    if (workspacePanelInstalled) return;
+    workspacePanelInstalled = true;
+
+    document.addEventListener("click", async (event) => {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+
+      const nativeNavTab = target.closest(".wanjuan-app-nav-tab:not(.wanjuan-workspace-nav-tab)");
+      if (nativeNavTab) {
+        document.documentElement.classList.remove("wanjuan-workspace-open");
+        document.querySelector(".wanjuan-workspace-nav-tab")?.classList.remove("wanjuan-app-nav-tab-active");
+      }
+
+      const page = target.closest(".wanjuan-workspace-page");
+      if (!page) return;
+
+      const functionTypeButton = target.closest("[data-function-type]");
+      if (functionTypeButton) {
+        const index = Number(functionTypeButton.closest("[data-function-prompt-index]")?.getAttribute("data-function-prompt-index"));
+        if (!Number.isInteger(index)) return;
+        const data = await workspaceReadAll();
+        const nextPrompts = data.presetPrompts.map((prompt, itemIndex) =>
+          itemIndex === index ? { ...prompt, type: functionTypeButton.getAttribute("data-function-type") || "all" } : prompt
+        );
+        await workspaceStorageSet({ presetPrompts: nextPrompts });
+        await renderWorkspacePanel();
+        return;
+      }
+
+      const spaceButton = target.closest("[data-workspace-space]");
+      if (spaceButton) {
+        workspaceState.activeSpace = spaceButton.getAttribute("data-workspace-space") || "personal";
+        if (workspaceState.activeSpace === "team") workspaceState.activeSection = "templates";
+        await renderWorkspacePanel();
+        return;
+      }
+
+      const sectionButton = target.closest("[data-workspace-section]");
+      if (sectionButton) {
+        workspaceState.activeSection = sectionButton.getAttribute("data-workspace-section") || "templates";
+        await renderWorkspacePanel();
+        return;
+      }
+
+      const groupButton = target.closest("[data-workspace-group]");
+      if (groupButton) {
+        workspaceState.selectedGroupId = groupButton.getAttribute("data-workspace-group") || "";
+        await renderWorkspacePanel();
+        return;
+      }
+
+      const memberButton = target.closest("[data-workspace-member]");
+      if (memberButton) {
+        const address = memberButton.getAttribute("data-workspace-member") || "";
+        const data = await workspaceReadAll();
+        await workspaceStorageSet({
+          workspaceTeamSettings: {
+            ...data.teamSettings,
+            members: (data.teamSettings.members || []).filter((member) => (typeof member === "string" ? member : member.address) !== address),
+          }
+        });
+        workspaceState.teamResults = (workspaceState.teamResults || []).filter((result) => result.address !== address);
+        await renderWorkspacePanel();
+        return;
+      }
+
+      const actionButton = target.closest("[data-workspace-action]");
+      if (!actionButton) return;
+      const action = actionButton.getAttribute("data-workspace-action") || "";
+      const card = actionButton.closest("[data-template-id]");
+      const templateId = card?.getAttribute("data-template-id") || "";
+      const data = await workspaceReadAll();
+      const personalTemplate = data.templates.find((item) => item.id === templateId);
+      const teamTemplate = workspaceFindTeamTemplate(templateId);
+      const localPublishedTemplate = data.publishedTemplates.find((item) => item.id === templateId);
+      const selectedTemplate = workspaceState.activeSpace === "team" ? (teamTemplate || localPublishedTemplate) : personalTemplate;
+
+      if (action === "close") {
+        workspaceOpenCanvas();
+        return;
+      }
+      if (action === "save-selected-node") {
+        workspaceOpenCanvas();
+        window.setTimeout(() => {
+          window.dispatchEvent(new CustomEvent("wanjuan:workspace-save-node-template"));
+        }, 120);
+        return;
+      }
+      if (action === "new-group") {
+        const name = await window.wanjuanDesktop?.showInputDialog?.({
+          title: "新建分组",
+          message: "输入提示词模板分组名称",
+          defaultValue: "新分组",
+        });
+        if (!String(name || "").trim()) return;
+        await workspaceStorageSet({
+          workspacePromptTemplateGroups: [
+            workspaceNormalizeGroup({ name: String(name).trim() }),
+            ...data.groups,
+          ],
+        });
+        await renderWorkspacePanel();
+        return;
+      }
+      if (action === "add-function-prompt") {
+        await workspaceStorageSet({
+          presetPrompts: [
+            ...data.presetPrompts,
+            { title: "新功能提示词", prompt: "", type: "all", enabled: true },
+          ],
+        });
+        await renderWorkspacePanel();
+        return;
+      }
+      if (action === "delete-function-prompt") {
+        const index = Number(actionButton.closest("[data-function-prompt-index]")?.getAttribute("data-function-prompt-index"));
+        if (!Number.isInteger(index)) return;
+        await workspaceStorageSet({ presetPrompts: data.presetPrompts.filter((_, itemIndex) => itemIndex !== index) });
+        await renderWorkspacePanel();
+        return;
+      }
+      if (action === "delete-template" && personalTemplate) {
+        await workspaceStorageSet({
+          workspacePromptTemplates: data.templates.filter((item) => item.id !== personalTemplate.id),
+          workspacePublishedTemplates: data.publishedTemplates.filter((item) => item.id !== personalTemplate.id),
+        });
+        await workspaceSyncPublishedTemplates(data.publishedTemplates.filter((item) => item.id !== personalTemplate.id));
+        workspaceToast("已删除模板");
+        await renderWorkspacePanel();
+        return;
+      }
+      if (action === "publish-template" && personalTemplate) {
+        await workspacePublishTemplate(personalTemplate);
+        return;
+      }
+      if (action === "delete-team-template" && localPublishedTemplate) {
+        const nextPublished = data.publishedTemplates.filter((item) => item.id !== localPublishedTemplate.id);
+        await workspaceStorageSet({ workspacePublishedTemplates: nextPublished });
+        await workspaceSyncPublishedTemplates(nextPublished);
+        workspaceToast("已从团队空间删除");
+        await renderWorkspacePanel();
+        return;
+      }
+      if ((action === "use-template" || action === "use-team-template") && selectedTemplate) {
+        workspaceUseTemplate(selectedTemplate);
+        return;
+      }
+      if (action === "copy-team-template" && teamTemplate) {
+        await workspaceSaveTemplate({
+          ...teamTemplate,
+          id: workspaceId("workspace-template"),
+          groupId: "",
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        });
+        workspaceToast("已存到个人空间");
+        workspaceState.activeSpace = "personal";
+        await renderWorkspacePanel();
+        return;
+      }
+      if (action === "copy-prompt" && selectedTemplate) {
+        await workspaceCopyText(selectedTemplate.prompt);
+        return;
+      }
+      if (action === "start-team" || action === "stop-team") {
+        await workspaceToggleTeamServer(action === "start-team");
+        return;
+      }
+      if (action === "save-team-settings") {
+        const memberName = page.querySelector("[data-workspace-field='memberName']")?.value || "";
+        const teamPort = page.querySelector("[data-workspace-field='teamPort']")?.value || 39218;
+        const nextSettings = {
+          ...data.teamSettings,
+          memberName: String(memberName).trim(),
+          port: Math.max(1024, Math.min(65535, Math.round(Number(teamPort) || 39218))),
+        };
+        await workspaceStorageSet({ workspaceTeamSettings: nextSettings });
+        if (nextSettings.enabled) await workspaceToggleTeamServer(true);
+        else await renderWorkspacePanel();
+        workspaceToast("团队设置已保存");
+        return;
+      }
+      if (action === "add-member") {
+        await workspaceAddMember();
+        return;
+      }
+      if (action === "refresh-team") {
+        await workspaceRefreshTeamMembers();
+      }
+    }, true);
+
+    document.addEventListener("input", async (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement)) return;
+      if (!target.closest(".wanjuan-workspace-page")) return;
+
+      const workspaceField = target.getAttribute("data-workspace-field");
+      if (workspaceField === "query") {
+        workspaceState.query = target.value;
+        workspaceScheduleRender();
+        return;
+      }
+      if (workspaceField === "memberAddress") {
+        workspaceState.teamMemberAddress = target.value;
+        return;
+      }
+
+      const functionField = target.getAttribute("data-function-field");
+      if (!functionField) return;
+      const index = Number(target.closest("[data-function-prompt-index]")?.getAttribute("data-function-prompt-index"));
+      if (!Number.isInteger(index)) return;
+      const data = await workspaceReadAll();
+      const nextPrompts = data.presetPrompts.map((prompt, itemIndex) => {
+        if (itemIndex !== index) return prompt;
+        return {
+          ...prompt,
+          [functionField]: functionField === "enabled" && target instanceof HTMLInputElement ? target.checked : target.value,
+        };
+      });
+      await workspaceStorageSet({ presetPrompts: nextPrompts });
+    }, true);
+
+    document.addEventListener("change", async (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement)) return;
+      if (!target.closest(".wanjuan-workspace-page")) return;
+      if (target.hasAttribute("data-workspace-template-group")) {
+        const templateId = target.closest("[data-template-id]")?.getAttribute("data-template-id") || "";
+        if (!templateId) return;
+        const data = await workspaceReadAll();
+        const updatedAt = Date.now();
+        const nextTemplates = data.templates.map((template) =>
+          template.id === templateId ? { ...template, groupId: target.value || "", updatedAt } : template
+        );
+        const nextPublished = data.publishedTemplates.map((template) =>
+          template.id === templateId ? { ...template, groupId: target.value || "", updatedAt } : template
+        );
+        await workspaceStorageSet({
+          workspacePromptTemplates: nextTemplates,
+          workspacePublishedTemplates: nextPublished,
+        });
+        await workspaceSyncPublishedTemplates(nextPublished);
+        await renderWorkspacePanel();
+        return;
+      }
+      if (!target.hasAttribute("data-function-field")) return;
+      target.dispatchEvent(new Event("input", { bubbles: true }));
+    }, true);
+
+    window.addEventListener("wanjuan:workspace-template-captured", async (event) => {
+      const template = event?.detail?.template;
+      if (!template) return;
+      await workspaceSaveTemplate(template);
+      workspaceState.activeSpace = "personal";
+      workspaceState.activeSection = "templates";
+      document.documentElement.classList.add("wanjuan-workspace-open");
+      installWorkspacePanel();
+      await renderWorkspacePanel();
+      workspaceToast("已保存到工作空间");
+    });
+
+    window.addEventListener("wanjuan:workspace-open", async () => {
+      installWorkspacePanel();
+      document.documentElement.classList.add("wanjuan-workspace-open");
+      document.querySelector(".wanjuan-workspace-nav-tab")?.classList.add("wanjuan-app-nav-tab-active");
+      await renderWorkspacePanel();
+    });
+  };
+
+  const installWorkspacePanel = () => {
+    ensureWorkspaceStyle();
+    bindWorkspacePanelEvents();
+    const nav = document.querySelector(".wanjuan-app-top-nav");
+    if (!(nav instanceof HTMLElement)) return false;
+
+    const contentRoot = nav.nextElementSibling;
+    if (!(contentRoot instanceof HTMLElement)) return false;
+    if (getComputedStyle(contentRoot).position === "static") contentRoot.style.position = "relative";
+    if (!contentRoot.querySelector(".wanjuan-workspace-page")) {
+      const page = document.createElement("section");
+      page.className = "wanjuan-workspace-page";
+      contentRoot.appendChild(page);
+    }
+    const page = contentRoot.querySelector(".wanjuan-workspace-page");
+    if (document.documentElement.classList.contains("wanjuan-workspace-open")) {
+      const button = nav.querySelector(".wanjuan-workspace-nav-tab");
+      button?.classList.add("wanjuan-app-nav-tab-active");
+      if (!page?.hasChildNodes?.()) renderWorkspacePanel();
+    }
+    return true;
+  };
+
   const runOnce = () => {
+    installDesktopUiStateStyle();
     for (const label of hideLabels) hideByText(label);
     hideSettingsCardByTitle("会员与激活");
     if (!projectNameSynced) {
@@ -2363,6 +3297,7 @@ function installDesktopPatches() {
     installCanvasPressureMeter();
     installSeedreamOfficialIcons();
     installTianjiSettingsPanel().catch((error) => console.warn("Tianji settings panel skipped", error));
+    installWorkspacePanel();
     installProjectSafetyBackupCenter();
     ensureProjectSafetyAutoBackupStarted();
     if (!autoClicked && autoClickByText(autoClickLabels)) autoClicked = true;
@@ -2381,19 +3316,34 @@ function installDesktopPatches() {
     window.setTimeout(() => {
       patchQueued = false;
       runOnce();
-    }, 250);
+    }, 1200);
   };
-  const mo = new MutationObserver(queueDesktopPatchRefresh);
+  const mo = new MutationObserver((mutations) => {
+    const onlyWorkspaceMutation = mutations.length > 0 && mutations.every((mutation) => {
+      const target = mutation.target instanceof Element ? mutation.target : mutation.target?.parentElement;
+      if (target?.closest?.(".wanjuan-workspace-page, .wanjuan-workspace-nav-tab, #wanjuan-workspace-style")) return true;
+      return Array.from(mutation.addedNodes || []).every((node) =>
+        node instanceof Element &&
+        node.closest?.(".wanjuan-workspace-page, .wanjuan-workspace-nav-tab, #wanjuan-workspace-style")
+      );
+    });
+    if (onlyWorkspaceMutation) return;
+    queueDesktopPatchRefresh();
+  });
   mo.observe(document.documentElement, { subtree: true, childList: true });
 
   let seedreamIconPatchQueued = false;
-  const seedreamIconObserver = new MutationObserver(() => {
+  const seedreamIconObserver = new MutationObserver((mutations) => {
+    if (mutations.length && mutations.every((mutation) => {
+      const target = mutation.target instanceof Element ? mutation.target : mutation.target?.parentElement;
+      return target?.closest?.(".wanjuan-workspace-page");
+    })) return;
     if (seedreamIconPatchQueued) return;
     seedreamIconPatchQueued = true;
-    queueMicrotask(() => {
+    window.setTimeout(() => {
       seedreamIconPatchQueued = false;
       installSeedreamOfficialIcons();
-    });
+    }, 800);
   });
   seedreamIconObserver.observe(document.documentElement, { subtree: true, childList: true });
 

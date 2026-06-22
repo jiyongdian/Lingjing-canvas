@@ -439,6 +439,313 @@ async function extractZipArchive(zipPath, destination) {
   });
 }
 
+function extensionToolsRoot() {
+  return path.join(safeUserPath("userData"), "extension-tools");
+}
+
+function safeJoinUnder(root, relativePath = "") {
+  const raw = String(relativePath || "").trim();
+  if (!raw || path.isAbsolute(raw) || raw.split(/[\\/]+/).includes("..")) {
+    throw new Error(`离线工具包路径不安全：${raw || "(空)"}`);
+  }
+  const resolved = path.resolve(root, raw);
+  const base = path.resolve(root);
+  if (resolved !== base && !resolved.startsWith(`${base}${path.sep}`)) {
+    throw new Error(`离线工具包路径越界：${raw}`);
+  }
+  return resolved;
+}
+
+function readJsonFile(filePath) {
+  return JSON.parse(fs.readFileSync(filePath, "utf8"));
+}
+
+function findToolPackRoot(root) {
+  const directManifest = path.join(root, "wanjuan-toolpack.json");
+  if (fs.existsSync(directManifest)) return root;
+  const legacyManifest = path.join(root, "manifest.json");
+  if (fs.existsSync(legacyManifest)) return root;
+  const entries = fs.readdirSync(root, { withFileTypes: true }).filter((entry) => entry.isDirectory());
+  if (entries.length === 1) {
+    const nested = path.join(root, entries[0].name);
+    if (fs.existsSync(path.join(nested, "wanjuan-toolpack.json")) || fs.existsSync(path.join(nested, "manifest.json"))) return nested;
+  }
+  throw new Error("没有在所选位置找到 wanjuan-toolpack.json。");
+}
+
+function normalizeManifestList(value) {
+  if (Array.isArray(value)) return value.map((item) => String(item || "").trim()).filter(Boolean);
+  const text = String(value || "").trim();
+  return text ? [text] : [];
+}
+
+function assertToolPackManifest(manifest) {
+  const protocol = String(manifest.protocol || manifest.type || "").trim();
+  if (protocol && protocol !== "wanjuan-toolpack") throw new Error("这不是万卷灵境离线工具包。");
+  const platforms = normalizeManifestList(manifest.platforms || manifest.platform);
+  const arches = normalizeManifestList(manifest.arches || manifest.arch);
+  if (platforms.length && !platforms.includes(PLATFORM_KEY)) {
+    throw new Error(`工具包平台不匹配：当前是 ${PLATFORM_KEY}，工具包支持 ${platforms.join("、")}`);
+  }
+  if (arches.length && !arches.includes(ARCH_KEY)) {
+    throw new Error(`工具包架构不匹配：当前是 ${ARCH_KEY}，工具包支持 ${arches.join("、")}`);
+  }
+  const tools = Array.isArray(manifest.tools) ? manifest.tools : [];
+  if (!tools.length) throw new Error("工具包 manifest 缺少 tools 列表。");
+}
+
+function toolTargetRoot(toolId) {
+  if (toolId === "deface") return defaceToolRoot();
+  if (toolId === "qwen-tts") return qwenTtsToolRoot();
+  if (toolId === "real-esrgan") return realEsrganToolRoot();
+  if (toolId === "uv") return uvToolRoot();
+  throw new Error(`暂不支持导入工具：${toolId}`);
+}
+
+function managedPythonRuntimeRoot() {
+  return path.join(extensionToolsRoot(), "python");
+}
+
+function copyDirectoryContents(source, destination) {
+  if (!fs.existsSync(source) || !fs.statSync(source).isDirectory()) {
+    throw new Error(`工具包内容不存在：${source}`);
+  }
+  fs.rmSync(destination, { recursive: true, force: true });
+  fs.mkdirSync(path.dirname(destination), { recursive: true });
+  fs.cpSync(source, destination, { recursive: true, force: true });
+}
+
+function chmodExecutablesInTree(root) {
+  if (IS_WINDOWS || !fs.existsSync(root)) return;
+  const executableNames = new Set([
+    "python",
+    "python3",
+    "python3.10",
+    "python3.11",
+    "python3.12",
+    "deface",
+    "ffmpeg",
+    "ffprobe",
+    "uv",
+    "realesrgan-ncnn-vulkan",
+    "qtts.py"
+  ]);
+  const stack = [root];
+  while (stack.length) {
+    const current = stack.pop();
+    let entries = [];
+    try {
+      entries = fs.readdirSync(current, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+    for (const entry of entries) {
+      const fullPath = path.join(current, entry.name);
+      if (entry.isDirectory()) {
+        stack.push(fullPath);
+      } else if (executableNames.has(entry.name) || /\.(command|sh|py)$/i.test(entry.name)) {
+        try {
+          fs.chmodSync(fullPath, 0o755);
+        } catch {}
+      }
+    }
+  }
+}
+
+function firstExistingPath(paths = []) {
+  return paths.find((item) => item && fs.existsSync(item)) || "";
+}
+
+function pythonRuntimeCommand(runtimeRoot) {
+  if (!runtimeRoot) return "";
+  if (IS_WINDOWS) {
+    return firstExistingPath([
+      path.join(runtimeRoot, "python.exe"),
+      path.join(runtimeRoot, "Scripts", "python.exe")
+    ]);
+  }
+  return firstExistingPath([
+    path.join(runtimeRoot, "bin", "python3.12"),
+    path.join(runtimeRoot, "bin", "python3"),
+    path.join(runtimeRoot, "bin", "python"),
+    path.join(runtimeRoot, "python3.12"),
+    path.join(runtimeRoot, "python3"),
+    path.join(runtimeRoot, "python")
+  ]);
+}
+
+function repairImportedPythonVenv(venvRoot, runtimeRoot) {
+  if (!venvRoot || !runtimeRoot || !fs.existsSync(venvRoot) || !fs.existsSync(runtimeRoot)) return;
+  const runtimePython = pythonRuntimeCommand(runtimeRoot);
+  if (!runtimePython) return;
+  const binDir = path.join(venvRoot, IS_WINDOWS ? "Scripts" : "bin");
+  if (!fs.existsSync(binDir)) return;
+  let versionText = "Python 3.12";
+  try {
+    versionText = String(execFileSync(runtimePython, ["--version"], {
+      encoding: "utf8",
+      timeout: 15000,
+      maxBuffer: 1024 * 1024
+    }) || "").trim() || versionText;
+  } catch {}
+  const parsed = parsePythonVersionText(versionText);
+  const minor = parsed ? `${parsed.major}.${parsed.minor}` : "3.12";
+  const venvPython = path.join(binDir, executableName("python"));
+  const venvPythonVersion = path.join(binDir, IS_WINDOWS ? `python${minor}.exe` : `python${minor}`);
+
+  if (!IS_WINDOWS) {
+    try {
+      fs.rmSync(venvPythonVersion, { force: true });
+      fs.symlinkSync(runtimePython, venvPythonVersion);
+    } catch {}
+    try {
+      fs.rmSync(venvPython, { force: true });
+      fs.symlinkSync(path.basename(venvPythonVersion), venvPython);
+    } catch {}
+    try {
+      const venvPython3 = path.join(binDir, "python3");
+      fs.rmSync(venvPython3, { force: true });
+      fs.symlinkSync(path.basename(venvPythonVersion), venvPython3);
+    } catch {}
+  }
+
+  try {
+    fs.writeFileSync(path.join(venvRoot, "pyvenv.cfg"), [
+      `home = ${path.dirname(runtimePython)}`,
+      "include-system-site-packages = false",
+      `version = ${parsed ? `${parsed.major}.${parsed.minor}.${parsed.patch || 0}` : versionText.replace(/^Python\s+/i, "")}`,
+      `executable = ${runtimePython}`,
+      `command = ${runtimePython} -m venv ${venvRoot}`
+    ].join("\n"));
+  } catch {}
+
+  if (IS_WINDOWS) return;
+  let entries = [];
+  try {
+    entries = fs.readdirSync(binDir, { withFileTypes: true });
+  } catch {
+    return;
+  }
+  for (const entry of entries) {
+    if (!entry.isFile()) continue;
+    const filePath = path.join(binDir, entry.name);
+    let source = "";
+    try {
+      source = fs.readFileSync(filePath, "utf8");
+    } catch {
+      continue;
+    }
+    if (!source.startsWith("#!")) continue;
+    const next = source
+      .replace(/^#!.*\/python[^\n]*(\n)/, `#!${venvPython}$1`)
+      .replace(/'''exec' ".*\/python[^"]*" "\$0" "\$@"/, `'''exec' "${venvPython}" "$0" "$@"`);
+    if (next !== source) {
+      try {
+        fs.writeFileSync(filePath, next);
+        fs.chmodSync(filePath, 0o755);
+      } catch {}
+    }
+  }
+}
+
+function getImportedToolStatus(toolId) {
+  if (toolId === "deface") return getDefaceToolStatus();
+  if (toolId === "qwen-tts") return getQwenTtsToolStatus();
+  if (toolId === "real-esrgan") return getRealEsrganToolStatus();
+  if (toolId === "uv") {
+    const command = uvCommand();
+    return { ok: true, installed: hasCommand(command, ["--version"]), command };
+  }
+  return { ok: false, error: `暂不支持该工具：${toolId}` };
+}
+
+async function importExtensionToolPack(sourcePath) {
+  const selectedPath = String(sourcePath || "").trim();
+  if (!selectedPath) throw new Error("没有选择离线工具包。");
+  if (!fs.existsSync(selectedPath)) throw new Error("所选离线工具包不存在。");
+  const tempRoot = path.join(extensionToolsRoot(), ".toolpack-import", `${Date.now()}-${crypto.randomBytes(4).toString("hex")}`);
+  let packRoot = selectedPath;
+  try {
+    if (fs.statSync(selectedPath).isFile()) {
+      if (!/\.zip$/i.test(selectedPath)) throw new Error("目前仅支持导入文件夹或 .zip 离线工具包。");
+      fs.rmSync(tempRoot, { recursive: true, force: true });
+      fs.mkdirSync(tempRoot, { recursive: true });
+      await extractZipArchive(selectedPath, tempRoot);
+      packRoot = findToolPackRoot(tempRoot);
+    } else {
+      packRoot = findToolPackRoot(selectedPath);
+    }
+
+    const manifestPath = fs.existsSync(path.join(packRoot, "wanjuan-toolpack.json"))
+      ? path.join(packRoot, "wanjuan-toolpack.json")
+      : path.join(packRoot, "manifest.json");
+    const manifest = readJsonFile(manifestPath);
+    assertToolPackManifest(manifest);
+
+    let pythonRuntimeTarget = "";
+    if (manifest.runtimePython || manifest.pythonRuntime) {
+      const runtimePythonSource = safeJoinUnder(packRoot, manifest.runtimePython || manifest.pythonRuntime);
+      pythonRuntimeTarget = path.join(managedPythonRuntimeRoot(), path.basename(runtimePythonSource));
+      fs.rmSync(pythonRuntimeTarget, { recursive: true, force: true });
+      fs.mkdirSync(path.dirname(pythonRuntimeTarget), { recursive: true });
+      fs.cpSync(runtimePythonSource, pythonRuntimeTarget, { recursive: true, force: true });
+      chmodExecutablesInTree(pythonRuntimeTarget);
+    }
+
+    if (manifest.runtimeBin || manifest.bin || manifest.binsRoot) {
+      const runtimeSource = safeJoinUnder(packRoot, manifest.runtimeBin || manifest.bin || manifest.binsRoot);
+      const runtimeTarget = managedToolBinRoot();
+      fs.rmSync(runtimeTarget, { recursive: true, force: true });
+      fs.mkdirSync(path.dirname(runtimeTarget), { recursive: true });
+      fs.cpSync(runtimeSource, runtimeTarget, { recursive: true, force: true });
+      chmodExecutablesInTree(runtimeTarget);
+    }
+
+    const imported = [];
+    for (const rawTool of manifest.tools || []) {
+      const toolId = String(rawTool.id || rawTool.tool || "").trim();
+      if (!toolId) throw new Error("工具条目缺少 id。");
+      const sourceRel = rawTool.source || rawTool.path || rawTool.root || toolId;
+      const source = safeJoinUnder(packRoot, sourceRel);
+      const target = toolTargetRoot(toolId);
+      copyDirectoryContents(source, target);
+      chmodExecutablesInTree(target);
+      if (pythonRuntimeTarget) repairImportedPythonVenv(path.join(target, "venv"), pythonRuntimeTarget);
+      if (toolId === "qwen-tts") patchQwenTtsScriptForMac(qwenTtsScriptPath());
+      const status = getImportedToolStatus(toolId);
+      imported.push({
+        id: toolId,
+        name: rawTool.name || toolId,
+        version: rawTool.version || "",
+        target,
+        status
+      });
+    }
+
+    appendExtensionInstallLog("offline-toolpack-import-ok", {
+      sourcePath: selectedPath,
+      manifestPath,
+      tools: imported.map((item) => item.id)
+    });
+    return {
+      ok: true,
+      name: manifest.name || "万卷灵境离线工具包",
+      version: manifest.version || "",
+      platform: PLATFORM_KEY,
+      arch: ARCH_KEY,
+      imported
+    };
+  } catch (error) {
+    appendExtensionInstallLog("offline-toolpack-import-failed", {
+      sourcePath: selectedPath,
+      message: formatErrorMessage(error)
+    });
+    throw error;
+  } finally {
+    if (tempRoot && fs.existsSync(tempRoot)) fs.rmSync(tempRoot, { recursive: true, force: true });
+  }
+}
+
 async function downloadAndExtractQwenTtsRepo(repoDir) {
   const root = qwenTtsToolRoot();
   const zipPath = path.join(root, "qtts-main.zip");
@@ -1647,5 +1954,6 @@ module.exports = {
   getDefaceToolStatus,
   installDefaceTool,
   blurVideoFaces,
+  importExtensionToolPack,
   realEsrganJobs
 };

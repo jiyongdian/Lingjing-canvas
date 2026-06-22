@@ -189,7 +189,7 @@ function installBootStabilityStyle() {
         "chrome-rose": `<div class="wanjuan-boot-animation rose-bloom" aria-hidden="true"><span class="rose-pistil"></span><span class="rose-petal p1"></span><span class="rose-petal p2"></span><span class="rose-petal p3"></span><span class="rose-petal p4"></span><span class="rose-petal p5"></span><span class="rose-ring r1"></span><span class="rose-ring r2"></span></div>`,
         "chrome-blue": `<div class="wanjuan-boot-animation sky-scene" aria-hidden="true"><span class="sky-sun"></span><span class="sky-cloud c1"></span><span class="sky-cloud c2"></span><span class="sky-cloud c3"></span></div>`,
         "sage-green": `<div class="wanjuan-boot-animation mint-vellum" aria-hidden="true"><span class="mint-halo h1"></span><span class="mint-halo h2"></span><span class="mint-leaf leaf-a"><span class="mint-vein v1"></span><span class="mint-vein v2"></span><span class="mint-vein v3"></span></span><span class="mint-leaf leaf-b"><span class="mint-vein v1"></span><span class="mint-vein v2"></span><span class="mint-vein v3"></span></span><span class="mint-dew d1"></span><span class="mint-dew d2"></span><span class="mint-dew d3"></span><span class="mint-thread t1"></span><span class="mint-thread t2"></span></div>`,
-        "chrome-sand": `<div class="wanjuan-boot-animation sand-vellum" aria-hidden="true"><span class="sand-glow"></span><svg class="sand-landscape" viewBox="0 0 760 300" preserveAspectRatio="xMidYMid meet"><defs><linearGradient id="wjSandWash" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="rgba(233,186,118,0.26)"/><stop offset="1" stop-color="rgba(233,186,118,0)"/></linearGradient></defs><path class="sand-wash wash-back" d="M20 185 C120 153 206 162 304 185 C420 212 540 168 740 122 L740 300 L20 300 Z"/><path class="sand-wash wash-front" d="M-10 230 C122 198 250 211 374 230 C508 251 612 217 770 180 L770 300 L-10 300 Z"/><path class="sand-ridge ridge-a" d="M28 184 C120 154 210 162 306 184 C426 211 548 166 735 124"/><path class="sand-ridge ridge-b" d="M-8 231 C126 199 252 211 376 230 C510 251 616 216 768 181"/><path class="sand-ridge ridge-c" d="M72 255 C186 238 300 241 410 256 C528 272 626 250 720 228"/></svg><span class="sand-grain g1"></span><span class="sand-grain g2"></span><span class="sand-grain g3"></span><span class="sand-grain g4"></span><span class="sand-grain g5"></span><span class="sand-sweep"></span></div>`,
+        "chrome-sand": `<div class="wanjuan-boot-animation sand-vellum" aria-hidden="true"><span class="sand-sun-haze"></span><span class="sand-glow"></span><svg class="sand-landscape" viewBox="0 0 1440 520" preserveAspectRatio="xMidYMid slice"><defs><linearGradient id="wjSandDuneBack" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="rgba(238,196,126,0.40)"/><stop offset="1" stop-color="rgba(230,177,99,0.04)"/></linearGradient><linearGradient id="wjSandDuneMid" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="rgba(223,159,74,0.46)"/><stop offset="0.58" stop-color="rgba(244,207,150,0.24)"/><stop offset="1" stop-color="rgba(255,248,235,0.02)"/></linearGradient><linearGradient id="wjSandDuneFront" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="rgba(207,132,46,0.34)"/><stop offset="0.62" stop-color="rgba(236,187,112,0.20)"/><stop offset="1" stop-color="rgba(255,250,243,0.02)"/></linearGradient></defs><g class="sand-dune-layer dune-back"><path class="sand-dune-fill" fill="url(#wjSandDuneBack)" d="M-180 328 C20 260 184 268 344 315 C548 375 710 268 900 230 C1108 188 1268 238 1620 162 L1620 560 L-180 560 Z"/><path class="sand-ridge ridge-a" d="M-180 328 C20 260 184 268 344 315 C548 375 710 268 900 230 C1108 188 1268 238 1620 162"/></g><g class="sand-dune-layer dune-mid"><path class="sand-dune-fill" fill="url(#wjSandDuneMid)" d="M-220 405 C-12 334 148 348 336 392 C536 438 706 343 920 305 C1128 268 1278 314 1660 236 L1660 560 L-220 560 Z"/><path class="sand-ridge ridge-b" d="M-220 405 C-12 334 148 348 336 392 C536 438 706 343 920 305 C1128 268 1278 314 1660 236"/></g><g class="sand-dune-layer dune-front"><path class="sand-dune-fill" fill="url(#wjSandDuneFront)" d="M-240 475 C-42 430 138 430 328 462 C522 494 694 430 882 400 C1098 366 1276 398 1680 324 L1680 560 L-240 560 Z"/><path class="sand-ridge ridge-c" d="M-240 475 C-42 430 138 430 328 462 C522 494 694 430 882 400 C1098 366 1276 398 1680 324"/><path class="sand-ridge ridge-d" d="M38 502 C194 480 356 486 520 507 C708 531 872 482 1068 454 C1224 432 1348 438 1494 408"/></g></svg><span class="sand-stream stream-a"></span><span class="sand-stream stream-b"></span><span class="sand-stream stream-c"></span><span class="sand-grain g1"></span><span class="sand-grain g2"></span><span class="sand-grain g3"></span><span class="sand-grain g4"></span><span class="sand-grain g5"></span><span class="sand-grain g6"></span><span class="sand-grain g7"></span><span class="sand-grain g8"></span></div>`,
         "dark": `<div class="wanjuan-boot-animation dark-stars" aria-hidden="true">${buildBootParticleMarkup("dark-dust", 46, 120)}<svg class="star-lines" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid meet"><line x1="88" y1="86" x2="154" y2="132"/><line x1="154" y1="132" x2="225" y2="96"/><line x1="154" y1="132" x2="196" y2="214"/><line x1="196" y1="214" x2="296" y2="252"/><line x1="225" y1="96" x2="315" y2="158"/><line x1="315" y1="158" x2="296" y2="252"/><line x1="104" y1="278" x2="196" y2="214"/><line x1="104" y1="278" x2="58" y2="202"/><line x1="315" y1="158" x2="354" y2="92"/></svg><span class="dark-star s1"></span><span class="dark-star s2"></span><span class="dark-star s3"></span><span class="dark-star s4"></span><span class="dark-star s5"></span><span class="dark-star s6"></span><span class="dark-star s7"></span><span class="dark-star s8"></span><span class="dark-star s9"></span><span class="dark-star s10"></span><span class="dark-star s11"></span><span class="dark-star s12"></span></div>`
       };
       themeAnimHTML["light"] = themeAnimHTML["chrome-blue"];
@@ -472,57 +472,137 @@ function installBootStabilityStyle() {
         #wanjuan-boot-splash.boot-theme-warm-light {
           color: #4a351c;
           background:
-            radial-gradient(ellipse 70% 44% at 50% 36%, rgba(226,177,108,0.18), transparent 60%),
-            linear-gradient(180deg, #fffaf3 0%, #f8f0e4 52%, #efe2d1 100%);
+            radial-gradient(ellipse 72% 36% at 56% 26%, rgba(255,226,165,0.36), transparent 62%),
+            radial-gradient(ellipse 86% 44% at 50% 92%, rgba(214,149,70,0.22), transparent 62%),
+            linear-gradient(180deg, #fffaf3 0%, #fbf0dd 48%, #ecd5b4 100%);
+        }
+        #wanjuan-boot-splash .sand-sun-haze {
+          position: absolute; left: 54%; top: 25%; width: min(560px, 76vw); height: min(260px, 38vw);
+          border-radius: 999px;
+          background:
+            radial-gradient(ellipse at 50% 50%, rgba(255,236,188,0.54), rgba(232,177,90,0.13) 56%, transparent 74%);
+          transform: translate(-50%, -50%);
+          filter: blur(4px);
+          opacity: 0.72;
+          animation: wjSandHaze 8.8s ease-in-out infinite !important;
         }
         #wanjuan-boot-splash .sand-glow {
-          position: absolute; left: 50%; top: 42%; width: 330px; height: 190px;
+          position: absolute; left: 50%; top: 62%; width: min(980px, 108vw); height: min(330px, 44vw);
           border-radius: 999px;
-          background: radial-gradient(ellipse, rgba(226,178,101,0.34), rgba(228,190,133,0.11) 54%, transparent 72%);
+          background: radial-gradient(ellipse, rgba(225,167,82,0.22), rgba(229,186,117,0.10) 58%, transparent 76%);
           transform: translate(-50%, -50%);
-          animation: wjSandGlow 6.4s ease-in-out infinite !important;
+          animation: wjSandGlow 7.2s ease-in-out infinite !important;
         }
         #wanjuan-boot-splash .sand-landscape {
-          position: absolute; left: 50%; top: 54%;
-          width: min(680px, 88vw); height: min(300px, 40vw);
-          transform: translate(-50%, -36%);
-          filter: drop-shadow(0 18px 28px rgba(142,100,55,0.08));
+          position: absolute; left: 50%; bottom: -5vh;
+          width: max(1180px, 116vw); height: min(520px, 58vh);
+          transform: translateX(-50%);
+          filter: drop-shadow(0 24px 34px rgba(142,100,55,0.10));
           overflow: visible;
         }
-        #wanjuan-boot-splash .sand-wash {
+        #wanjuan-boot-splash .sand-dune-layer {
           transform-box: fill-box;
           transform-origin: 50% 82%;
-          animation: wjSandLayer 6.2s cubic-bezier(.24,.68,.28,1) infinite !important;
+          animation: wjSandDuneDrift 9.4s cubic-bezier(.35,.65,.25,1) infinite !important;
+          will-change: transform, opacity;
         }
-        #wanjuan-boot-splash .wash-back { fill: url(#wjSandWash); opacity: 0.5; animation-delay: -2.6s !important; }
-        #wanjuan-boot-splash .wash-front { fill: url(#wjSandWash); opacity: 0.38; }
+        #wanjuan-boot-splash .dune-back { opacity: 0.72; animation-duration: 13s !important; animation-delay: -6.8s !important; }
+        #wanjuan-boot-splash .dune-mid { opacity: 0.86; animation-duration: 10.8s !important; animation-delay: -3.4s !important; }
+        #wanjuan-boot-splash .dune-front { opacity: 0.98; animation-duration: 8.6s !important; animation-delay: -1.2s !important; }
+        #wanjuan-boot-splash .sand-dune-fill {
+          animation: wjSandDuneBreathe 7.6s ease-in-out infinite !important;
+        }
         #wanjuan-boot-splash .sand-ridge {
           fill: none;
-          stroke: rgba(176,112,46,0.24);
-          stroke-width: 2.4;
+          stroke: rgba(168,99,31,0.22);
+          stroke-width: 2.6;
           stroke-linecap: round;
-          opacity: 0.48;
-          animation: wjSandRidge 5.8s ease-in-out infinite !important;
+          opacity: 0.46;
+          animation: wjSandRidge 6.8s ease-in-out infinite !important;
         }
-        #wanjuan-boot-splash .ridge-b { stroke-width: 2; animation-delay: -1.7s !important; opacity: 0.36; }
-        #wanjuan-boot-splash .ridge-c { stroke-width: 1.5; animation-delay: -3.2s !important; opacity: 0.25; }
-        #wanjuan-boot-splash .sand-sweep {
-          position: absolute; left: 50%; top: 38%; width: 520px; height: 2px;
-          background: linear-gradient(90deg, transparent, rgba(187,130,64,0.08), rgba(167,104,45,0.44), rgba(187,130,64,0.08), transparent);
-          transform: translate(-50%, -50%) rotate(-9deg);
-          animation: wjSandSweep 4.8s cubic-bezier(.18,.7,.2,1) infinite !important;
+        #wanjuan-boot-splash .ridge-a { stroke-width: 2; opacity: 0.26; animation-delay: -2.9s !important; }
+        #wanjuan-boot-splash .ridge-b { stroke-width: 2.2; animation-delay: -1.7s !important; opacity: 0.34; }
+        #wanjuan-boot-splash .ridge-c { stroke-width: 2.4; animation-delay: -3.2s !important; opacity: 0.38; }
+        #wanjuan-boot-splash .ridge-d { stroke-width: 1.4; animation-delay: -4.6s !important; opacity: 0.24; }
+        #wanjuan-boot-splash .sand-stream {
+          position: absolute;
+          left: -16vw;
+          width: min(760px, 82vw);
+          height: 84px;
+          border-radius: 999px;
+          background-image:
+            radial-gradient(circle, rgba(181,108,33,0.34) 0 1px, transparent 1.8px),
+            radial-gradient(circle, rgba(218,151,65,0.28) 0 1.2px, transparent 2.2px),
+            radial-gradient(circle, rgba(248,218,157,0.40) 0 1px, transparent 1.9px);
+          background-size: 32px 18px, 54px 26px, 76px 34px;
+          background-position: 0 0, 18px 8px, 42px 14px;
+          filter: blur(0.2px);
+          -webkit-mask-image: radial-gradient(ellipse at center, #000 0 48%, transparent 78%);
+          mask-image: radial-gradient(ellipse at center, #000 0 48%, transparent 78%);
+          transform: rotate(-10deg);
+          transform-origin: center;
+          animation: wjSandStream 6.4s cubic-bezier(.16,.74,.24,1) infinite !important;
+          will-change: transform, opacity, background-position;
+        }
+        #wanjuan-boot-splash .sand-stream::before,
+        #wanjuan-boot-splash .sand-stream::after {
+          content: "";
+          position: absolute;
+          inset: 16% 8%;
+          border-radius: inherit;
+          background-image:
+            radial-gradient(circle, rgba(187,112,36,0.26) 0 0.8px, transparent 1.7px),
+            radial-gradient(circle, rgba(244,205,139,0.34) 0 0.9px, transparent 1.8px);
+          background-size: 45px 24px, 68px 36px;
+          opacity: 0.68;
+          animation: wjSandStreamScatter 4.8s ease-in-out infinite !important;
+        }
+        #wanjuan-boot-splash .sand-stream::after {
+          inset: 6% 18%;
+          background-size: 58px 31px, 92px 46px;
+          opacity: 0.42;
+          animation-duration: 6.2s !important;
+          animation-direction: reverse !important;
+        }
+        #wanjuan-boot-splash .stream-a { top: 27%; height: 72px; animation-delay: -0.9s !important; transform: rotate(-13deg); }
+        #wanjuan-boot-splash .stream-b { top: 42%; height: 96px; width: min(920px, 104vw); animation-name: wjSandStreamLow !important; animation-duration: 7.8s !important; animation-delay: -3.3s !important; opacity: 0.68; transform: rotate(-6deg); }
+        #wanjuan-boot-splash .stream-c { top: 56%; height: 58px; width: min(620px, 76vw); animation-name: wjSandStreamCurl !important; animation-duration: 5.4s !important; animation-delay: -2.1s !important; opacity: 0.54; transform: rotate(-18deg); }
+        #wanjuan-boot-splash .sand-vellum::before,
+        #wanjuan-boot-splash .sand-vellum::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          pointer-events: none;
+        }
+        #wanjuan-boot-splash .sand-vellum::before {
+          background-image:
+            radial-gradient(circle, rgba(178,111,37,0.18) 0 1px, transparent 1.8px),
+            radial-gradient(circle, rgba(222,164,83,0.18) 0 0.8px, transparent 1.6px);
+          background-size: 86px 38px, 132px 64px;
+          background-position: 0 0, 42px 18px;
+          opacity: 0.35;
+          transform: rotate(-9deg) translateX(-4vw);
+          animation: wjSandMotes 9.8s linear infinite !important;
+        }
+        #wanjuan-boot-splash .sand-vellum::after {
+          background: linear-gradient(180deg, transparent 0%, rgba(255,250,242,0.28) 46%, transparent 76%);
+          opacity: 0.58;
         }
         #wanjuan-boot-splash .sand-grain {
-          position: absolute; width: 5px; height: 5px; border-radius: 999px;
-          background: rgba(177,121,57,0.35);
-          box-shadow: 0 0 12px rgba(217,171,105,0.35);
-          animation: wjSandGrain 5.6s ease-in-out infinite !important;
+          position: absolute; width: 4px; height: 4px; border-radius: 999px;
+          background: rgba(179,105,31,0.42);
+          box-shadow: 0 0 12px rgba(225,168,86,0.42);
+          animation: wjSandGrain 6.2s cubic-bezier(.16,.72,.22,1) infinite !important;
+          will-change: transform, opacity;
         }
-        #wanjuan-boot-splash .sand-grain.g1 { left: calc(50% - 162px); top: calc(44% - 42px); }
-        #wanjuan-boot-splash .sand-grain.g2 { left: calc(50% + 132px); top: calc(42% + 8px); width: 4px; height: 4px; animation-delay: -1.4s !important; }
-        #wanjuan-boot-splash .sand-grain.g3 { left: calc(50% - 48px); top: calc(50% - 84px); width: 6px; height: 6px; animation-delay: -2.5s !important; }
-        #wanjuan-boot-splash .sand-grain.g4 { left: calc(50% + 52px); top: calc(49% + 72px); width: 3px; height: 3px; animation-delay: -3.2s !important; }
-        #wanjuan-boot-splash .sand-grain.g5 { left: calc(50% - 208px); top: calc(53% + 38px); width: 4px; height: 4px; animation-delay: -4.1s !important; }
+        #wanjuan-boot-splash .sand-grain.g1 { left: 12%; top: 35%; }
+        #wanjuan-boot-splash .sand-grain.g2 { left: 32%; top: 42%; width: 3px; height: 3px; animation-delay: -1.4s !important; }
+        #wanjuan-boot-splash .sand-grain.g3 { left: 48%; top: 30%; width: 5px; height: 5px; animation-delay: -2.5s !important; }
+        #wanjuan-boot-splash .sand-grain.g4 { left: 66%; top: 52%; width: 3px; height: 3px; animation-delay: -3.2s !important; }
+        #wanjuan-boot-splash .sand-grain.g5 { left: 82%; top: 39%; width: 4px; height: 4px; animation-delay: -4.1s !important; }
+        #wanjuan-boot-splash .sand-grain.g6 { left: 22%; top: 58%; width: 3px; height: 3px; animation-delay: -5.0s !important; }
+        #wanjuan-boot-splash .sand-grain.g7 { left: 58%; top: 63%; width: 2px; height: 2px; animation-delay: -2.0s !important; }
+        #wanjuan-boot-splash .sand-grain.g8 { left: 74%; top: 28%; width: 3px; height: 3px; animation-delay: -5.7s !important; }
 
         /* ===== DARK: Constellation Breathe ===== */
         #wanjuan-boot-splash.boot-theme-dark {
@@ -587,7 +667,19 @@ function installBootStabilityStyle() {
         #wanjuan-boot-splash .wanjuan-scroll { position: relative; width: 372px; max-width: calc(100vw - 80px); height: 142px; display: flex; align-items: center; justify-content: center; }
         #wanjuan-boot-splash:not(.boot-theme-graphite) .wanjuan-scroll { opacity: 0; height: 0; overflow: hidden; pointer-events: none; }
         #wanjuan-boot-splash .wanjuan-scroll-copy { text-align: center; }
-        #wanjuan-boot-splash .wanjuan-scroll-title { font-size: 20px; line-height: 1.25; font-weight: 700; }
+        #wanjuan-boot-splash .wanjuan-scroll-title {
+          font-size: 20px !important;
+          line-height: 1.25 !important;
+          font-weight: 700 !important;
+          letter-spacing: 0 !important;
+        }
+        #wanjuan-boot-splash.boot-theme-sage-green .wanjuan-scroll-title,
+        #wanjuan-boot-splash.boot-theme-chrome-teal .wanjuan-scroll-title {
+          font-size: 20px !important;
+          line-height: 1.25 !important;
+          font-weight: 700 !important;
+          letter-spacing: 0 !important;
+        }
         #wanjuan-boot-splash .wanjuan-scroll-subtitle { margin-top: 8px; font-size: 13px; line-height: 1.4; opacity: 0.68; }
         #wanjuan-boot-splash.boot-theme-graphite .wanjuan-scroll-copy { text-shadow: 0 1px 14px rgba(5,8,12,0.32); }
 
@@ -699,30 +791,85 @@ function installBootStabilityStyle() {
         }
 
         /* Sand keyframes */
-        @keyframes wjSandGlow {
-          0%,100% { opacity: 0.42; transform: translate(-50%, -50%) scale(0.94); }
-          46% { opacity: 0.86; transform: translate(-50%, -50%) scale(1.08); }
+        @keyframes wjSandHaze {
+          0%,100% { opacity: 0.56; transform: translate(-51%, -50%) scale(0.96); }
+          48% { opacity: 0.86; transform: translate(-49%, -51%) scale(1.06); }
         }
-        @keyframes wjSandLayer {
-          0%,100% { transform: translate3d(0, 4px, 0) scaleY(0.99); opacity: 0.32; }
-          36% { transform: translate3d(0, -2px, 0) scaleY(1.012); opacity: 0.52; }
-          72% { transform: translate3d(0, 1px, 0) scaleY(1); opacity: 0.4; }
+        @keyframes wjSandGlow {
+          0%,100% { opacity: 0.36; transform: translate(-50%, -50%) scale(0.96); }
+          46% { opacity: 0.72; transform: translate(-50%, -51%) scale(1.08); }
+        }
+        @keyframes wjSandDuneDrift {
+          0%,100% { transform: translate3d(-22px, 4px, 0) scaleY(0.99); }
+          46% { transform: translate3d(20px, -5px, 0) scaleY(1.018); }
+          74% { transform: translate3d(8px, 1px, 0) scaleY(1.004); }
+        }
+        @keyframes wjSandDuneBreathe {
+          0%,100% { opacity: 0.74; }
+          50% { opacity: 1; }
         }
         @keyframes wjSandRidge {
-          0%,100% { stroke-dasharray: 96 520; stroke-dashoffset: 150; opacity: 0.16; }
-          42% { stroke-dasharray: 360 260; stroke-dashoffset: -32; opacity: 0.46; }
-          72% { stroke-dasharray: 210 410; stroke-dashoffset: -104; opacity: 0.28; }
+          0%,100% { stroke-dasharray: 140 1120; stroke-dashoffset: 280; opacity: 0.14; }
+          42% { stroke-dasharray: 620 700; stroke-dashoffset: -120; opacity: 0.46; }
+          72% { stroke-dasharray: 360 980; stroke-dashoffset: -320; opacity: 0.26; }
         }
-        @keyframes wjSandSweep {
-          0% { opacity: 0; transform: translate(-76%, -50%) rotate(-9deg) scaleX(0.44); }
-          22% { opacity: 0.72; transform: translate(-58%, -50%) rotate(-9deg) scaleX(0.84); }
-          56% { opacity: 0.48; transform: translate(-42%, -50%) rotate(-9deg) scaleX(1); }
-          100% { opacity: 0; transform: translate(-18%, -50%) rotate(-9deg) scaleX(0.52); }
+        @keyframes wjSandStream {
+          0% {
+            opacity: 0;
+            background-position: 0 0, 18px 8px, 42px 14px;
+            transform: translate3d(-22vw, 30px, 0) rotate(-13deg) scale(0.74);
+          }
+          20% {
+            opacity: 0.58;
+            transform: translate3d(5vw, 2px, 0) rotate(-9deg) scale(0.94);
+          }
+          58% {
+            opacity: 0.42;
+            background-position: 122px 34px, 188px -18px, 254px 44px;
+            transform: translate3d(42vw, -26px, 0) rotate(-16deg) scale(1.04);
+          }
+          100% {
+            opacity: 0;
+            background-position: 260px 68px, 344px -44px, 506px 82px;
+            transform: translate3d(112vw, -64px, 0) rotate(-11deg) scale(0.80);
+          }
+        }
+        @keyframes wjSandStreamLow {
+          0% { opacity: 0; background-position: 16px 24px, 40px 0, 12px 32px; transform: translate3d(-24vw, -10px, 0) rotate(-5deg) scale(0.82); }
+          24% { opacity: 0.5; transform: translate3d(8vw, 18px, 0) rotate(-8deg) scale(0.98); }
+          62% { opacity: 0.36; background-position: 176px -18px, 126px 52px, 310px -8px; transform: translate3d(50vw, 4px, 0) rotate(-3deg) scale(1.08); }
+          100% { opacity: 0; background-position: 340px -52px, 260px 96px, 520px -42px; transform: translate3d(120vw, 34px, 0) rotate(-9deg) scale(0.78); }
+        }
+        @keyframes wjSandStreamCurl {
+          0% { opacity: 0; background-position: 0 30px, 28px 4px, 54px 18px; transform: translate3d(-18vw, 56px, 0) rotate(-18deg) scale(0.62); }
+          18% { opacity: 0.48; transform: translate3d(4vw, 18px, 0) rotate(-21deg) scale(0.88); }
+          50% { opacity: 0.34; background-position: 72px -20px, 154px 44px, 92px -12px; transform: translate3d(36vw, -8px, 0) rotate(-12deg) scale(1.02); }
+          76% { opacity: 0.22; transform: translate3d(66vw, 20px, 0) rotate(-24deg) scale(0.92); }
+          100% { opacity: 0; background-position: 180px -54px, 286px 82px, 220px -38px; transform: translate3d(104vw, -22px, 0) rotate(-16deg) scale(0.66); }
+        }
+        @keyframes wjSandStreamScatter {
+          0%,100% {
+            transform: translate3d(-18px, 8px, 0) rotate(2deg);
+            background-position: 0 0, 18px 12px;
+          }
+          45% {
+            transform: translate3d(24px, -12px, 0) rotate(-4deg);
+            background-position: 82px -24px, -36px 30px;
+          }
+          72% {
+            transform: translate3d(6px, 16px, 0) rotate(5deg);
+            background-position: 128px 18px, 44px -18px;
+          }
+        }
+        @keyframes wjSandMotes {
+          from { background-position: 0 0, 42px 18px; transform: rotate(-9deg) translate3d(-7vw, 0, 0); }
+          to { background-position: 360px 70px, 520px 114px; transform: rotate(-9deg) translate3d(7vw, -2vh, 0); }
         }
         @keyframes wjSandGrain {
-          0%,100% { opacity: 0.18; transform: translate3d(0, 14px, 0) scale(0.76); }
-          38% { opacity: 0.7; transform: translate3d(18px, -9px, 0) scale(1.08); }
-          72% { opacity: 0.42; transform: translate3d(-8px, -18px, 0) scale(0.92); }
+          0% { opacity: 0; transform: translate3d(-42px, 34px, 0) scale(0.58); }
+          22% { opacity: 0.72; transform: translate3d(18px, 6px, 0) scale(1); }
+          64% { opacity: 0.44; transform: translate3d(86px, -34px, 0) scale(0.88); }
+          100% { opacity: 0; transform: translate3d(150px, -70px, 0) scale(0.5); }
         }
 
         /* Dark keyframes */

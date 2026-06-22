@@ -65,6 +65,7 @@ const {
   installRealEsrganTool,
   getDefaceToolStatus,
   installDefaceTool,
+  importExtensionToolPack,
   extensionInstallLogPath,
   cloneVoiceWithQwenTts,
   upscaleVideoWithRealEsrgan,
@@ -77,6 +78,13 @@ const { uploadToAnonymousHosts, validatePublicMediaUrl } = require("./uploaders/
 const { uploadToTos, uploadToQiniuS3 } = require("./uploaders/cloud-storage.cjs");
 const { uploadToCustomPublicHost } = require("./uploaders/custom-host.cjs");
 const { checkForUpdates } = require("./update-checker.cjs");
+const {
+  getWorkspaceTeamStatus,
+  startWorkspaceTeamServer,
+  stopWorkspaceTeamServer,
+  updateWorkspaceTeamPublishedTemplates,
+  fetchWorkspaceTeamMember,
+} = require("./workspace-team.cjs");
 
 function getIpcSenderUrl(event) {
   return String(event?.senderFrame?.url || event?.sender?.getURL?.() || "");
@@ -123,6 +131,36 @@ function registerDesktopIpc() {
     });
     appendDesktopLog("performance-settings-updated", nextSettings);
     return { ok: true, settings: nextSettings };
+  });
+
+  ipcMain.handle("wanjuan:workspace-team-status", async (event) => {
+    const blocked = rejectUntrustedIpc(event, "wanjuan:workspace-team-status");
+    if (blocked) return blocked;
+    return { ok: true, status: getWorkspaceTeamStatus() };
+  });
+
+  ipcMain.handle("wanjuan:workspace-team-start", async (event, payload = {}) => {
+    const blocked = rejectUntrustedIpc(event, "wanjuan:workspace-team-start");
+    if (blocked) return blocked;
+    return startWorkspaceTeamServer(payload || {});
+  });
+
+  ipcMain.handle("wanjuan:workspace-team-stop", async (event) => {
+    const blocked = rejectUntrustedIpc(event, "wanjuan:workspace-team-stop");
+    if (blocked) return blocked;
+    return stopWorkspaceTeamServer();
+  });
+
+  ipcMain.handle("wanjuan:workspace-team-update-templates", async (event, payload = {}) => {
+    const blocked = rejectUntrustedIpc(event, "wanjuan:workspace-team-update-templates");
+    if (blocked) return blocked;
+    return updateWorkspaceTeamPublishedTemplates(payload?.templates || []);
+  });
+
+  ipcMain.handle("wanjuan:workspace-team-fetch-member", async (event, payload = {}) => {
+    const blocked = rejectUntrustedIpc(event, "wanjuan:workspace-team-fetch-member");
+    if (blocked) return blocked;
+    return fetchWorkspaceTeamMember(payload?.address || "", payload?.timeoutMs || 8000);
   });
 
   ipcMain.handle("wanjuan:capture-window-frame", async (event) => {
@@ -548,6 +586,32 @@ function registerDesktopIpc() {
     } catch (error) {
       console.error("install-extension-tool failed", error);
       return { ok: false, installed: false, error: formatErrorMessage(error), logPath: extensionInstallLogPath() };
+    }
+  });
+
+  ipcMain.handle("wanjuan:import-extension-tool-pack", async (event, payload = {}) => {
+    const blocked = rejectUntrustedIpc(event, "wanjuan:import-extension-tool-pack");
+    if (blocked) return blocked;
+    try {
+      let sourcePath = String(payload?.path || "").trim();
+      if (!sourcePath) {
+        const win = BrowserWindow.fromWebContents(event.sender);
+        const result = await dialog.showOpenDialog(win || undefined, {
+          title: "选择万卷灵境离线工具包",
+          buttonLabel: "导入工具包",
+          properties: ["openFile", "openDirectory"],
+          filters: [
+            { name: "万卷灵境离线工具包", extensions: ["zip"] },
+            { name: "所有文件", extensions: ["*"] }
+          ]
+        });
+        if (result.canceled || !result.filePaths?.[0]) return { ok: false, canceled: true };
+        sourcePath = result.filePaths[0];
+      }
+      return await importExtensionToolPack(sourcePath);
+    } catch (error) {
+      console.error("import-extension-tool-pack failed", error);
+      return { ok: false, error: formatErrorMessage(error), logPath: extensionInstallLogPath() };
     }
   });
 

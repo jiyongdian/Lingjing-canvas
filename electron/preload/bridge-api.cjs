@@ -153,6 +153,13 @@ exposeGlobal("wanjuanDesktop", {
     } catch {}
     return { ok: true, settings: next };
   },
+  workspaceTeamStatus: async () => ipcRenderer.invoke("wanjuan:workspace-team-status"),
+  workspaceTeamStart: async (payload = {}) => ipcRenderer.invoke("wanjuan:workspace-team-start", payload),
+  workspaceTeamStop: async () => ipcRenderer.invoke("wanjuan:workspace-team-stop"),
+  workspaceTeamUpdateTemplates: async (payload = {}) =>
+    ipcRenderer.invoke("wanjuan:workspace-team-update-templates", payload),
+  workspaceTeamFetchMember: async (payload = {}) =>
+    ipcRenderer.invoke("wanjuan:workspace-team-fetch-member", payload),
   showInputDialog: async (options = {}) => showWanjuanInputDialog(options),
 	  saveDownload: async (payload = {}) => {
 	    let nextPayload = { ...payload };
@@ -320,10 +327,12 @@ exposeGlobal("wanjuanDesktop", {
 			    ipcRenderer.invoke("wanjuan:real-esrgan-job-status", payload),
 			  getExtensionToolStatus: async (payload = {}) =>
 			    ipcRenderer.invoke("wanjuan:get-extension-tool-status", payload),
-			  installExtensionTool: async (payload = {}) =>
-			    ipcRenderer.invoke("wanjuan:install-extension-tool", payload),
+				  installExtensionTool: async (payload = {}) =>
+				    ipcRenderer.invoke("wanjuan:install-extension-tool", payload),
+				  importExtensionToolPack: async (payload = {}) =>
+				    ipcRenderer.invoke("wanjuan:import-extension-tool-pack", payload),
   readDocumentWithBrowser: async (url) => readDocumentWithAgentBrowser(url)
-		});
+			});
 
 exposeGlobal("wanjuanProjectSafety", {
   beforeCanvasSave: beforeProjectCanvasSave,
