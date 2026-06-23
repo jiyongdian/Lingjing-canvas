@@ -310,6 +310,36 @@ export const wanjuanTianjiFindVideoUrl = (data: any): string => {
 export const wanjuanTianjiFindTaskId = (data: any): string =>
   wanjuanTianjiFindDeep(data, [`execute_id`, `executeId`, `task_id`, `taskId`, `id`]);
 
+const wanjuanTianjiRawStatus = (data: any): string =>
+  String(
+    data?.status ??
+      data?.data?.status ??
+      data?.data?.state ??
+      data?.data?.task_status ??
+      data?.data?.taskStatus ??
+      data?.data?.status_text ??
+      data?.data?.statusText ??
+      data?.result?.status ??
+      data?.result?.state ??
+      data?.result?.task_status ??
+      data?.output?.status ??
+      data?.output?.state ??
+      data?.task?.status ??
+      data?.task?.state ??
+      data?.task?.task_status ??
+      wanjuanTianjiFindDeep(data, [
+        `status`,
+        `state`,
+        `task_status`,
+        `taskStatus`,
+        `status_text`,
+        `statusText`,
+        `status_msg`,
+        `statusMsg`,
+      ]) ??
+      ``,
+  ).trim();
+
 /** 从返回结构中查找缩略图 / 封面 / 末帧地址，仅接受 http(s)。 */
 export const wanjuanTianjiFindThumbUrl = (data: any): string => {
   let url = wanjuanTianjiFindDeep(data, [
@@ -323,17 +353,26 @@ export const wanjuanTianjiFindThumbUrl = (data: any): string => {
   return /^https?:\/\//i.test(url) ? url.replace(/[`\s]/g, ``) : ``;
 };
 
-/** 提取任务状态字符串（按常见嵌套路径优先，再深度查找），统一转小写。 */
-export const wanjuanTianjiStatus = (data: any): string =>
-  String(
-    data?.status ||
-      data?.data?.status ||
-      data?.result?.status ||
-      data?.output?.status ||
-      data?.task?.status ||
-      wanjuanTianjiFindDeep(data, [`status`]) ||
-      ``,
-  ).toLowerCase();
+/** 提取任务状态字符串，并兼容中转站中文 / 数字状态。 */
+export const wanjuanTianjiStatus = (data: any): string => {
+  let rawStatus = wanjuanTianjiRawStatus(data),
+    normalized = rawStatus.toLowerCase().replace(/[\s_-]+/g, ``),
+    serialized = JSON.stringify(data || {}).toLowerCase();
+  if (!normalized && /失败|退款|退费|已退|拒绝|驳回|取消|终止|过期|异常|错误/.test(serialized)) return `failed`;
+  if (/失败|退款|退费|已退|拒绝|驳回|取消|终止|过期|异常|错误/.test(rawStatus)) return `failed`;
+  if (/成功|完成|已完成/.test(rawStatus)) return `succeeded`;
+  if (/排队|等待|提交/.test(rawStatus)) return `pending`;
+  if (/生成|运行|处理中|执行中/.test(rawStatus)) return `running`;
+  if ([`3`, `4`, `-1`, `-2`].includes(normalized)) return `failed`;
+  if ([`2`, `200`].includes(normalized)) return `succeeded`;
+  if ([`0`].includes(normalized)) return `pending`;
+  if ([`1`].includes(normalized)) return `running`;
+  if ([`failure`, `failed`, `fail`, `error`, `expired`, `canceled`, `cancelled`, `rejected`, `refunded`, `refund`, `terminated`, `aborted`, `denied`].includes(normalized)) return `failed`;
+  if ([`succeeded`, `completed`, `complete`, `success`, `done`, `finished`].includes(normalized)) return `succeeded`;
+  if ([`queued`, `queue`, `pending`, `waiting`, `created`, `submitted`].includes(normalized)) return `pending`;
+  if ([`running`, `processing`, `generating`, `inprogress`, `progress`, `executing`].includes(normalized)) return `running`;
+  return rawStatus.toLowerCase();
+};
 
 /** 提取进度百分比：0~1 的小数会被放大到百分制，结果限制在 0~99 之间。 */
 export const wanjuanTianjiFindProgress = (data: any): number => {
@@ -718,8 +757,53 @@ export async function wanjuanRunTianjiSeedanceVideo(options: RunTianjiSeedanceVi
           options.addTransitResource && options.addTransitResource(videoUrl, `video`, `generated`),
           options.showToast(`即梦天玑视频生成成功！`));
         done = true;
-      } else if ([`failed`, `fail`, `error`, `expired`, `canceled`, `cancelled`, `rejected`].includes(status))
-        throw Error(wanjuanTianjiErrorMessage(statusResponse));
+      } else if ([`failed`, `fail`, `error`, `expired`, `canceled`, `cancelled`, `rejected`].includes(status)) {
+        let failureMessage = wanjuanTianjiErrorMessage(statusResponse);
+        (options.updateGlobalTasks &&
+          options.updateGlobalTasks((tasks) =>
+            tasks.map((task) =>
+              task.id === taskId
+                ? {
+                    ...task,
+                    status: `failed`,
+                    errorMsg: failureMessage,
+                  }
+                : task,
+            ),
+          ),
+          options.updateNodes((nodes) =>
+            nodes.map((node) =>
+              node.id === options.nodeId &&
+              (node.data?.seedanceTaskId === taskId ||
+                node.data?.taskId === taskId ||
+                node.data?.tianjiExecuteId === taskId)
+                ? {
+                    ...node,
+                    data: {
+                      ...node.data,
+                      loading: false,
+                      progress: 0,
+                      errorMessage: failureMessage,
+                      loadingText: void 0,
+                    },
+                  }
+                : node,
+            ),
+          ),
+          await options.persistVideoNodeState(
+            {},
+            {
+              loading: false,
+              progress: 0,
+              errorMessage: failureMessage,
+              loadingText: void 0,
+            },
+          ),
+          options.updateEdges((edges) =>
+            edges.map((edge) => (edge.target === options.nodeId ? { ...edge, animated: false } : edge)),
+          ));
+        throw Error(failureMessage);
+      }
       else {
         let progress = wanjuanTianjiFindProgress(statusResponse),
           hasRealProgress = !isNaN(progress);

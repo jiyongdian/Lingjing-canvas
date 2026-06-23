@@ -16729,6 +16729,47 @@ const wanjuanTianjiFindVideoUrl = (data) => {
 const wanjuanTianjiFindTaskId = (data) =>
   wanjuanTianjiFindDeep(data, [`execute_id`, `executeId`, `task_id`, `taskId`, `id`]);
 
+const wanjuanTianjiRawStatus = (data) =>
+  String(
+    data?.status ??
+      data?.data?.status ??
+      data?.data?.state ??
+      data?.data?.task_status ??
+      data?.data?.taskStatus ??
+      data?.data?.status_text ??
+      data?.data?.statusText ??
+      data?.result?.status ??
+      data?.result?.state ??
+      data?.result?.task_status ??
+      data?.output?.status ??
+      data?.output?.state ??
+      data?.task?.status ??
+      data?.task?.state ??
+      data?.task?.task_status ??
+      wanjuanTianjiFindDeep(data, [`status`, `state`, `task_status`, `taskStatus`, `status_text`, `statusText`, `status_msg`, `statusMsg`]) ??
+      ``,
+  ).trim();
+
+const wanjuanTianjiStatus = (data) => {
+  let rawStatus = wanjuanTianjiRawStatus(data),
+    normalized = rawStatus.toLowerCase().replace(/[\s_-]+/g, ``),
+    serialized = JSON.stringify(data || {}).toLowerCase();
+  if (!normalized && /失败|退款|退费|已退|拒绝|驳回|取消|终止|过期|异常|错误/.test(serialized)) return `failed`;
+  if (/失败|退款|退费|已退|拒绝|驳回|取消|终止|过期|异常|错误/.test(rawStatus)) return `failed`;
+  if (/成功|完成|已完成/.test(rawStatus)) return `succeeded`;
+  if (/排队|等待|提交/.test(rawStatus)) return `pending`;
+  if (/生成|运行|处理中|执行中/.test(rawStatus)) return `running`;
+  if ([`3`, `4`, `-1`, `-2`].includes(normalized)) return `failed`;
+  if ([`2`, `200`].includes(normalized)) return `succeeded`;
+  if ([`0`].includes(normalized)) return `pending`;
+  if ([`1`].includes(normalized)) return `running`;
+  if ([`failure`, `failed`, `fail`, `error`, `expired`, `canceled`, `cancelled`, `rejected`, `refunded`, `refund`, `terminated`, `aborted`, `denied`].includes(normalized)) return `failed`;
+  if ([`succeeded`, `completed`, `complete`, `success`, `done`, `finished`].includes(normalized)) return `succeeded`;
+  if ([`queued`, `queue`, `pending`, `waiting`, `created`, `submitted`].includes(normalized)) return `pending`;
+  if ([`running`, `processing`, `generating`, `inprogress`, `progress`, `executing`].includes(normalized)) return `running`;
+  return rawStatus.toLowerCase();
+};
+
 const wanjuanTianjiFindArray = (value) => {
   if (Array.isArray(value)) return value;
   if (!value || typeof value != `object`) return [];
@@ -16799,6 +16840,35 @@ const wanjuanTianjiCreateLocalUploadAsset = ({ name: name, imageUrl: imageUrl, r
   localUploaded: ![`active`, `success`, `succeeded`, `completed`, `complete`, `done`].includes(String(wanjuanTianjiFindDeep(result, [`status`, `Status`]) || ``).trim().toLowerCase()),
   createdAt: Date.now(),
 });
+
+const wanjuanTianjiSubmittedPortraitAssetId = (uploadResult) => {
+  let directId = String(
+    uploadResult?.asset?.portrait_asset_id ||
+      uploadResult?.asset?.asset_id ||
+      uploadResult?.asset?.assetId ||
+      wanjuanTianjiFindDeep(uploadResult?.result, [`portrait_asset_id`, `asset_id`, `assetId`, `AssetId`]) ||
+      ``,
+  ).trim();
+  if (directId && !/^local-/i.test(directId)) return directId;
+  let uploadedUrl = String(uploadResult?.imageUrl || uploadResult?.asset?.image_url || uploadResult?.asset?.imageUrl || ``).trim(),
+    label = String(uploadResult?.asset?.name || ``).trim(),
+    aigcAssets = Array.isArray(uploadResult?.refresh?.assets?.AIGC) ? uploadResult.refresh.assets.AIGC : [],
+    matchedAsset =
+      aigcAssets.find((item) => {
+        let itemId = String(item?.portrait_asset_id || item?.asset_id || item?.assetId || item?.id || item?.AssetId || ``).trim();
+        if (!itemId || /^local-/i.test(itemId) || item?.localUploaded === !0) return !1;
+        let itemUrl = String(item?.image_url || item?.imageUrl || item?.preview_url || item?.previewUrl || item?.url || ``).trim(),
+          itemName = String(item?.name || item?.Name || item?.label || ``).trim();
+        return (uploadedUrl && itemUrl && itemUrl === uploadedUrl) || (label && itemName && itemName === label);
+      }) ||
+      (uploadResult?.refresh?.aigcCount === 1 ?
+        aigcAssets.find((item) => {
+          let itemId = String(item?.portrait_asset_id || item?.asset_id || item?.assetId || item?.id || item?.AssetId || ``).trim();
+          return itemId && !/^local-/i.test(itemId) && item?.localUploaded !== !0;
+        }) :
+        null);
+  return String(matchedAsset?.portrait_asset_id || matchedAsset?.asset_id || matchedAsset?.assetId || matchedAsset?.id || matchedAsset?.AssetId || ``).trim();
+};
 
 const wanjuanTianjiMergeSubmittedPortraitAsset = async (asset) => {
   let stored = await wanjuanTianjiStorageGet([`tianjiSeedanceAssets`]),
@@ -16976,17 +17046,6 @@ const wanjuanTianjiFindThumbUrl = (data) => {
   ]);
   return /^https?:\/\//i.test(thumbnailUrl) ? thumbnailUrl.replace(/[`\s]/g, ``) : ``;
 };
-
-const wanjuanTianjiStatus = (data) =>
-  String(
-    data?.status ||
-    data?.data?.status ||
-    data?.result?.status ||
-    data?.output?.status ||
-    data?.task?.status ||
-    wanjuanTianjiFindDeep(data, [`status`]) ||
-    ``,
-  ).toLowerCase();
 
 const wanjuanTianjiFindProgress = (data) => {
   let progress = Number(wanjuanTianjiFindDeep(data, [`progress`, `percent`, `percentage`, `rate`, `Progress`, `Percent`]));
@@ -17348,8 +17407,53 @@ async function wanjuanRunTianjiSeedanceVideo(options) {
           options.addTransitResource && options.addTransitResource(videoUrl, `video`, `generated`),
           options.showToast(`即梦天玑视频生成成功！`));
         done = !0;
-      } else if ([`failed`, `fail`, `error`, `expired`, `canceled`, `cancelled`, `rejected`].includes(status))
-        throw Error(wanjuanTianjiErrorMessage(response2));
+      } else if ([`failed`, `fail`, `error`, `expired`, `canceled`, `cancelled`, `rejected`].includes(status)) {
+        let failureMessage = wanjuanTianjiErrorMessage(response2);
+        (options.updateGlobalTasks &&
+          options.updateGlobalTasks((nodes) =>
+            nodes.map((node) =>
+              node.id === taskId ?
+              {
+                ...node,
+                status: `failed`,
+                errorMsg: failureMessage,
+              } :
+              node,
+            ),
+          ),
+          options.updateNodes((nodes) =>
+            nodes.map((node) =>
+              node.id === options.nodeId &&
+              (node.data?.seedanceTaskId === taskId ||
+                node.data?.taskId === taskId ||
+                node.data?.tianjiExecuteId === taskId) ?
+              {
+                ...node,
+                data: {
+                  ...node.data,
+                  loading: !1,
+                  progress: 0,
+                  errorMessage: failureMessage,
+                  loadingText: void 0
+                }
+              } :
+              node,
+            ),
+          ),
+          await options.persistVideoNodeState({}, {
+            loading: !1,
+            progress: 0,
+            errorMessage: failureMessage,
+            loadingText: void 0
+          }),
+          options.updateEdges((edges) =>
+            edges.map((edge) => (edge.target === options.nodeId ? {
+              ...edge,
+              animated: !1
+            } : edge)),
+          ));
+        throw Error(failureMessage);
+      }
       else {
         let progress = wanjuanTianjiFindProgress(response2),
           hasRealProgress = !isNaN(progress);
@@ -26225,8 +26329,28 @@ ${combinedPrompt}`,
           try {
             showToast(`正在提交到天玑虚拟人像审核...`);
             let result = await wanjuanUploadTianjiVirtualPortrait(imageUrl, {
-              name: meta.label || `虚拟人像素材`,
-            });
+                name: meta.label || `虚拟人像素材`,
+              }),
+              portraitAssetId = wanjuanTianjiSubmittedPortraitAssetId(result),
+              targetNodeId = String(meta.nodeId || ``).trim();
+            if (portraitAssetId && targetNodeId)
+              setNodes((nodes2) =>
+                nodes2.map((node2) =>
+                  node2.id === targetNodeId ?
+                  {
+                    ...node2,
+                    data: {
+                      ...node2.data,
+                      tianjiPortraitAssetId: portraitAssetId,
+                      tianjiPortraitGroupType: `AIGC`,
+                      isTianjiPortrait: !0,
+                      sourceOrigin: `tianji-portrait`,
+                      tianjiPortraitReviewedAt: Date.now(),
+                    },
+                  } :
+                  node2,
+                ),
+              );
             showToast(
               result?.refresh?.aigcCount > 0 ?
               `已提交并自动刷新天玑虚拟人像库，可直接在即梦节点选择` :
@@ -26239,7 +26363,7 @@ ${combinedPrompt}`,
             throw error;
           }
         },
-        [showToast],
+        [setNodes, showToast],
     ),
     handleExtractFrames = useCallback(
       async (nodeId) => {
@@ -31098,6 +31222,7 @@ time=1h`,
         "当前已启用全局统一API配置": "目前已啟用全域統一 API 配置",
         "切换石墨灰、曜石黑、晴空蓝、暖砂白、樱雾粉、薄荷绿或跟随系统外观，不改变现有布局结构": "切換石墨灰、曜石黑、晴空藍、暖砂白、櫻霧粉、薄荷綠或跟隨系統外觀，不改變現有布局結構",
         "选择界面语言偏好，后续多语言文案将按此设置展示": "選擇介面語言偏好，介面文案會依此設定顯示",
+        "1.3.1：优化工作空间团队连接诊断、分组管理、网络环境提示与即梦天玑任务失败识别；支持天玑人像审核后直接绑定图片节点。": "1.3.1：優化工作空間團隊連線診斷、分組管理、網路環境提示與即夢天璣任務失敗識別；支援天璣人像審核後直接綁定圖片節點。",
         "1.3.0：新增工作空间、团队空间与离线工具包导入；优化本地工具、提示词模板、团队模板视频播放和跨平台协同。": "1.3.0：新增工作空間、團隊空間與離線工具包匯入；優化本機工具、提示詞模板、團隊模板影片播放和跨平台協同。",
         "1.2.13：修复即梦/Seedance 视频节点多次生成后仍显示第一次生成结果的问题；新任务、任务刷新和项目重开都会清理旧媒体绑定并优先回填最新结果。": "1.2.13：修復即夢/Seedance 影片節點多次生成後仍顯示第一次生成結果的問題；新任務、任務刷新和專案重開都會清理舊媒體綁定並優先回填最新結果。",
         "1.2.11：修复部分视频节点已下载到资源库但重新打开仍显示过期云端链接的问题；任务刷新会优先回填本地资源副本，并修正旧设备路径误判为有效文件的情况。": "1.2.11：修復部分影片節點已下載到資源庫但重新開啟仍顯示過期雲端連結的問題；任務刷新會優先回填本地資源副本，並修正舊裝置路徑誤判為有效檔案的情況。",
@@ -31157,6 +31282,7 @@ time=1h`,
         "当前已启用全局统一API配置": "Global unified API config is enabled",
         "切换石墨灰、曜石黑、晴空蓝、暖砂白、樱雾粉、薄荷绿或跟随系统外观，不改变现有布局结构": "Switch the visual theme without changing the current layout.",
         "选择界面语言偏好，后续多语言文案将按此设置展示": "Choose the interface language. Supported interface text follows this setting.",
+        "1.3.1：优化工作空间团队连接诊断、分组管理、网络环境提示与即梦天玑任务失败识别；支持天玑人像审核后直接绑定图片节点。": "1.3.1: Improved Workspace team connection diagnostics, group management, network-change guidance, and Tianji task failure detection; Tianji portrait review can now bind directly to the image node.",
         "1.3.0：新增工作空间、团队空间与离线工具包导入；优化本地工具、提示词模板、团队模板视频播放和跨平台协同。": "1.3.0: Added Workspace, Team Space, and offline tool pack import; improved local tools, prompt templates, team template video playback, and cross-platform collaboration.",
         "1.2.13：修复即梦/Seedance 视频节点多次生成后仍显示第一次生成结果的问题；新任务、任务刷新和项目重开都会清理旧媒体绑定并优先回填最新结果。": "1.2.13: Fixed Jimeng/Seedance video nodes still showing the first generated result after repeated generations; new tasks, task refresh, and project reopen now clear stale media bindings and prefer the latest result.",
         "1.2.11：修复部分视频节点已下载到资源库但重新打开仍显示过期云端链接的问题；任务刷新会优先回填本地资源副本，并修正旧设备路径误判为有效文件的情况。": "1.2.11: Fixed video nodes that had already downloaded results into the resource library but reopened with expired cloud links; task refresh now prefers local resource copies and stale paths from older devices are no longer treated as valid files.",
@@ -42445,7 +42571,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                           [],
                         ),
                         buildBackupPayload = async (e, t, n, r = {}) => ({
-			                            version: `1.3.0`,
+				                            version: `1.3.1`,
                             backupFormat: `4`,
                             exportedAt: new Date().toISOString(),
                             modules: await buildBackupModules(e, t, n, r),
@@ -43045,7 +43171,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                 }),
                 jsx(`span`, {
                   className: `absolute bottom-1 right-2 text-[8px] text-gray-600 font-normal`,
-				                  children: `v1.3.0`,
+					                  children: `v1.3.1`,
                 }),
                 updateInfo?.hasUpdate &&
                 jsx(`span`, {
@@ -46985,7 +47111,7 @@ ${String(l || ``).slice(0, 5e4)}`;
 	                                        }),
 	                                        jsx(`div`, {
 	                                          className: `pt-2 border-t border-[#262626] text-[11px] text-gray-500`,
-			                                          children: wanjuanT(`1.3.0：新增工作空间、团队空间与离线工具包导入；优化本地工具、提示词模板、团队模板视频播放和跨平台协同。`),
+				                                          children: wanjuanT(`1.3.1：优化工作空间团队连接诊断、分组管理、网络环境提示与即梦天玑任务失败识别；支持天玑人像审核后直接绑定图片节点。`),
 	                                        }),
 	                                      ],
 	                                    }),
@@ -47002,7 +47128,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                                       children: [
                                         jsx(`span`, {
                                           className: `text-sm font-semibold text-gray-100`,
-				                                          children: `1.3.0`,
+					                                          children: `1.3.1`,
 	                                        }),
 	                                        jsx(`span`, {
 	                                          className: `text-[10px] text-gray-500`,

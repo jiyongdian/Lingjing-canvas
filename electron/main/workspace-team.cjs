@@ -459,41 +459,209 @@ function normalizeMemberAddress(address) {
   }
 }
 
-async function fetchWorkspaceTeamMember(address, timeoutMs = 8000) {
+function previewProbeBody(text, limit = 220) {
+  return String(text || "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, limit);
+}
+
+function getNetworkErrorCode(error) {
+  return String(error?.code || error?.cause?.code || error?.cause?.name || "").trim();
+}
+
+function buildTeamProbeDiagnostics({ baseUrl, endpoint, timeoutMs, error, status, statusText, parseFailed, preview }) {
+  const code = getNetworkErrorCode(error);
+  const name = String(error?.name || "").trim();
+  const timeoutSeconds = Math.ceil(Math.max(1000, Number(timeoutMs || 8000)) / 1000);
+  if (name === "AbortError") {
+    return {
+      error: `连接超时：${timeoutSeconds} 秒内没有访问到对方团队空间`,
+      detail: `探测接口：${endpoint}`,
+      diagnostics: [
+        "确认对方电脑已开启团队空间，且应用没有被系统防火墙拦截。",
+        "网口直连时两台电脑需要在同一网段，例如 192.168.110.x，不能填写 127.0.0.1 或 localhost。",
+        `在这台电脑浏览器打开 ${baseUrl}；如果打不开，问题在网络、防火墙或地址/端口。`,
+      ],
+      code,
+      name,
+    };
+  }
+  if (status) {
+    return {
+      error: `接口返回 HTTP ${status}${statusText ? ` ${statusText}` : ""}`,
+      detail: `目标能访问，但 ${endpoint} 没有返回可用的团队空间数据。`,
+      diagnostics: [
+        "确认填写的是对方万卷灵境团队空间地址，不是其他服务地址。",
+        "让对方重新开启团队空间后再刷新团队成员。",
+      ],
+      code,
+      name,
+    };
+  }
+  if (parseFailed) {
+    return {
+      error: "目标地址能访问，但不是万卷灵境团队空间接口",
+      detail: preview ? `返回内容：${preview}` : `探测接口：${endpoint}`,
+      diagnostics: [
+        "确认端口填写的是对方团队空间端口。",
+        "如果浏览器打开后不是万卷灵境团队空间页面，请改用应用里显示的推荐局域网地址。",
+      ],
+      code,
+      name,
+    };
+  }
+  if (/ECONNREFUSED|UND_ERR_SOCKET/i.test(code) || /ECONNREFUSED/i.test(formatErrorMessage(error))) {
+    return {
+      error: "连接被拒绝：对方地址能到达，但端口没有团队空间服务",
+      detail: `探测接口：${endpoint}`,
+      diagnostics: [
+        "确认对方电脑已开启团队空间。",
+        "确认端口号和对方应用里显示的一致。",
+        "Windows 防火墙需要允许万卷灵境访问专用/公用网络。",
+      ],
+      code,
+      name,
+    };
+  }
+  if (/ENETUNREACH|EHOSTUNREACH|EADDRNOTAVAIL/i.test(code)) {
+    return {
+      error: "网络不可达：当前电脑到不了这个局域网地址",
+      detail: `探测接口：${endpoint}`,
+      diagnostics: [
+        "网口直连时请检查两台电脑 IPv4 是否在同一网段。",
+        "不要填写 127.0.0.1、localhost 或另一块网卡的地址。",
+      ],
+      code,
+      name,
+    };
+  }
+  if (/ENOTFOUND|EAI_AGAIN/i.test(code)) {
+    return {
+      error: "地址无法解析，请改填数字局域网 IP",
+      detail: `探测接口：${endpoint}`,
+      diagnostics: [
+        "建议填写类似 192.168.110.14:39218 的地址。",
+        "不要使用只在对方电脑本机有效的主机名。",
+      ],
+      code,
+      name,
+    };
+  }
+  return {
+    error: formatErrorMessage(error),
+    detail: `探测接口：${endpoint}`,
+    diagnostics: [
+      "确认对方电脑已开启团队空间。",
+      "确认两台电脑在同一局域网或同一网线直连网段。",
+      "Windows 上请检查防火墙是否允许万卷灵境和当前端口入站连接。",
+    ],
+    code,
+    name,
+  };
+}
+
+async function fetchWorkspaceTeamMember(address, timeoutMs = 12000) {
   const baseUrl = normalizeMemberAddress(address);
-  if (!baseUrl) return { ok: false, address, inputAddress: address, error: "无效的团队空间地址，请输入类似 192.168.1.8:39218 的地址" };
+  if (!baseUrl) {
+    return {
+      ok: false,
+      address,
+      inputAddress: address,
+      error: "无效的团队空间地址",
+      detail: "请输入类似 192.168.1.8:39218 的地址，不要填写 127.0.0.1 或 localhost 给其他电脑使用。",
+      diagnostics: ["优先使用对方应用团队空间里显示的推荐局域网地址。"],
+      fetchedAt: Date.now(),
+    };
+  }
+  const endpoint = `${baseUrl}/workspace/templates`;
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), Math.max(1000, Number(timeoutMs || 8000)));
+  const probeTimeoutMs = Math.max(1000, Number(timeoutMs || 12000));
+  const timeout = setTimeout(() => controller.abort(), probeTimeoutMs);
   try {
-    const response = await fetch(`${baseUrl}/workspace/templates`, {
+    const response = await fetch(endpoint, {
       method: "GET",
       signal: controller.signal,
       headers: { accept: "application/json" },
     });
     const text = await response.text();
     let json = {};
+    let parseFailed = false;
     try {
       json = text ? JSON.parse(text) : {};
     } catch {
+      parseFailed = true;
       json = { raw: text };
     }
     if (!response.ok || json?.ok === false) {
-      throw new Error(json?.error || `HTTP ${response.status}`);
+      const probe = buildTeamProbeDiagnostics({
+        baseUrl,
+        endpoint,
+        timeoutMs: probeTimeoutMs,
+        status: response.status,
+        statusText: response.statusText,
+        preview: previewProbeBody(text),
+      });
+      return {
+        ok: false,
+        address: baseUrl,
+        inputAddress: address,
+        endpoint,
+        error: json?.error ? `${probe.error}：${json.error}` : probe.error,
+        detail: probe.detail,
+        diagnostics: probe.diagnostics,
+        status: response.status,
+        statusText: response.statusText,
+        responsePreview: previewProbeBody(text),
+        fetchedAt: Date.now(),
+      };
+    }
+    if (parseFailed || !json || !Array.isArray(json.templates)) {
+      const probe = buildTeamProbeDiagnostics({
+        baseUrl,
+        endpoint,
+        timeoutMs: probeTimeoutMs,
+        parseFailed: true,
+        preview: previewProbeBody(text),
+      });
+      return {
+        ok: false,
+        address: baseUrl,
+        inputAddress: address,
+        endpoint,
+        error: probe.error,
+        detail: probe.detail,
+        diagnostics: probe.diagnostics,
+        responsePreview: previewProbeBody(text),
+        fetchedAt: Date.now(),
+      };
     }
     return {
       ok: true,
       address: baseUrl,
       inputAddress: address,
+      endpoint,
       manifest: json.manifest || {},
       templates: normalizeTeamTemplates(json.templates || []),
       fetchedAt: Date.now(),
     };
   } catch (error) {
+    const probe = buildTeamProbeDiagnostics({
+      baseUrl,
+      endpoint,
+      timeoutMs: probeTimeoutMs,
+      error,
+    });
     return {
       ok: false,
       address: baseUrl,
       inputAddress: address,
-      error: error?.name === "AbortError" ? "连接超时" : formatErrorMessage(error),
+      endpoint,
+      error: probe.error,
+      detail: probe.detail,
+      diagnostics: probe.diagnostics,
+      errorCode: probe.code,
+      errorName: probe.name,
       fetchedAt: Date.now(),
     };
   } finally {

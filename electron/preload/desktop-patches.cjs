@@ -1543,7 +1543,7 @@ function installDesktopPatches() {
       for (let member of members) {
         let address = typeof member === "string" ? member : member.address;
         if (!address) continue;
-        let result = await window.wanjuanDesktop?.workspaceTeamFetchMember?.({ address, timeoutMs: 8000 });
+        let result = await window.wanjuanDesktop?.workspaceTeamFetchMember?.({ address, timeoutMs: 12000 });
         results.push({
           address,
           name: member.name || result?.manifest?.memberName || address,
@@ -2689,9 +2689,13 @@ function installDesktopPatches() {
       html.wanjuan-workspace-open .wanjuan-app-nav-tab:not(.wanjuan-workspace-nav-tab).wanjuan-app-nav-tab-active{color:var(--wanjuan-nav-text,#b6beca)!important}
       html.wanjuan-workspace-open .wanjuan-workspace-nav-tab{opacity:1!important;color:var(--wanjuan-nav-text-active,#f8fafc)!important}
       .wanjuan-workspace-page{position:absolute;inset:0;z-index:18;display:none;flex-direction:column;background:var(--wj-bg,#101214);color:var(--wj-text,#e5e7eb)}
-      .wanjuan-workspace-header{height:58px;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:0 18px;border-bottom:1px solid var(--wj-border,#2b2f36);background:var(--wj-surface,#171a1f)}
+      .wanjuan-workspace-header{min-height:68px;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:8px 18px;border-bottom:1px solid var(--wj-border,#2b2f36);background:var(--wj-surface,#171a1f)}
       .wanjuan-workspace-title{font-size:16px;font-weight:800;color:var(--wj-text,#f8fafc)}
       .wanjuan-workspace-subtitle{font-size:11px;color:var(--wj-muted,#8b949e);margin-top:2px}
+      .wanjuan-workspace-network-warning{margin-top:3px;font-size:10px;line-height:1.35;color:#f87171;max-width:min(760px,68vw)}
+      .wanjuan-workspace-header-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;min-width:0}
+      .wanjuan-workspace-close-button{width:32px;height:32px;display:grid;place-items:center;border:1px solid var(--wj-border,#303640);border-radius:8px;background:var(--wj-surface-2,#111419);color:var(--wj-muted,#cbd5e1);font-size:18px;line-height:1;cursor:pointer}
+      .wanjuan-workspace-close-button:hover{border-color:color-mix(in srgb,var(--wj-accent,#3b82f6) 44%,var(--wj-border,#4b5563));background:color-mix(in srgb,var(--wj-surface-3,#252b35) 84%,var(--wj-accent,#3b82f6) 16%);color:var(--wj-text,#fff)}
       .wanjuan-workspace-tabs,.wanjuan-workspace-sections,.wanjuan-workspace-segment{display:inline-flex;align-items:center;gap:4px;padding:4px;border:1px solid var(--wj-border,#303640);border-radius:10px;background:var(--wj-surface-2,#111419)}
       .wanjuan-workspace-tabs button,.wanjuan-workspace-sections button,.wanjuan-workspace-segment button{height:30px;border:0;border-radius:7px;padding:0 12px;background:transparent;color:var(--wj-muted,#9ca3af);font-size:12px;font-weight:700;cursor:pointer}
       .wanjuan-workspace-tabs button.is-active,.wanjuan-workspace-sections button.is-active,.wanjuan-workspace-segment button.is-active{background:var(--wj-accent,#2563eb)!important;color:var(--wj-on-accent,var(--wanjuan-theme-on-primary,#fff))!important}
@@ -2731,11 +2735,28 @@ function installDesktopPatches() {
       .wanjuan-workspace-group span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
       .wanjuan-workspace-group span:last-child{flex:0 0 auto}
       .wanjuan-workspace-group small{min-width:0;flex:1;color:var(--wj-muted,#7d8794);font-size:10px;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right}
+      .wanjuan-workspace-group-main{min-width:0;display:flex;align-items:center;gap:8px;flex:1}
+      .wanjuan-workspace-group-count{flex:0 0 auto;color:var(--wj-muted,#9ca3af);font-size:11px;font-weight:750}
+      .wanjuan-workspace-group-actions{display:flex;align-items:center;gap:4px;flex:0 0 auto}
+      .wanjuan-workspace-group-action{width:24px;height:24px;display:grid;place-items:center;border:1px solid var(--wj-border,#303640);border-radius:6px;background:var(--wj-surface-2,#111419);color:var(--wj-muted,#cbd5e1);cursor:pointer;padding:0}
+      .wanjuan-workspace-group-action svg{width:13px;height:13px;display:block;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+      .wanjuan-workspace-group-action:hover{border-color:color-mix(in srgb,var(--wj-accent,#3b82f6) 42%,var(--wj-border,#4b5563));background:color-mix(in srgb,var(--wj-surface-3,#252b35) 84%,var(--wj-accent,#3b82f6) 16%);color:var(--wj-text,#fff)}
+      .wanjuan-workspace-group-action.danger:hover{border-color:#ef4444;color:#fecaca;background:color-mix(in srgb,#ef4444 13%,var(--wj-surface-3,#252b35))}
       .wanjuan-workspace-group.is-active{border-color:var(--wj-accent,#3b82f6);background:color-mix(in srgb,var(--wj-accent,#3b82f6) 18%,var(--wj-surface,#171a1f));color:var(--wj-text,#dbeafe)}
       .wanjuan-workspace-group.is-online{border-color:color-mix(in srgb,#22c55e 48%,var(--wj-border,#2b3038));background:color-mix(in srgb,#22c55e 10%,var(--wj-surface,#171a1f))}
       .wanjuan-workspace-group.is-error{border-color:color-mix(in srgb,#ef4444 44%,var(--wj-border,#2b3038));background:color-mix(in srgb,#ef4444 9%,var(--wj-surface,#171a1f))}
       .wanjuan-workspace-group.is-online small{color:#86efac}
       .wanjuan-workspace-group.is-error small{color:#fecaca}
+      .wanjuan-workspace-member{width:100%;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 8px;border:1px solid var(--wj-border,#2b3038);border-radius:8px;background:var(--wj-surface,#171a1f);padding:8px 9px;font-size:12px;color:var(--wj-text,#d1d5db);cursor:pointer;text-align:left}
+      .wanjuan-workspace-member strong{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:750;color:inherit}
+      .wanjuan-workspace-member .wanjuan-workspace-member-remove{grid-column:2;grid-row:1;align-self:start;font-size:11px;color:var(--wj-muted,#9ca3af)}
+      .wanjuan-workspace-member .wanjuan-workspace-member-status{grid-column:1/-1;font-size:10px;line-height:1.45;color:var(--wj-muted,#8b95a3);overflow-wrap:anywhere}
+      .wanjuan-workspace-member .wanjuan-workspace-member-detail{grid-column:1/-1;display:grid;gap:2px;margin-top:2px;font-size:10px;line-height:1.45;color:color-mix(in srgb,var(--wj-muted,#9ca3af) 88%,var(--wj-text,#e5e7eb));overflow-wrap:anywhere}
+      .wanjuan-workspace-member.is-online{border-color:color-mix(in srgb,#22c55e 48%,var(--wj-border,#2b3038));background:color-mix(in srgb,#22c55e 10%,var(--wj-surface,#171a1f))}
+      .wanjuan-workspace-member.is-online .wanjuan-workspace-member-status{color:#86efac}
+      .wanjuan-workspace-member.is-error{border-color:color-mix(in srgb,#ef4444 44%,var(--wj-border,#2b3038));background:color-mix(in srgb,#ef4444 9%,var(--wj-surface,#171a1f))}
+      .wanjuan-workspace-member.is-error .wanjuan-workspace-member-status{color:#fecaca}
+      .wanjuan-workspace-member.is-error .wanjuan-workspace-member-detail{color:color-mix(in srgb,#fecaca 86%,var(--wj-muted,#9ca3af))}
       .wanjuan-workspace-empty{grid-column:1/-1;border:1px dashed var(--wj-border,#374151);border-radius:12px;padding:34px;text-align:center;color:var(--wj-muted,#7d8794);font-size:13px}
       .wanjuan-workspace-form{display:grid;gap:9px;padding:12px;border:1px solid var(--wj-border,#2c323b);border-radius:10px;background:var(--wj-surface,#171a1f)}
       .wanjuan-workspace-field-label{display:grid;gap:5px;min-width:0;font-size:11px;font-weight:700;color:var(--wj-muted,#9ca3af)}
@@ -2745,6 +2766,10 @@ function installDesktopPatches() {
       .wanjuan-workspace-team-status{font-size:11px;color:var(--wj-muted,#9ca3af);line-height:1.6;border:1px solid var(--wj-border,#2c323b);border-radius:10px;background:var(--wj-surface,#171a1f);padding:10px;overflow-wrap:anywhere}
       .wanjuan-workspace-team-status strong{display:block;color:var(--wj-text,#e5e7eb);font-weight:800;margin:2px 0}
       .wanjuan-workspace-team-status small{display:block;color:var(--wj-muted,#7d8794);line-height:1.5;margin-top:4px}
+      .wanjuan-workspace-team-url-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:6px;margin:3px 0}
+      .wanjuan-workspace-team-url-row strong{margin:0;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      .wanjuan-workspace-copy-url{height:26px;border:1px solid var(--wj-border,#303640);border-radius:7px;background:var(--wj-surface-3,#1d222a);color:var(--wj-text,#d1d5db);padding:0 8px;font-size:11px;font-weight:750;cursor:pointer}
+      .wanjuan-workspace-copy-url:hover{border-color:color-mix(in srgb,var(--wj-accent,#3b82f6) 44%,var(--wj-border,#4b5563));background:color-mix(in srgb,var(--wj-surface-3,#252b35) 84%,var(--wj-accent,#3b82f6) 16%);color:var(--wj-text,#fff)}
       .wanjuan-workspace-toast{position:fixed;right:18px;bottom:22px;z-index:2147483600;background:var(--wj-surface-2,#111827);color:var(--wj-text,#fff);border:1px solid var(--wj-border,#374151);border-radius:10px;padding:10px 13px;font-size:12px;box-shadow:var(--wj-shadow-popover,0 18px 50px rgba(0,0,0,.42))}
       html.wanjuan-workspace-open .wanjuan-workspace-page .wanjuan-workspace-tabs button.is-active,
       html.wanjuan-workspace-open .wanjuan-workspace-page .wanjuan-workspace-sections button.is-active,
@@ -2764,7 +2789,7 @@ function installDesktopPatches() {
       .wanjuan-settings-save-button:hover,
       .wanjuan-settings-save-button:focus-visible{background:color-mix(in srgb,var(--wj-accent,#2563eb) 86%,#fff 14%)!important;background-color:color-mix(in srgb,var(--wj-accent,#2563eb) 86%,#fff 14%)!important;background-image:none!important;color:var(--wj-on-accent,#fff)!important;box-shadow:0 10px 28px color-mix(in srgb,var(--wj-accent,#2563eb) 30%,transparent)!important}
       @media(max-width:900px){.wanjuan-workspace-body{grid-template-columns:1fr}.wanjuan-workspace-sidebar{display:none}.wanjuan-workspace-toolbar{flex-wrap:wrap}.wanjuan-workspace-search{max-width:none}.wanjuan-workspace-toolbar-actions{width:100%;justify-content:flex-start}.wanjuan-workspace-toolbar-actions .wanjuan-workspace-button{flex:0 0 auto}}
-      @media(max-width:560px){.wanjuan-workspace-list{grid-template-columns:1fr}.wanjuan-workspace-card{grid-template-columns:104px minmax(0,1fr)}.wanjuan-workspace-card-media{min-height:184px}.wanjuan-workspace-card-actions{grid-template-columns:1fr}.wanjuan-workspace-function-card .wanjuan-workspace-segment{grid-template-columns:repeat(2,minmax(0,1fr))}}
+      @media(max-width:560px){.wanjuan-workspace-header{padding:8px 12px}.wanjuan-workspace-subtitle{display:none}.wanjuan-workspace-network-warning{max-width:calc(100vw - 132px)}.wanjuan-workspace-list{grid-template-columns:1fr}.wanjuan-workspace-card{grid-template-columns:104px minmax(0,1fr)}.wanjuan-workspace-card-media{min-height:184px}.wanjuan-workspace-card-actions{grid-template-columns:1fr}.wanjuan-workspace-function-card .wanjuan-workspace-segment{grid-template-columns:repeat(2,minmax(0,1fr))}}
     `;
     document.head.appendChild(style);
   };
@@ -2775,7 +2800,15 @@ function installDesktopPatches() {
     return [
       `<button class="wanjuan-workspace-group ${workspaceState.selectedGroupId === "" ? "is-active" : ""}" data-workspace-group=""><span>全部模板</span><span>${templates.length}</span></button>`,
       `<button class="wanjuan-workspace-group ${workspaceState.selectedGroupId === "__ungrouped" ? "is-active" : ""}" data-workspace-group="__ungrouped"><span>未分组</span><span>${counts.get("") || 0}</span></button>`,
-      ...groups.map((group) => `<button class="wanjuan-workspace-group ${workspaceState.selectedGroupId === group.id ? "is-active" : ""}" data-workspace-group="${workspaceEscapeHtml(group.id)}"><span>${workspaceEscapeHtml(group.name)}</span><span>${counts.get(group.id) || 0}</span></button>`)
+      ...groups.map((group) => `
+        <div class="wanjuan-workspace-group ${workspaceState.selectedGroupId === group.id ? "is-active" : ""}" data-workspace-group="${workspaceEscapeHtml(group.id)}" role="button" tabindex="0">
+          <span class="wanjuan-workspace-group-main"><span>${workspaceEscapeHtml(group.name)}</span><span class="wanjuan-workspace-group-count">${counts.get(group.id) || 0}</span></span>
+          <span class="wanjuan-workspace-group-actions">
+            <button type="button" class="wanjuan-workspace-group-action" data-workspace-group-action="rename" data-workspace-group-id="${workspaceEscapeHtml(group.id)}" title="重命名分组" aria-label="重命名分组"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>
+            <button type="button" class="wanjuan-workspace-group-action danger" data-workspace-group-action="delete" data-workspace-group-id="${workspaceEscapeHtml(group.id)}" title="删除分组" aria-label="删除分组"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v5"/><path d="M14 11v5"/></svg></button>
+          </span>
+        </div>
+      `)
     ].join("");
   };
 
@@ -2878,7 +2911,10 @@ function installDesktopPatches() {
     const teamStatusHtml = data.teamSettings.enabled && workspaceState.status?.running ?
       `
         已开启，其他成员优先添加：
-        <strong>${workspaceEscapeHtml(preferredUrl || `端口 ${workspaceState.status.port}`)}</strong>
+        <div class="wanjuan-workspace-team-url-row">
+          <strong title="${workspaceEscapeHtml(preferredUrl || `端口 ${workspaceState.status.port}`)}">${workspaceEscapeHtml(preferredUrl || `端口 ${workspaceState.status.port}`)}</strong>
+          ${preferredUrl ? `<button type="button" class="wanjuan-workspace-copy-url" data-workspace-action="copy-team-url">复制</button>` : ""}
+        </div>
         <small>当前共享模板：${data.publishedTemplates.length} 个。可在另一台电脑浏览器打开此地址检查是否连通。</small>
         ${otherTeamUrls.length ? `<small>其他可用地址：${workspaceEscapeHtml(otherTeamUrls.join("，"))}</small>` : ""}
         <small>如果推荐地址连不上，让对方改用同一 Wi-Fi/网线网段里的另一个 192.168/10/172 地址。</small>
@@ -2893,14 +2929,37 @@ function installDesktopPatches() {
         item.inputAddress === String(address || "").replace(/\/$/, "")
       );
       const statusText = result ? (result.ok ? `${(result.templates || []).length} 个模板` : `连接失败：${result.error || "未知错误"}`) : "未刷新";
-      return `<button class="wanjuan-workspace-group ${result?.ok ? "is-online" : result ? "is-error" : ""}" data-workspace-member="${workspaceEscapeHtml(address)}"><span>${workspaceEscapeHtml(address)}</span><small>${workspaceEscapeHtml(statusText)}</small><span>移除</span></button>`;
+      const diagnostics = Array.isArray(result?.diagnostics) ? result.diagnostics.filter(Boolean).slice(0, 3) : [];
+      const detailLines = result && !result.ok ? [
+        result.detail || result.endpoint || "",
+        result.errorCode ? `系统错误码：${result.errorCode}` : "",
+        ...diagnostics,
+      ].filter(Boolean) : [];
+      const detailHtml = detailLines.length ?
+        `<div class="wanjuan-workspace-member-detail">${detailLines.map((line) => `<span>${workspaceEscapeHtml(line)}</span>`).join("")}</div>` :
+        "";
+      return `
+        <button class="wanjuan-workspace-member ${result?.ok ? "is-online" : result ? "is-error" : ""}" data-workspace-member="${workspaceEscapeHtml(address)}">
+          <strong>${workspaceEscapeHtml(address)}</strong>
+          <span class="wanjuan-workspace-member-remove">移除</span>
+          <span class="wanjuan-workspace-member-status">${workspaceEscapeHtml(statusText)}</span>
+          ${detailHtml}
+        </button>
+      `;
     }).join("");
     page.innerHTML = `
       <div class="wanjuan-workspace-header">
-        <div><div class="wanjuan-workspace-title">工作空间</div><div class="wanjuan-workspace-subtitle">个人提示词资产和局域网团队模板共享</div></div>
-        <div class="wanjuan-workspace-tabs">
-          <button data-workspace-space="personal" class="${workspaceState.activeSpace === "personal" ? "is-active" : ""}">个人空间</button>
-          <button data-workspace-space="team" class="${workspaceState.activeSpace === "team" ? "is-active" : ""}">团队空间</button>
+        <div>
+          <div class="wanjuan-workspace-title">工作空间</div>
+          <div class="wanjuan-workspace-subtitle">个人提示词资产和局域网团队模板共享</div>
+          <div class="wanjuan-workspace-network-warning">更换网络环境（如更换Wi-Fi频段，更换有线网，开启VPN等情况）需要关闭团队空间后关闭软件再重新开启软件与团队空间，重新复制更换后的局域网端口。</div>
+        </div>
+        <div class="wanjuan-workspace-header-actions">
+          <div class="wanjuan-workspace-tabs">
+            <button data-workspace-space="personal" class="${workspaceState.activeSpace === "personal" ? "is-active" : ""}">个人空间</button>
+            <button data-workspace-space="team" class="${workspaceState.activeSpace === "team" ? "is-active" : ""}">团队空间</button>
+          </div>
+          <button type="button" class="wanjuan-workspace-close-button" data-workspace-action="close" title="关闭工作空间" aria-label="关闭工作空间">×</button>
         </div>
       </div>
       <div class="wanjuan-workspace-body">
@@ -3025,6 +3084,55 @@ function installDesktopPatches() {
         return;
       }
 
+      const groupActionButton = target.closest("[data-workspace-group-action]");
+      if (groupActionButton) {
+        const groupId = groupActionButton.getAttribute("data-workspace-group-id") || "";
+        const groupAction = groupActionButton.getAttribute("data-workspace-group-action") || "";
+        if (!groupId || !groupAction) return;
+        const data = await workspaceReadAll();
+        const group = data.groups.find((item) => item.id === groupId);
+        if (!group) return;
+        if (groupAction === "rename") {
+          const name = await window.wanjuanDesktop?.showInputDialog?.({
+            title: "重命名分组",
+            message: "输入新的分组名称",
+            defaultValue: group.name || "未命名分组",
+          });
+          const nextName = String(name || "").trim();
+          if (!nextName) return;
+          await workspaceStorageSet({
+            workspacePromptTemplateGroups: data.groups.map((item) =>
+              item.id === groupId ? { ...item, name: nextName, updatedAt: Date.now() } : item
+            ),
+          });
+          workspaceToast("分组已重命名");
+          await renderWorkspacePanel();
+          return;
+        }
+        if (groupAction === "delete") {
+          const templateCount = data.templates.filter((template) => template.groupId === groupId).length;
+          const confirmed = window.confirm(`删除分组“${group.name}”？${templateCount ? `\n该分组下 ${templateCount} 个模板会移到“未分组”。` : ""}`);
+          if (!confirmed) return;
+          const updatedAt = Date.now();
+          const nextTemplates = data.templates.map((template) =>
+            template.groupId === groupId ? { ...template, groupId: "", updatedAt } : template
+          );
+          const nextPublishedTemplates = data.publishedTemplates.map((template) =>
+            template.groupId === groupId ? { ...template, groupId: "", updatedAt } : template
+          );
+          await workspaceStorageSet({
+            workspacePromptTemplateGroups: data.groups.filter((item) => item.id !== groupId),
+            workspacePromptTemplates: nextTemplates,
+            workspacePublishedTemplates: nextPublishedTemplates,
+          });
+          await workspaceSyncPublishedTemplates(nextPublishedTemplates);
+          if (workspaceState.selectedGroupId === groupId) workspaceState.selectedGroupId = "";
+          workspaceToast("分组已删除");
+          await renderWorkspacePanel();
+          return;
+        }
+      }
+
       const groupButton = target.closest("[data-workspace-group]");
       if (groupButton) {
         workspaceState.selectedGroupId = groupButton.getAttribute("data-workspace-group") || "";
@@ -3143,6 +3251,11 @@ function installDesktopPatches() {
       }
       if (action === "copy-prompt" && selectedTemplate) {
         await workspaceCopyText(selectedTemplate.prompt);
+        return;
+      }
+      if (action === "copy-team-url") {
+        const url = workspaceState.status?.preferredUrl || workspaceState.status?.urls?.[0] || "";
+        await workspaceCopyText(url);
         return;
       }
       if (action === "start-team" || action === "stop-team") {
