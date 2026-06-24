@@ -589,6 +589,20 @@ export async function wanjuanRunTianjiSeedanceVideo(options: RunTianjiSeedanceVi
     videoUrls.length > 0 && (payload[`videos[]`] = videoUrls);
     audioUrls.length > 0 && (payload[`audios[]`] = audioUrls);
   }
+  let requestSummary = {
+    endpoint,
+    generationMode,
+    promptPreview: prompt.slice(0, 160),
+    imageCount: imageUrls.length,
+    videoCount: videoUrls.length,
+    audioCount: audioUrls.length,
+    imageRefs: imageUrls.map((url) =>
+      /^asset:\/\//i.test(String(url || ``))
+        ? `asset://${String(url).replace(/^asset:\/\//i, ``).slice(0, 12)}...`
+        : String(url || ``).slice(0, 120),
+    ),
+    hasTianjiAssetReference: imageUrls.some((url) => /^asset:\/\//i.test(String(url || ``))),
+  };
   options.showToast(`即梦天玑任务提交中...`);
   let submitResponse = await wanjuanTianjiRequest(config, endpoint, {
       params: payload,
@@ -611,6 +625,7 @@ export async function wanjuanRunTianjiSeedanceVideo(options: RunTianjiSeedanceVi
         progress: 0,
         createdAt: Date.now(),
         prompt: options.prompt,
+        requestProfile: requestSummary,
       },
     ]),
     options.updateNodes((nodes) =>

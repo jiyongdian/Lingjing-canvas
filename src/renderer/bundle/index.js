@@ -804,7 +804,37 @@ var TongyiWanxiangLogo = ({
         } catch {}
       })();
       return () => { cancelled = true; };
-    }, [imageUrl, mediaType, nodeId]);
+	    }, [imageUrl, mediaType, nodeId]);
+    let tianjiBindingStatus = String(data.tianjiPortraitBindingStatus || (data.tianjiPortraitAssetId ? `ready` : ``)).trim(),
+      tianjiBindingState =
+      tianjiBindingStatus === `reviewing` ?
+      {
+        label: `审核中`,
+        className: `border-sky-400/40 bg-sky-500/15 text-sky-100`,
+      } :
+      tianjiBindingStatus === `ready` ?
+      {
+        label: `已绑定天玑素材`,
+        className: `border-emerald-400/45 bg-emerald-500/15 text-emerald-100`,
+      } :
+      tianjiBindingStatus === `pending` ?
+      {
+        label: `等待素材库刷新`,
+        className: `border-amber-400/45 bg-amber-500/15 text-amber-100`,
+      } :
+      tianjiBindingStatus === `failed` ?
+      {
+        label: `绑定失败/需手动从人像库选择`,
+        className: `border-red-400/45 bg-red-500/15 text-red-100`,
+      } :
+      null,
+      tianjiBindingBadge = tianjiBindingState ?
+      jsx(`div`, {
+        className: `absolute left-2 bottom-2 z-20 max-w-[calc(100%-16px)] truncate rounded-md border px-2 py-1 text-[10px] font-medium leading-tight shadow-lg backdrop-blur-md pointer-events-none ${tianjiBindingState.className}`,
+        title: data.tianjiPortraitBindingMessage || tianjiBindingState.label,
+        children: tianjiBindingState.label,
+      }) :
+      null;
     return jsxs(`div`, {
       className: `relative group/node w-full h-full min-w-[120px] min-h-[80px]`,
       children: [
@@ -1069,6 +1099,7 @@ var TongyiWanxiangLogo = ({
                     children: `空`,
                   }),
                 }),
+                tianjiBindingBadge,
               ],
             }),
             jsx(Y, {
@@ -1277,7 +1308,37 @@ var TongyiWanxiangLogo = ({
       },
       imageUrl = data.imageUrl,
       ce = data.loading,
-      le = data.errorMessage;
+      le = data.errorMessage,
+      tianjiBindingStatus = String(data.tianjiPortraitBindingStatus || (data.tianjiPortraitAssetId ? `ready` : ``)).trim(),
+      tianjiBindingState =
+      tianjiBindingStatus === `reviewing` ?
+      {
+        label: `审核中`,
+        className: `border-sky-400/40 bg-sky-500/15 text-sky-100`,
+      } :
+      tianjiBindingStatus === `ready` ?
+      {
+        label: `已绑定天玑素材`,
+        className: `border-emerald-400/45 bg-emerald-500/15 text-emerald-100`,
+      } :
+      tianjiBindingStatus === `pending` ?
+      {
+        label: `等待素材库刷新`,
+        className: `border-amber-400/45 bg-amber-500/15 text-amber-100`,
+      } :
+      tianjiBindingStatus === `failed` ?
+      {
+        label: `绑定失败/需手动从人像库选择`,
+        className: `border-red-400/45 bg-red-500/15 text-red-100`,
+      } :
+      null,
+      tianjiBindingBadge = tianjiBindingState ?
+      jsx(`div`, {
+        className: `absolute left-2 bottom-2 z-20 max-w-[calc(100%-16px)] truncate rounded-md border px-2 py-1 text-[10px] font-medium leading-tight shadow-lg backdrop-blur-md pointer-events-none ${tianjiBindingState.className}`,
+        title: data.tianjiPortraitBindingMessage || tianjiBindingState.label,
+        children: tianjiBindingState.label,
+      }) :
+      null;
     return jsxs(`div`, {
       className: `flex flex-col items-center group/node transition-all w-full h-full min-w-[160px] min-h-[160px] ${selected ? `z-50` : `z-10`}`,
       children: [
@@ -1501,6 +1562,7 @@ var TongyiWanxiangLogo = ({
                     }),
                   ],
                 }),
+                tianjiBindingBadge,
                 jsx(`div`, {
                   className: `absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors flex items-center justify-center opacity-0 hover:opacity-100 pointer-events-none`,
                 }),
@@ -4100,6 +4162,39 @@ var Le = reactMemo(({
             wanjuanModelManual: !1
           }));
     };
+    let resolvePendingTianjiPortraitNodes = (assetsPayload, {
+      showToastResolved: showToastResolved = !1
+    } = {}) => {
+      let usableAssets = wanjuanTianjiFlattenPortraitAssets(assetsPayload);
+      if (!usableAssets.length) return 0;
+      let resolvedCount = 0;
+      setVideoNodes((nodes) =>
+        nodes.map((node) => {
+          if (node?.data?.tianjiPortraitBindingStatus !== `pending`) return node;
+          let resolved = wanjuanTianjiResolvePortraitAssetForNodeData(node.data, usableAssets);
+          if (!resolved?.assetId) return node;
+          resolvedCount += 1;
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              tianjiPortraitAssetId: resolved.assetId,
+              tianjiPortraitGroupType: resolved.groupType || node.data.tianjiPortraitGroupType || `AIGC`,
+              tianjiPortraitPreviewUrl: resolved.imageUrl || node.data.tianjiPortraitPreviewUrl || node.data.imageUrl,
+              isTianjiPortrait: !0,
+              sourceOrigin: `tianji-portrait`,
+              tianjiPortraitBindingStatus: `ready`,
+              tianjiPortraitBindingMessage: `已自动绑定天玑素材库最终人像 ID`,
+              tianjiPortraitBoundAt: Date.now(),
+            },
+          };
+        }),
+      );
+      resolvedCount > 0 &&
+        showToastResolved &&
+        data.onShowToast?.(`已自动绑定 ${resolvedCount} 个等待中的天玑人像素材`);
+      return resolvedCount;
+    };
     (useEffect(() => {
         if (data.selectedContextResources) {
           let nextContextResources = isSeedanceOrWanxiang ?
@@ -4127,6 +4222,7 @@ var Le = reactMemo(({
           applyTianjiPortraitAssets = (stored) => {
             if (cancelled) return;
             setTianjiNodePortraitAssets(wanjuanNormalizeTianjiPortraitAssets(stored?.tianjiSeedanceAssets || {}));
+            resolvePendingTianjiPortraitNodes(stored?.tianjiSeedanceAssets || {});
             setTianjiPortraitPickerReachedEnd(!1);
           };
         if (typeof chrome < `u` && chrome.storage?.local) {
@@ -4467,6 +4563,9 @@ var Le = reactMemo(({
           }),
           nextAssets = wanjuanNormalizeTianjiPortraitAssets(refresh?.assets || {});
         (setTianjiNodePortraitAssets(nextAssets),
+          resolvePendingTianjiPortraitNodes(refresh?.assets || {}, {
+            showToastResolved: !0
+          }),
           setTianjiPortraitPickerReachedEnd((refresh?.aigcCount || 0) < seedancePortraitPickerPageSize),
           refresh?.aigcCount > 0 && setSeedancePortraitPickerPage(pageNumber));
         return refresh?.aigcCount || 0;
@@ -16849,7 +16948,6 @@ const wanjuanTianjiSubmittedPortraitAssetId = (uploadResult) => {
       wanjuanTianjiFindDeep(uploadResult?.result, [`portrait_asset_id`, `asset_id`, `assetId`, `AssetId`]) ||
       ``,
   ).trim();
-  if (directId && !/^local-/i.test(directId)) return directId;
   let uploadedUrl = String(uploadResult?.imageUrl || uploadResult?.asset?.image_url || uploadResult?.asset?.imageUrl || ``).trim(),
     label = String(uploadResult?.asset?.name || ``).trim(),
     aigcAssets = Array.isArray(uploadResult?.refresh?.assets?.AIGC) ? uploadResult.refresh.assets.AIGC : [],
@@ -16867,7 +16965,89 @@ const wanjuanTianjiSubmittedPortraitAssetId = (uploadResult) => {
           return itemId && !/^local-/i.test(itemId) && item?.localUploaded !== !0;
         }) :
         null);
-  return String(matchedAsset?.portrait_asset_id || matchedAsset?.asset_id || matchedAsset?.assetId || matchedAsset?.id || matchedAsset?.AssetId || ``).trim();
+  let refreshedId = String(matchedAsset?.portrait_asset_id || matchedAsset?.asset_id || matchedAsset?.assetId || matchedAsset?.id || matchedAsset?.AssetId || ``).trim();
+  return refreshedId || (directId && !/^local-/i.test(directId) ? directId : ``);
+};
+
+const wanjuanTianjiFinalPortraitAsset = (uploadResult) => {
+  let assetId = wanjuanTianjiSubmittedPortraitAssetId(uploadResult),
+    uploadedUrl = String(uploadResult?.imageUrl || uploadResult?.asset?.image_url || uploadResult?.asset?.imageUrl || ``).trim(),
+    label = String(uploadResult?.asset?.name || ``).trim(),
+    assets = Array.isArray(uploadResult?.refresh?.assets?.AIGC) ? uploadResult.refresh.assets.AIGC : [],
+    matchedAsset =
+      assets.find((item) => {
+        let itemId = String(item?.portrait_asset_id || item?.asset_id || item?.assetId || item?.id || item?.AssetId || ``).trim();
+        if (!itemId || /^local-/i.test(itemId) || item?.localUploaded === !0) return !1;
+        let itemUrl = String(item?.image_url || item?.imageUrl || item?.preview_url || item?.previewUrl || item?.url || ``).trim(),
+          itemName = String(item?.name || item?.Name || item?.label || ``).trim();
+        return (assetId && itemId === assetId) || (uploadedUrl && itemUrl && itemUrl === uploadedUrl) || (label && itemName && itemName === label);
+      }) ||
+      (uploadResult?.refresh?.aigcCount === 1 ?
+        assets.find((item) => {
+          let itemId = String(item?.portrait_asset_id || item?.asset_id || item?.assetId || item?.id || item?.AssetId || ``).trim();
+          return itemId && !/^local-/i.test(itemId) && item?.localUploaded !== !0;
+        }) :
+        null),
+    finalId = String(matchedAsset?.portrait_asset_id || matchedAsset?.asset_id || matchedAsset?.assetId || matchedAsset?.id || matchedAsset?.AssetId || ``).trim();
+  return {
+    assetId: finalId,
+    asset: matchedAsset || null,
+    imageUrl: String(matchedAsset?.image_url || matchedAsset?.imageUrl || matchedAsset?.preview_url || matchedAsset?.previewUrl || matchedAsset?.url || uploadedUrl || ``).trim(),
+    matched: !!finalId,
+  };
+};
+
+const wanjuanTianjiPortraitAssetIdFromItem = (item) =>
+  String(item?.portrait_asset_id || item?.portraitAssetId || item?.asset_id || item?.assetId || item?.id || item?.Id || item?.AssetId || ``).trim();
+
+const wanjuanTianjiPortraitImageUrlFromItem = (item) =>
+  String(item?.image_url || item?.imageUrl || item?.cover_url || item?.coverUrl || item?.preview_url || item?.previewUrl || item?.url || item?.URL || item?.thumbnailUrl || ``).trim();
+
+const wanjuanTianjiPortraitNameFromItem = (item) =>
+  String(item?.name || item?.Name || item?.label || item?.pageTitle || ``).trim();
+
+const wanjuanTianjiFlattenPortraitAssets = (input) => {
+  let source = input?.assets || input?.tianjiSeedanceAssets || input,
+    list = [];
+  if (Array.isArray(source)) list = source;
+  else if (source && typeof source == `object`)
+    Object.values(source).forEach((value) => {
+      Array.isArray(value) && list.push(...value);
+    });
+  return list.filter((item) => {
+    let itemId = wanjuanTianjiPortraitAssetIdFromItem(item);
+    return item && itemId && !/^local-/i.test(itemId) && item?.localUploaded !== !0;
+  });
+};
+
+const wanjuanTianjiResolvePortraitAssetForNodeData = (nodeData = {}, assetsPayload) => {
+  let uploadedUrl = String(
+      nodeData.tianjiPortraitBindingLookupUrl ||
+        nodeData.tianjiPortraitPreviewUrl ||
+        nodeData.tianjiPortraitUploadedUrl ||
+        ``,
+    ).trim(),
+    label = String(nodeData.tianjiPortraitBindingName || nodeData.label || nodeData.name || ``).trim(),
+    assets = wanjuanTianjiFlattenPortraitAssets(assetsPayload),
+    matchedAsset =
+      assets.find((item) => {
+        let itemUrl = wanjuanTianjiPortraitImageUrlFromItem(item);
+        return uploadedUrl && itemUrl && itemUrl === uploadedUrl;
+      }) ||
+      assets.find((item) => {
+        let itemName = wanjuanTianjiPortraitNameFromItem(item);
+        return label && itemName && itemName === label;
+      }) ||
+      null,
+    finalId = wanjuanTianjiPortraitAssetIdFromItem(matchedAsset);
+  return finalId ?
+    {
+      assetId: finalId,
+      asset: matchedAsset,
+      imageUrl: wanjuanTianjiPortraitImageUrlFromItem(matchedAsset) || uploadedUrl,
+      groupType: matchedAsset?.groupType || matchedAsset?.group_type || matchedAsset?.asset_type || matchedAsset?.type || `AIGC`,
+    } :
+    null;
 };
 
 const wanjuanTianjiMergeSubmittedPortraitAsset = async (asset) => {
@@ -17233,6 +17413,16 @@ async function wanjuanRunTianjiSeedanceVideo(options) {
     videoUrls.length > 0 && (requestParams[`videos[]`] = videoUrls);
     _.length > 0 && (requestParams[`audios[]`] = _);
   }
+  let requestSummary = {
+    endpoint: endpoint,
+    generationMode: generationMode,
+    promptPreview: prompt.slice(0, 160),
+    imageCount: imageUrls.length,
+    videoCount: videoUrls.length,
+    audioCount: _.length,
+    imageRefs: imageUrls.map((url) => /^asset:\/\//i.test(String(url || ``)) ? `asset://${String(url).replace(/^asset:\/\//i, ``).slice(0, 12)}...` : String(url || ``).slice(0, 120)),
+    hasTianjiAssetReference: imageUrls.some((url) => /^asset:\/\//i.test(String(url || ``))),
+  };
   options.showToast(`即梦天玑任务提交中...`);
   let response = await wanjuanTianjiRequest(config, endpoint, {
     params: requestParams,
@@ -17255,6 +17445,7 @@ async function wanjuanRunTianjiSeedanceVideo(options) {
         progress: 0,
         createdAt: Date.now(),
         prompt: options.prompt,
+        requestProfile: requestSummary,
       },
     ]),
     options.updateNodes((prevNodes) =>
@@ -21751,6 +21942,15 @@ ${combinedPrompt}`,
               };
             incomingEdges.forEach((edge) => {
               let sourceNode = nodes2.find((node) => node.id === edge.source);
+              if ([`reviewing`, `pending`, `failed`].includes(sourceNode?.data?.tianjiPortraitBindingStatus)) {
+                let fallbackMessage =
+                  sourceNode?.data?.tianjiPortraitBindingStatus === `reviewing` ?
+                  `天玑人像正在审核中，请等待审核完成后再生成` :
+                  sourceNode?.data?.tianjiPortraitBindingStatus === `failed` ?
+                  `天玑人像绑定失败，请手动从天玑人像库选择后再生成` :
+                  `天玑人像还没有绑定素材库最终 ID，请稍后刷新天玑人像库后再生成`;
+                throw Error(sourceNode.data.tianjiPortraitBindingMessage || fallbackMessage);
+              }
               if (sourceNode?.data?.seedanceAssetId) {
                 addVideoReferenceImage(wanjuanSeedanceAssetUrl(sourceNode.data.seedanceAssetId), {
                   seedanceAssetId: sourceNode.data.seedanceAssetId,
@@ -26326,14 +26526,10 @@ ${combinedPrompt}`,
     ),
     handleTianjiPortraitReview = useCallback(
       async (imageUrl, meta = {}) => {
+          let targetNodeId = String(meta.nodeId || ``).trim();
           try {
             showToast(`正在提交到天玑虚拟人像审核...`);
-            let result = await wanjuanUploadTianjiVirtualPortrait(imageUrl, {
-                name: meta.label || `虚拟人像素材`,
-              }),
-              portraitAssetId = wanjuanTianjiSubmittedPortraitAssetId(result),
-              targetNodeId = String(meta.nodeId || ``).trim();
-            if (portraitAssetId && targetNodeId)
+            if (targetNodeId)
               setNodes((nodes2) =>
                 nodes2.map((node2) =>
                   node2.id === targetNodeId ?
@@ -26341,9 +26537,49 @@ ${combinedPrompt}`,
                     ...node2,
                     data: {
                       ...node2.data,
-                      tianjiPortraitAssetId: portraitAssetId,
-                      tianjiPortraitGroupType: `AIGC`,
-                      isTianjiPortrait: !0,
+                      tianjiPortraitAssetId: void 0,
+                      isTianjiPortrait: !1,
+                      sourceOrigin: `tianji-portrait`,
+                      tianjiPortraitBindingStatus: `reviewing`,
+                      tianjiPortraitBindingMessage: `正在提交天玑人像审核...`,
+                    },
+                  } :
+                  node2,
+                ),
+              );
+            let result = await wanjuanUploadTianjiVirtualPortrait(imageUrl, {
+                name: meta.label || `虚拟人像素材`,
+              }),
+              finalPortrait = wanjuanTianjiFinalPortraitAsset(result),
+              portraitAssetId = finalPortrait.assetId,
+              bindingLookupUrl = result?.imageUrl || finalPortrait.imageUrl || imageUrl,
+              bindingName = meta.label || result?.asset?.name || `虚拟人像素材`;
+            if (targetNodeId)
+              setNodes((nodes2) =>
+                nodes2.map((node2) =>
+                  node2.id === targetNodeId ?
+                  {
+                    ...node2,
+                    data: {
+                      ...node2.data,
+                      ...(portraitAssetId ? {
+                        tianjiPortraitAssetId: portraitAssetId,
+                        tianjiPortraitGroupType: finalPortrait.asset?.groupType || finalPortrait.asset?.group_type || `AIGC`,
+                        tianjiPortraitPreviewUrl: finalPortrait.imageUrl || node2.data?.imageUrl || imageUrl,
+                        tianjiPortraitBindingLookupUrl: bindingLookupUrl,
+                        tianjiPortraitBindingName: bindingName,
+                        isTianjiPortrait: !0,
+                        sourceOrigin: `tianji-portrait`,
+                        tianjiPortraitBindingStatus: `ready`,
+                        tianjiPortraitBindingMessage: `已绑定天玑素材库最终人像 ID`,
+                      } : {
+                        tianjiPortraitAssetId: void 0,
+                        isTianjiPortrait: !1,
+                        tianjiPortraitBindingLookupUrl: bindingLookupUrl,
+                        tianjiPortraitBindingName: bindingName,
+                        tianjiPortraitBindingStatus: `pending`,
+                        tianjiPortraitBindingMessage: `人像已提交审核，正在自动等待素材库返回最终 ID`,
+                      }),
                       sourceOrigin: `tianji-portrait`,
                       tianjiPortraitReviewedAt: Date.now(),
                     },
@@ -26352,14 +26588,82 @@ ${combinedPrompt}`,
                 ),
               );
             showToast(
-              result?.refresh?.aigcCount > 0 ?
-              `已提交并自动刷新天玑虚拟人像库，可直接在即梦节点选择` :
-              `已提交天玑虚拟人像审核，天玑素材库还在处理，稍后会在刷新后可选`,
+              portraitAssetId ?
+              `已绑定天玑素材库最终人像，可直接连接即梦天玑节点参考` :
+              `已提交天玑人像审核，正在自动刷新等待绑定`,
             );
+            !portraitAssetId &&
+              targetNodeId &&
+              void (async () => {
+                let sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+                  retryDelays = [2500, 4e3, 6e3, 8e3, 1e4, 12e3, 15e3, 18e3, 22e3, 25e3, 3e4, 3e4];
+                for (let attempt = 1; attempt <= retryDelays.length; attempt++) {
+                  await sleep(retryDelays[attempt - 1]);
+                  try {
+                    let config = await wanjuanGetSyncedTianjiSeedanceConfig(),
+                      refresh = await wanjuanTianjiRefreshPortraitAssets(config, {
+                        preferredType: `AIGC`,
+                        retries: attempt <= 4 ? 1 : 0,
+                        delayMs: 1500,
+                        pageNumber: 1,
+                        pageSize: WANJUAN_TIANJI_ASSET_PAGE_SIZE,
+                      }),
+                      resolved = wanjuanTianjiResolvePortraitAssetForNodeData({
+                        tianjiPortraitBindingLookupUrl: bindingLookupUrl,
+                        tianjiPortraitBindingName: bindingName,
+                        label: bindingName,
+                      }, refresh?.assets || {});
+                    if (!resolved?.assetId) continue;
+                    setNodes((nodes2) =>
+                      nodes2.map((node2) =>
+                        node2.id === targetNodeId && node2.data?.tianjiPortraitBindingStatus === `pending` ?
+                        {
+                          ...node2,
+                          data: {
+                            ...node2.data,
+                            tianjiPortraitAssetId: resolved.assetId,
+                            tianjiPortraitGroupType: resolved.groupType || node2.data.tianjiPortraitGroupType || `AIGC`,
+                            tianjiPortraitPreviewUrl: resolved.imageUrl || node2.data.tianjiPortraitPreviewUrl || node2.data.imageUrl,
+                            isTianjiPortrait: !0,
+                            sourceOrigin: `tianji-portrait`,
+                            tianjiPortraitBindingStatus: `ready`,
+                            tianjiPortraitBindingMessage: `已自动绑定天玑素材库最终人像 ID`,
+                            tianjiPortraitBoundAt: Date.now(),
+                          },
+                        } :
+                        node2,
+                      ),
+                    );
+                    showToast(`天玑人像已自动绑定，可直接连接即梦天玑节点参考`);
+                    break;
+                  } catch (error) {
+                    console.warn(`Tianji portrait auto bind retry failed`, error);
+                  }
+                }
+              })();
             return result;
           } catch (error) {
+            let errorMessage = error?.message || String(error || `天玑人像审核提交失败`);
             (console.error(`Tianji portrait review upload failed`, error),
-              showToast(`天玑人像审核提交失败：${error?.message || error}`));
+              targetNodeId &&
+              setNodes((nodes2) =>
+                nodes2.map((node2) =>
+                  node2.id === targetNodeId ?
+                  {
+                    ...node2,
+                    data: {
+                      ...node2.data,
+                      tianjiPortraitAssetId: void 0,
+                      isTianjiPortrait: !1,
+                      sourceOrigin: `tianji-portrait`,
+                      tianjiPortraitBindingStatus: `failed`,
+                      tianjiPortraitBindingMessage: errorMessage || `绑定失败，需手动从天玑人像库选择`,
+                    },
+                  } :
+                  node2,
+                ),
+              ),
+              showToast(`天玑人像审核提交失败：${errorMessage}`));
             throw error;
           }
         },
@@ -31222,6 +31526,7 @@ time=1h`,
         "当前已启用全局统一API配置": "目前已啟用全域統一 API 配置",
         "切换石墨灰、曜石黑、晴空蓝、暖砂白、樱雾粉、薄荷绿或跟随系统外观，不改变现有布局结构": "切換石墨灰、曜石黑、晴空藍、暖砂白、櫻霧粉、薄荷綠或跟隨系統外觀，不改變現有布局結構",
         "选择界面语言偏好，后续多语言文案将按此设置展示": "選擇介面語言偏好，介面文案會依此設定顯示",
+        "1.3.2：优化即梦天玑人像审核后的自动刷新绑定，提高素材库最终 ID 回填成功率。": "1.3.2：優化即夢天璣人像審核後的自動刷新綁定，提高素材庫最終 ID 回填成功率。",
         "1.3.1：优化工作空间团队连接诊断、分组管理、网络环境提示与即梦天玑任务失败识别；支持天玑人像审核后直接绑定图片节点。": "1.3.1：優化工作空間團隊連線診斷、分組管理、網路環境提示與即夢天璣任務失敗識別；支援天璣人像審核後直接綁定圖片節點。",
         "1.3.0：新增工作空间、团队空间与离线工具包导入；优化本地工具、提示词模板、团队模板视频播放和跨平台协同。": "1.3.0：新增工作空間、團隊空間與離線工具包匯入；優化本機工具、提示詞模板、團隊模板影片播放和跨平台協同。",
         "1.2.13：修复即梦/Seedance 视频节点多次生成后仍显示第一次生成结果的问题；新任务、任务刷新和项目重开都会清理旧媒体绑定并优先回填最新结果。": "1.2.13：修復即夢/Seedance 影片節點多次生成後仍顯示第一次生成結果的問題；新任務、任務刷新和專案重開都會清理舊媒體綁定並優先回填最新結果。",
@@ -31282,6 +31587,7 @@ time=1h`,
         "当前已启用全局统一API配置": "Global unified API config is enabled",
         "切换石墨灰、曜石黑、晴空蓝、暖砂白、樱雾粉、薄荷绿或跟随系统外观，不改变现有布局结构": "Switch the visual theme without changing the current layout.",
         "选择界面语言偏好，后续多语言文案将按此设置展示": "Choose the interface language. Supported interface text follows this setting.",
+        "1.3.2：优化即梦天玑人像审核后的自动刷新绑定，提高素材库最终 ID 回填成功率。": "1.3.2: Improved automatic refresh binding after Jimeng Tianji portrait review, increasing the success rate of final asset ID backfill.",
         "1.3.1：优化工作空间团队连接诊断、分组管理、网络环境提示与即梦天玑任务失败识别；支持天玑人像审核后直接绑定图片节点。": "1.3.1: Improved Workspace team connection diagnostics, group management, network-change guidance, and Tianji task failure detection; Tianji portrait review can now bind directly to the image node.",
         "1.3.0：新增工作空间、团队空间与离线工具包导入；优化本地工具、提示词模板、团队模板视频播放和跨平台协同。": "1.3.0: Added Workspace, Team Space, and offline tool pack import; improved local tools, prompt templates, team template video playback, and cross-platform collaboration.",
         "1.2.13：修复即梦/Seedance 视频节点多次生成后仍显示第一次生成结果的问题；新任务、任务刷新和项目重开都会清理旧媒体绑定并优先回填最新结果。": "1.2.13: Fixed Jimeng/Seedance video nodes still showing the first generated result after repeated generations; new tasks, task refresh, and project reopen now clear stale media bindings and prefer the latest result.",
@@ -42571,7 +42877,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                           [],
                         ),
                         buildBackupPayload = async (e, t, n, r = {}) => ({
-				                            version: `1.3.1`,
+				                            version: `1.3.2`,
                             backupFormat: `4`,
                             exportedAt: new Date().toISOString(),
                             modules: await buildBackupModules(e, t, n, r),
@@ -43171,7 +43477,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                 }),
                 jsx(`span`, {
                   className: `absolute bottom-1 right-2 text-[8px] text-gray-600 font-normal`,
-					                  children: `v1.3.1`,
+					                  children: `v1.3.2`,
                 }),
                 updateInfo?.hasUpdate &&
                 jsx(`span`, {
@@ -47111,7 +47417,7 @@ ${String(l || ``).slice(0, 5e4)}`;
 	                                        }),
 	                                        jsx(`div`, {
 	                                          className: `pt-2 border-t border-[#262626] text-[11px] text-gray-500`,
-				                                          children: wanjuanT(`1.3.1：优化工作空间团队连接诊断、分组管理、网络环境提示与即梦天玑任务失败识别；支持天玑人像审核后直接绑定图片节点。`),
+				                                          children: wanjuanT(`1.3.2：优化即梦天玑人像审核后的自动刷新绑定，提高素材库最终 ID 回填成功率。`),
 	                                        }),
 	                                      ],
 	                                    }),
@@ -47128,7 +47434,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                                       children: [
                                         jsx(`span`, {
                                           className: `text-sm font-semibold text-gray-100`,
-					                                          children: `1.3.1`,
+					                                          children: `1.3.2`,
 	                                        }),
 	                                        jsx(`span`, {
 	                                          className: `text-[10px] text-gray-500`,
