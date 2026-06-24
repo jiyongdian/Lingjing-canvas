@@ -1685,11 +1685,14 @@ function installDesktopPatches() {
     });
 
   const tianjiGetSyncedConfigFromJixin = async (options = {}) => {
-    const stored = await tianjiStorageGet(["tianjiSeedanceConfig", "apiConfigs"]);
+    const stored = await tianjiStorageGet(["tianjiSeedanceConfig", "apiConfigs", "advancedSettingsUnlocked"]);
     const currentConfig = tianjiNormalizeConfig(stored.tianjiSeedanceConfig || {});
     const jixinConfig = (Array.isArray(stored.apiConfigs) ? stored.apiConfigs : []).find(tianjiIsJixinApiConfig);
     if (!jixinConfig) return currentConfig;
-    const nextConfig = tianjiBuildSyncedConfigFromJixin(currentConfig, jixinConfig, options);
+    const nextConfig = tianjiBuildSyncedConfigFromJixin(currentConfig, jixinConfig, {
+      ...options,
+      force: options.force === true || stored.advancedSettingsUnlocked !== true
+    });
     if (JSON.stringify(currentConfig) !== JSON.stringify(nextConfig)) {
       await tianjiStorageSet({ tianjiSeedanceConfig: nextConfig });
     }
@@ -2563,7 +2566,7 @@ function installDesktopPatches() {
     }
     const handleTianjiStorageChange = (changes, areaName) => {
       if (areaName !== "local") return;
-      if (changes?.apiConfigs || changes?.tianjiSeedanceConfig) {
+      if (changes?.apiConfigs || changes?.tianjiSeedanceConfig || changes?.advancedSettingsUnlocked) {
         refreshPanelConfigFromJixin().catch((error) => console.warn("Tianji config storage sync failed", error));
       }
     };

@@ -519,8 +519,18 @@ export const wanjuanTianjiMediaUrl = async (media: any, kind = `image`, uploadOp
  * 按 pollingInterval 轮询历史接口，处理成功 / 失败 / 进行中三种状态，超时或取消时抛错。
  */
 export async function wanjuanRunTianjiSeedanceVideo(options: RunTianjiSeedanceVideoOptions): Promise<void> {
-  let stored = await wanjuanTianjiStorageGet([`tianjiSeedanceConfig`]),
-    config = wanjuanNormalizeTianjiSeedanceConfig(stored.tianjiSeedanceConfig || {}),
+  let stored = await wanjuanTianjiStorageGet([`tianjiSeedanceConfig`, `apiConfigs`, `advancedSettingsUnlocked`]),
+    currentConfig = wanjuanNormalizeTianjiSeedanceConfig(stored.tianjiSeedanceConfig || {}),
+    jixinConfig = (Array.isArray(stored.apiConfigs) ? stored.apiConfigs : []).find(
+      (config) =>
+        config?.id === `jixin-default` ||
+        wanjuanNormalizeTianjiApiBaseUrl(config?.url) === wanjuanNormalizeTianjiApiBaseUrl(WANJUAN_TIANJI_DEFAULT_BASE_URL),
+    ),
+    config = jixinConfig
+      ? wanjuanBuildSyncedTianjiConfigFromJixin(currentConfig, jixinConfig, {
+          force: stored.advancedSettingsUnlocked !== true,
+        })
+      : currentConfig,
     nodeData = options.sourceNode?.data || {},
     prompt = (
       Array.isArray(options.extraPrompts) && options.extraPrompts.length > 0

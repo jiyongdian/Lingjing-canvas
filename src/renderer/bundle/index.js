@@ -16675,11 +16675,14 @@ const wanjuanBuildSyncedTianjiConfigFromJixin = (currentConfig = {}, jixinConfig
 };
 
 const wanjuanGetSyncedTianjiSeedanceConfig = async (options = {}) => {
-  let stored = await wanjuanTianjiStorageGet([`tianjiSeedanceConfig`, `apiConfigs`]),
+  let stored = await wanjuanTianjiStorageGet([`tianjiSeedanceConfig`, `apiConfigs`, `advancedSettingsUnlocked`]),
     currentConfig = wanjuanNormalizeTianjiSeedanceConfig(stored.tianjiSeedanceConfig || {}),
     jixinConfig = (Array.isArray(stored.apiConfigs) ? stored.apiConfigs : []).find(wanjuanIsJixinApiConfig);
   if (!jixinConfig) return currentConfig;
-  let nextConfig = wanjuanBuildSyncedTianjiConfigFromJixin(currentConfig, jixinConfig, options);
+  let nextConfig = wanjuanBuildSyncedTianjiConfigFromJixin(currentConfig, jixinConfig, {
+    ...options,
+    force: options.force === !0 || stored.advancedSettingsUnlocked !== !0,
+  });
   JSON.stringify(currentConfig) !== JSON.stringify(nextConfig) &&
     await wanjuanTianjiStorageSet({
       tianjiSeedanceConfig: nextConfig,
@@ -31674,11 +31677,14 @@ time=1h`,
       if (typeof chrome > `u` || !chrome.storage?.local) return null;
       let jixinConfig = (Array.isArray(configs) ? configs : []).find(isJixinDefaultApiConfig) || null;
       if (!jixinConfig) return null;
-      let stored = await readChromeStorage([`tianjiSeedanceConfig`]),
+      let stored = await readChromeStorage([`tianjiSeedanceConfig`, `advancedSettingsUnlocked`]),
         currentConfig = stored.tianjiSeedanceConfig && typeof stored.tianjiSeedanceConfig == `object` ?
         stored.tianjiSeedanceConfig :
         {},
-        nextConfig = buildSyncedTianjiConfigFromJixinApi(currentConfig, jixinConfig, options);
+        nextConfig = buildSyncedTianjiConfigFromJixinApi(currentConfig, jixinConfig, {
+          ...options,
+          force: options.force === !0 || stored.advancedSettingsUnlocked !== !0,
+        });
       JSON.stringify(currentConfig) !== JSON.stringify(nextConfig) &&
         writeChromeStorage({
           tianjiSeedanceConfig: nextConfig,
@@ -31699,12 +31705,28 @@ time=1h`,
       } catch {}
       showToast2(`高级设置已解锁`);
     },
+    lockAdvancedSettings = () => {
+      (setAdvancedSettingsUnlocked(!1),
+        setSettingsNavUnlockClicks(0),
+        tianjiSeedanceSettingsMode === `tianji` && applyTianjiSeedanceSettingsMode(`official`));
+      try {
+        localStorage.setItem(`wanjuanAdvancedSettingsUnlocked`, `false`);
+        typeof chrome < `u` &&
+          chrome.storage?.local?.set?.({
+            advancedSettingsUnlocked: !1,
+            tianjiSeedanceSettingsMode: `official`,
+          });
+      } catch {}
+      syncTianjiConfigFromJixinApi(apiConfigs, {
+        force: !0
+      }).catch((error) => console.warn(`Sync Tianji config after advanced lock failed`, error));
+      showToast2(`高级设置已上锁`);
+    },
     handleSettingsNavClick = () => {
       setActiveView(`settings`);
-      if (advancedSettingsUnlocked) return;
       setSettingsNavUnlockClicks((clickCount) => {
         let nextCount = clickCount + 1;
-        nextCount >= 10 && unlockAdvancedSettings();
+        nextCount >= 10 && (advancedSettingsUnlocked ? lockAdvancedSettings() : unlockAdvancedSettings());
         return nextCount >= 10 ? 0 : nextCount;
       });
     },
