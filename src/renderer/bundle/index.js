@@ -30761,7 +30761,7 @@ function St() {
 	  [transitGridCols, setTransitGridCols] = useState(4),
   [currentPage, setCurrentPage] = useState(1),
   [activeView, setActiveView] = useState(`canvas`),
-  [activeSettingsTab, setActiveSettingsTab] = useState(`basic`),
+  [activeSettingsTab, setActiveSettingsTab] = useState(`oneStop`),
   [advancedSettingsUnlocked, setAdvancedSettingsUnlocked] = useState(() => {
     try {
       return localStorage.getItem(`wanjuanAdvancedSettingsUnlocked`) === `true`;
