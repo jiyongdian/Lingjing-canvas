@@ -1,145 +1,264 @@
-# 万卷灵境
+# 万卷灵境 Lingjing Canvas
 
-万卷灵境是一款面向 AI 创作流程的桌面画布应用。它把文本、图像、视频、音频、音乐、智能体和项目资料放进同一个本地工作台，让创作者可以用节点、素材和任务记录组织完整的生成链路。
+<div align="center">
 
-适用平台：
+![万卷灵境](docs/screenshots/01-canvas.png)
 
-- macOS Apple Silicon，arm64
-- Windows x64
-- Windows x86 / ia32
+**面向 AI 创作流程的桌面画布应用**
 
-[下载最新版](../../releases/latest)
+[![版本](https://img.shields.io/badge/版本-1.3.2-blue.svg)](https://github.com/Guan-XX003/Lingjing-canvas/releases)
+[![平台](https://img.shields.io/badge/平台-macOS%20|%20Windows-lightgrey.svg)](#安装)
+[![许可](https://img.shields.io/badge/许可-Private-red.svg)](LICENSE)
+
+[下载最新版](../../releases/latest) · [功能介绍](#代表功能) · [快速开始](#从源码运行) · [更新记录](CHANGELOG.md)
+
+</div>
+
+---
+
+## ✨ 项目简介
+
+万卷灵境是一款强大的本地桌面 AI 创作工作台，专为现代 AI 创作者设计。它将文本、图像、视频、音频、智能体和项目资料整合到一个统一的画布环境中，让你轻松构建、管理和优化完整的 AI 生成链路。
+
+### 🎯 核心价值
+
+- **🎨 流程可视化** — 把提示词、参考素材、生成结果和后处理节点连成可编辑的创作流程图
+- **📦 素材可复用** — 统一管理所有媒体资源，告别反复下载、复制和找文件的困扰
+- **⚙️ 配置可迁移** — 集中管理模型服务、API 配置、智能体知识和本地工具，便于长期项目维护
+- **👥 团队协作** — 1.3.0+ 全新工作区功能，支持团队项目分享和协作
+- **🔧 离线工具包** — 内置扩展工具安装管理，支持本地媒体处理和增强功能
+
+### 💎 适用场景
+
+- AI 图像/视频生成与编辑工作流
+- 多模型创作实验与提示词迭代
+- 创意项目的素材管理与组织
+- 智能体辅助的内容策划与生成
+- 团队协作的 AI 创作项目管理
+
+---
+
+## 🚀 代表功能
+
+### 📐 节点式灵境画布
+基于 XYFlow 的可视化编辑器，支持文本、图片、视频、音频、音乐等多种创作节点，轻松搭建复杂的多步骤 AI 工作流。
 
 ![灵境画布](docs/screenshots/01-canvas.png)
 
-## 项目定位
-
-万卷灵境不是单一模型客户端，而是一套本地桌面创作工作台。它重点解决三类问题：
-
-- **流程可视化**：把提示词、参考图、生成结果、后处理节点放在同一张画布中，生成结果可以继续作为下游节点输入。
-- **素材可复用**：统一管理图片、视频、音频、文本等素材，减少反复下载、复制、丢链接和找文件的时间。
-- **配置可迁移**：把模型服务、上传通道、项目备份、智能体知识和本地工具集中管理，方便长期项目迭代。
-
-## 代表功能
-
-- **节点式灵境画布**：支持文本、图片、视频、音频、音乐等创作节点，适合搭建多步骤 AI 工作流。
-- **资源库**：集中查看生成和导入素材，支持类型筛选、来源筛选、收藏、复制、下载和复用。
-- **任务清单**：统一追踪异步生成任务，支持结果刷新、拉回节点和失败排查。
-- **智能体工作台**：创建带角色设定、模型绑定和知识资料的智能体，用于提示词整理、创意推演和内容生成。
-- **模型与 API 配置**：通过配置管家维护 Base URL、Key、模型列表和协议映射，适配不同中转站和模型服务。
-- **即梦 / Seedance 工作流**：支持参考图、参考视频、天玑人像素材和视频生成链路。
-- **项目与备份**：支持项目切换、分组、导入导出、备份中心和跨设备迁移。
-- **桌面增强**：提供本地媒体库、自动下载、性能档位、主题外观和外部媒体处理工具。
-
-## 界面预览
-
-### 灵境画布
-
-把参考素材、生成节点和结果节点连成一张可编辑的创作流程图。适合做多轮图像修改、产品图生成、视频链路和复杂提示词实验。
-
-![灵境画布](docs/screenshots/01-canvas.png)
-
-### 资源库
-
-统一管理生成结果和导入素材，按图片、视频、音频、文本等类型筛选，方便把已有素材重新送回画布节点。
+### 📚 资源库
+集中查看和管理所有生成与导入的素材，支持类型筛选、来源筛选、收藏、下载和一键复用到画布。
 
 ![资源库](docs/screenshots/02-resources.png)
 
-### 智能体
-
-为不同任务创建专属智能体，绑定模型、角色定位和知识资料，用对话方式整理项目目标、风格要求和提示词草稿。
+### 🤖 智能体工作台
+为不同任务创建专属 AI 智能体，绑定特定模型、角色设定和知识库，通过对话整理创意、优化提示词。
 
 ![智能体](docs/screenshots/03-agents.png)
 
-### 外观与通用设置
+### ✅ 任务清单
+统一追踪所有异步生成任务，实时查看进度、刷新结果、处理失败任务，保持创作流程井然有序。
 
-集中调整主题、语言、个性化描述和基础体验选项，让桌面工作台更贴近自己的创作习惯。
+### 👥 工作区协作 `v1.3.0 新增`
+团队项目管理功能，支持：
+- 创建和管理团队工作区
+- 项目分享与协作
+- 成员权限管理
+- 跨设备同步
 
-![外观与通用设置](docs/screenshots/04-settings.png)
+### 🛠️ 离线工具包 `v1.3.0 新增`
+内置扩展工具安装器，支持：
+- ffmpeg 视频处理
+- Qwen-TTS 本地语音合成
+- Real-ESRGAN 图像增强
+- Deface 人脸模糊处理
+- 一键安装，跨平台支持
 
-### 模型与 API 配置
+### ⚙️ 模型与 API 配置
+通过配置管家维护 Base URL、API Key、模型列表和协议映射，灵活适配各类中转站和模型服务。
 
-统一维护供应商、Base URL、密钥、模型列表和协议配置。配置管家可以帮助整理不同模型类型的调用方式。
+![模型配置](docs/screenshots/05-config-butler.png)
 
-![模型与 API 配置](docs/screenshots/05-config-butler.png)
+### 🎬 即梦 / Seedance 工作流
+完整的视频生成链路，支持：
+- 参考图/参考视频上传
+- 天玑（Tianji）人像素材库
+- 多种上传通道（临时链接、火山引擎 TOS、七牛等）
+- 视频生成任务追踪
 
-### 项目与备份
+### 💾 项目与备份
+支持项目切换、分组管理、导入导出、备份中心和跨设备迁移，保障长期项目的数据安全。
 
-导出和导入设置参数、画布项目和智能体配置；备份中心会记录项目状态，适合长期项目和跨设备迁移。
+![项目备份](docs/screenshots/06-data-backup.png)
 
-![项目与备份](docs/screenshots/06-data-backup.png)
+### 🎨 外观与主题
+自定义主题、语言（简体中文、繁体中文、English）、个性化描述和界面设置。
 
-## 安装
+![设置界面](docs/screenshots/04-settings.png)
 
-打开 [Releases](../../releases/latest)，按平台下载对应文件：
+---
 
-- macOS Apple Silicon：`wanjuan-lingjing-1.2.11.dmg`
-- macOS 免安装压缩包：`wanjuan-lingjing-1.2.11-arm64-mac.zip`
-- Windows 通用安装器：`wanjuan-lingjing-setup-1.2.10.exe`
-- Windows x64：`wanjuan-lingjing-setup-1.2.10-x64.exe`
-- Windows x86 / ia32：`wanjuan-lingjing-setup-1.2.10-ia32.exe`
+## 📥 安装
 
-macOS 首次打开如果遇到安全提示，可以右键点击应用图标，选择「打开」。
+### 支持平台
 
-Windows 首次运行如果出现 SmartScreen 提示，请确认来源为本仓库 Release 后再继续。
+| 平台 | 架构 | 下载 |
+|------|------|------|
+| macOS | Apple Silicon (arm64) | [万卷灵境-1.3.2-arm64.dmg](../../releases/latest) |
+| Windows | x64 | [万卷灵境-1.3.2-x64.exe](../../releases/latest) |
+| Windows | x86 / ia32 | [万卷灵境-1.3.2-ia32.exe](../../releases/latest) |
 
-## 从源码运行
+### 安装说明
 
-需要 Node.js 与 npm。
+**macOS:**
+1. 下载 `.dmg` 文件
+2. 双击打开，拖动到应用程序文件夹
+3. 首次打开如遇安全提示，右键点击应用图标选择「打开」
+
+**Windows:**
+1. 下载对应架构的 `.exe` 安装器
+2. 运行安装程序，按提示完成安装
+3. 如遇 SmartScreen 提示，确认来源后继续
+
+---
+
+## 🛠️ 从源码运行
+
+### 环境要求
+- Node.js 16+
+- npm 或 pnpm
+
+### 开发运行
 
 ```bash
+# 克隆仓库
+git clone https://github.com/Guan-XX003/Lingjing-canvas.git
+cd Lingjing-canvas
+
+# 安装依赖
 npm install
+
+# 启动开发模式
 npm start
+
+# 或者启动开发服务器
+npm run start:dev
+
+# 调试模式
+npm run debug
 ```
 
-## 构建安装包
+### 构建安装包
 
 ```bash
-# macOS 当前架构
+# 构建当前平台
 npm run build
 
-# Windows x64 + x86
+# 构建 Windows 全架构（x64 + x86）
 npm run build:win
 
 # 单独构建 Windows x64
 npm run build:win:x64
 
-# 单独构建 Windows x86 / ia32
+# 单独构建 Windows x86
 npm run build:win:x86
 ```
 
-构建产物会输出到 `release/` 目录。
+构建产物输出到 `release/` 目录。
 
-## 数据与隐私
+---
 
-万卷灵境会在本机保存项目、配置、任务记录和媒体素材。仓库不会包含用户数据、运行日志、API Key、媒体库文件或本地存储数据库。
+## 🏗️ 技术栈
 
-请在提交代码或发布版本前确认以下内容没有被加入 Git：
+| 技术 | 用途 |
+|------|------|
+| [Electron](https://www.electronjs.org/) | 跨平台桌面应用框架 |
+| [React 19](https://react.dev/) | UI 框架 |
+| [Vite](https://vitejs.dev/) | 构建工具 |
+| [TypeScript](https://www.typescriptlang.org/) | 类型安全 |
+| [Zustand](https://zustand-demo.pmnd.rs/) | 状态管理 |
+| [XYFlow](https://reactflow.dev/) | 节点画布引擎 |
+| [GSAP](https://greensock.com/gsap/) | 动画库 |
+| [Lucide](https://lucide.dev/) | 图标库 |
 
-- `.env`、密钥、证书、API Token
-- `~/Library/Application Support` 下的运行数据
-- `~/Downloads` 下的媒体库和导出素材
-- 构建产物、调试日志、临时截图
+---
 
-## 技术栈
+## 📋 更新记录
 
-- Electron
-- React
-- Vite
-- TypeScript
-- Zustand
-- XYFlow
+### 最新版本：v1.3.2（2026-06-24）
 
-## 更新记录
+- 🎨 增强画布渲染性能和交互体验
+- 🔧 改进天玑配置同步机制
+- 🐛 修复多个稳定性问题
 
-完整更新记录见 [CHANGELOG.md](CHANGELOG.md)。
+### v1.3.1（2026-06-23）
+- 👥 完善工作区团队协作功能
+- 🔧 优化天玑 API 调用逻辑
+- 🐛 修复工作区项目加载问题
 
-## 反馈
+### v1.3.0（2026-06-22）
+- ✨ **重大更新**：全新工作区和团队协作功能
+- 🛠️ 新增离线工具包管理系统
+- 🎨 优化启动主题和界面体验
+- 📦 增强扩展工具安装器
 
-欢迎通过 Issues 反馈问题、记录复现步骤或提出功能建议。描述问题时，请尽量说明应用版本、平台、节点类型、模型服务、是否使用本地媒体库，以及相关错误提示。
+[查看完整更新记录 →](CHANGELOG.md)
 
-## 备注
+---
 
-此仓库基于一毛画布 dist 浏览器插件二次开发，原插件内付费功能均未修改。当前二次开发的实现途径是重新构建桌面应用，稳定性不等同于原插件。需要特定特价模型与长期稳定维护版本的用户，可前往一毛官网查看：[一毛画布官方说明](https://test-cyfyd24zfbua.feishu.cn/wiki/JrwVweiryijlX3kZKx5cGvgnnCE)。
+## 🔒 数据与隐私
 
-此仓库的主要目的，是支持使用者更自由地配置自定义中转站模型。
+万卷灵境在本地保存所有项目数据、配置、任务记录和媒体素材，**不会上传任何用户数据到云端**。
+
+### 数据存储位置
+- **macOS**: `~/Library/Application Support/wanjuan-lingjing/`
+- **Windows**: `%APPDATA%/wanjuan-lingjing/`
+
+### 安全提示
+- 所有 API Key 仅存储在本地
+- 媒体文件默认保存在用户指定的本地目录
+- 项目备份支持加密导出
+
+---
+
+## 💬 反馈与支持
+
+遇到问题或有功能建议？欢迎通过以下方式联系：
+
+- 📝 [提交 Issue](../../issues)
+- 💡 [功能建议](../../discussions)
+- 📧 邮件反馈
+
+**提交问题时请说明：**
+- 应用版本
+- 操作系统和版本
+- 问题复现步骤
+- 相关错误提示截图
+
+---
+
+## 📜 许可与声明
+
+此项目基于 [一毛画布](https://test-cyfyd24zfbua.feishu.cn/wiki/JrwVweiryijlX3kZKx5cGvgnnCE) 浏览器插件二次开发。原插件的付费功能在本项目中保持不变。
+
+**本项目主要目的：**
+- 提供桌面版本的更好使用体验
+- 支持自定义中转站和模型配置
+- 方便本地化和扩展功能
+
+需要官方稳定版本和商业支持的用户，请访问 [一毛画布官网](https://test-cyfyd24zfbua.feishu.cn/wiki/JrwVweiryijlX3kZKx5cGvgnnCE)。
+
+---
+
+## ⭐ Star History
+
+如果这个项目对你有帮助，欢迎给个 Star ⭐️
+
+---
+
+<div align="center">
+
+**Made with ❤️ for AI Creators**
+
+[返回顶部](#万卷灵境-lingjing-canvas)
+
+</div>

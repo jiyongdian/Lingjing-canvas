@@ -1,5 +1,41 @@
 # Changelog
 
+## 1.3.2 - 2026-06-24
+
+- Enhanced canvas rendering performance and interaction responsiveness.
+- Improved Tianji/Jixin configuration synchronization mechanism.
+- Fixed multiple stability issues in workspace and model API handling.
+- Optimized bundle loading and desktop patch integration.
+
+## 1.3.1 - 2026-06-23
+
+- Refined workspace team collaboration features with improved project sharing.
+- Enhanced Tianji API call logic with better error handling and retry mechanisms.
+- Fixed workspace project loading issues on initial launch.
+- Improved desktop patches for cross-platform compatibility.
+
+## 1.3.0 - 2026-06-22
+
+### ✨ Major Features
+
+- **Workspace & Team Collaboration**: Added full workspace management system with team project sharing, member management, and cross-device synchronization.
+- **Offline Toolpack Management**: Introduced integrated extension tool installer supporting ffmpeg, Qwen-TTS, Real-ESRGAN, Deface, and uv/Python runtime.
+- **Enhanced Boot Themes**: Refined application startup experience with improved theme loading and initialization flow.
+
+### 🛠️ Improvements
+
+- Added workspace team management module (`workspace-team.cjs`) with 512+ lines of collaboration logic.
+- Integrated external tools manager (`external-tools.cjs`) with 308+ lines of cross-platform installation support.
+- Enhanced desktop patches with 968+ lines of new functionality for workspace and offline tools.
+- Added comprehensive offline toolpack documentation for Windows x64 requirements.
+- Improved bridge API with workspace-related IPC handlers.
+
+### 📦 Technical Updates
+
+- Expanded bundle size with 487+ lines of new rendering logic.
+- Added boot theme preview documentation (`boot-sand-preview.html`).
+- Updated package version to 1.3.0 across all manifests.
+
 ## 1.2.18-3 - 2026-06-19
 
 - Added a first-install-only built-in Jixin global model configuration preset with an empty token.
