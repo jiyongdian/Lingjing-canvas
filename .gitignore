@@ -13,6 +13,10 @@ generated/
 # 本地开发配置
 .claude/
 .wanjuan-dev-user-data/
+.wanjuan-build-tools/
+
+# 本机/发行时注入的离线工具运行时体积较大，不直接提交仓库
+tool-runtime/*/
 
 # 对照参考目录（本地保留，不纳入仓库）
 reference/

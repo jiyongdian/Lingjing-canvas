@@ -23,6 +23,46 @@
   --wj-radius-lg: 12px;
   --wj-focus-ring: 0 0 0 3px color-mix(in srgb, var(--wj-accent) 22%, transparent);
   --wj-shadow-popover: 0 18px 42px color-mix(in srgb, var(--wanjuan-theme-shadow, rgba(0, 0, 0, 0.38)) 78%, transparent);
+  --wj-control-bg: color-mix(in srgb, var(--wj-surface-2) 84%, var(--wj-surface) 16%);
+  --wj-control-border: color-mix(in srgb, var(--wj-border) 82%, transparent);
+  --wj-control-text: var(--wj-text);
+  --wj-control-muted-text: color-mix(in srgb, var(--wj-muted) 78%, var(--wj-text) 22%);
+  --wj-control-hover-bg: color-mix(in srgb, var(--wj-accent) 12%, var(--wj-surface-2) 88%);
+  --wj-control-hover-border: color-mix(in srgb, var(--wj-accent) 42%, var(--wj-border) 58%);
+  --wj-control-hover-text: var(--wj-text);
+  --wj-control-selected-bg: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--wj-accent) 42%, var(--wj-surface-3) 58%),
+    color-mix(in srgb, var(--wj-accent) 25%, var(--wj-surface-2) 75%)
+  );
+  --wj-control-selected-hover-bg: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--wj-accent-2) 38%, var(--wj-surface-3) 62%),
+    color-mix(in srgb, var(--wj-accent) 28%, var(--wj-surface-2) 72%)
+  );
+  --wj-control-selected-border: color-mix(in srgb, var(--wj-accent) 54%, var(--wj-border) 46%);
+  --wj-control-selected-text: #f7fbff;
+  --wj-control-selected-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.13),
+    0 7px 16px color-mix(in srgb, var(--wanjuan-theme-shadow, rgba(0, 0, 0, 0.38)) 38%, transparent);
+  --wj-control-primary-bg: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--wj-accent) 58%, var(--wj-surface-3) 42%),
+    color-mix(in srgb, var(--wj-accent) 40%, var(--wj-surface-2) 60%)
+  );
+  --wj-control-primary-hover-bg: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--wj-accent-2) 40%, var(--wj-accent) 36%, var(--wj-surface-3) 24%),
+    color-mix(in srgb, var(--wj-accent) 48%, var(--wj-surface-2) 52%)
+  );
+  --wj-control-primary-border: color-mix(in srgb, var(--wj-accent) 58%, var(--wj-border) 42%);
+  --wj-control-primary-text: #ffffff;
+  --wj-control-primary-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.13),
+    0 8px 18px color-mix(in srgb, var(--wj-accent) 20%, transparent);
+  --wj-control-shadow-soft:
+    inset 0 1px 0 color-mix(in srgb, var(--wj-text) 7%, transparent),
+    0 6px 14px color-mix(in srgb, var(--wanjuan-theme-shadow, rgba(0, 0, 0, 0.34)) 32%, transparent);
 }
 
 html.theme-dark,
@@ -573,16 +613,16 @@ html.theme-dark {
 }
 
 html.theme-graphite {
-  --wanjuan-theme-bg: #1f2227;
-  --wanjuan-theme-surface: #282c32;
-  --wanjuan-theme-surface-2: #32373e;
-  --wanjuan-theme-surface-3: #41474f;
-  --wanjuan-theme-border: #4c545e;
-  --wanjuan-theme-text: #f1f3f4;
-  --wanjuan-theme-muted: #b0b7c0;
-  --wanjuan-theme-accent: #8ab4f8;
-  --wanjuan-theme-accent-2: #f28b82;
-  --wanjuan-theme-glow: rgba(138, 180, 248, 0.18);
+  --wanjuan-theme-bg: #111827;
+  --wanjuan-theme-surface: #1f2937;
+  --wanjuan-theme-surface-2: #273244;
+  --wanjuan-theme-surface-3: #334155;
+  --wanjuan-theme-border: #475569;
+  --wanjuan-theme-text: #f8fafc;
+  --wanjuan-theme-muted: #cbd5e1;
+  --wanjuan-theme-accent: #0ea5e9;
+  --wanjuan-theme-accent-2: #7dd3fc;
+  --wanjuan-theme-glow: rgba(14, 165, 233, 0.24);
   --wanjuan-theme-shadow: rgba(9, 12, 16, 0.58);
 }
 
@@ -714,6 +754,29 @@ html:is(.theme-light, .theme-warm-light, .theme-mist-blue, .theme-chrome-blue, .
   color: var(--wj-text) !important;
 }
 
+.wanjuan-settings-content-inner {
+  min-height: 100% !important;
+}
+
+.wanjuan-settings-section {
+  animation: none !important;
+  transition: none !important;
+  opacity: 1 !important;
+  transform: none !important;
+  will-change: auto !important;
+}
+
+.wanjuan-settings-page .wanjuan-settings-card,
+.wanjuan-settings-page .wanjuan-settings-subcard,
+.wanjuan-settings-page .wanjuan-settings-card-header,
+.wanjuan-settings-page .wanjuan-settings-card-body {
+  animation: none !important;
+  transition-property: background-color, border-color, color, box-shadow !important;
+  transition-duration: 120ms !important;
+  transform: none !important;
+  will-change: auto !important;
+}
+
 .wanjuan-settings-card,
 .wanjuan-settings-subcard {
   background: color-mix(in srgb, var(--wj-surface) 92%, var(--wj-bg) 8%) !important;
@@ -773,15 +836,15 @@ html:is(.theme-light, .theme-warm-light, .theme-mist-blue, .theme-chrome-blue, .
 }
 
 .wanjuan-settings-button {
-  background: color-mix(in srgb, var(--wj-surface-2) 84%, var(--wj-surface) 16%) !important;
-  border-color: color-mix(in srgb, var(--wj-border) 82%, transparent) !important;
-  color: var(--wj-text) !important;
+  background: var(--wj-control-bg) !important;
+  border-color: var(--wj-control-border) !important;
+  color: var(--wj-control-text) !important;
 }
 
 .wanjuan-settings-button:hover {
-  background: color-mix(in srgb, var(--wj-accent) 12%, var(--wj-surface-2) 88%) !important;
-  border-color: color-mix(in srgb, var(--wj-accent) 42%, var(--wj-border) 58%) !important;
-  color: var(--wj-text) !important;
+  background: var(--wj-control-hover-bg) !important;
+  border-color: var(--wj-control-hover-border) !important;
+  color: var(--wj-control-hover-text) !important;
 }
 
 .wanjuan-check-updates-button {
@@ -821,9 +884,12 @@ html:is(.theme-light, .theme-warm-light, .theme-mist-blue, .theme-chrome-blue, .
 }
 
 .wanjuan-settings-save-button {
-  background: linear-gradient(135deg, var(--wj-accent), color-mix(in srgb, var(--wj-accent-2) 72%, var(--wj-accent) 28%)) !important;
-  color: #ffffff !important;
-  box-shadow: 0 14px 34px color-mix(in srgb, var(--wj-accent) 28%, transparent) !important;
+  background: var(--wj-control-primary-bg) !important;
+  background-image: var(--wj-control-primary-bg) !important;
+  border-color: var(--wj-control-primary-border) !important;
+  color: var(--wj-control-primary-text) !important;
+  -webkit-text-fill-color: var(--wj-control-primary-text) !important;
+  box-shadow: var(--wj-control-primary-shadow) !important;
 }
 
 .wanjuan-backup-dialog-overlay {
@@ -1521,20 +1587,22 @@ html:is(.theme-light, .theme-warm-light, .theme-mist-blue, .theme-chrome-blue, .
 .react-flow__node .wanjuan-node-popover-option {
   background: color-mix(in srgb, var(--wj-surface-3) 72%, var(--wj-surface-2) 28%) !important;
   border-color: transparent !important;
-  color: color-mix(in srgb, var(--wj-muted) 82%, var(--wj-text) 18%) !important;
+  color: var(--wj-control-muted-text) !important;
 }
 
 .react-flow__node .wanjuan-node-popover-option:hover {
-  background: color-mix(in srgb, var(--wj-accent) 12%, var(--wj-surface-3) 88%) !important;
-  border-color: color-mix(in srgb, var(--wj-accent) 42%, var(--wj-border) 58%) !important;
-  color: var(--wj-text) !important;
+  background: var(--wj-control-hover-bg) !important;
+  border-color: var(--wj-control-hover-border) !important;
+  color: var(--wj-control-hover-text) !important;
 }
 
 .react-flow__node .wanjuan-node-popover-option-active {
-  background: color-mix(in srgb, var(--wj-accent) 18%, var(--wj-surface-2) 82%) !important;
-  border-color: color-mix(in srgb, var(--wj-accent) 48%, var(--wj-border) 52%) !important;
-  color: var(--wj-text) !important;
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--wj-accent) 12%, transparent) !important;
+  background: var(--wj-control-selected-bg) !important;
+  background-image: var(--wj-control-selected-bg) !important;
+  border-color: var(--wj-control-selected-border) !important;
+  color: var(--wj-control-selected-text) !important;
+  -webkit-text-fill-color: var(--wj-control-selected-text) !important;
+  box-shadow: var(--wj-control-selected-shadow) !important;
 }
 
 /* Expanded node configuration panels, such as the audio segmentation node, also
@@ -1579,7 +1647,7 @@ html:is(.theme-light, .theme-warm-light, .theme-mist-blue, .theme-chrome-blue, .
 
 /* Dark themes: modernize the default desktop look with richer ink surfaces and
    a focused blue-coral accent instead of flat grayscale. */
-html:is(.theme-dark, .theme-graphite) {
+html.theme-dark {
   --wanjuan-theme-text-strong: #ffffff;
   --wanjuan-theme-muted-soft: color-mix(in srgb, var(--wanjuan-theme-muted) 84%, var(--wanjuan-theme-text) 16%);
   --wanjuan-theme-hover: color-mix(in srgb, var(--wanjuan-theme-accent) 14%, var(--wanjuan-theme-surface) 86%);
@@ -1590,12 +1658,18 @@ html:is(.theme-dark, .theme-graphite) {
   --wanjuan-node-picker-selected-border: color-mix(in srgb, var(--wanjuan-theme-accent-2) 34%, var(--wanjuan-theme-border) 66%);
 }
 
-html:is(.theme-dark, .theme-graphite),
-html:is(.theme-dark, .theme-graphite) body {
+html.theme-dark,
+html.theme-dark body {
   background:
     radial-gradient(circle at 14% 0%, rgba(124, 140, 255, 0.18), transparent 30%),
     radial-gradient(circle at 88% 4%, rgba(255, 138, 91, 0.17), transparent 24%),
     linear-gradient(180deg, #0a0f20 0%, #111835 52%, #0b1021 100%) !important;
+  color: var(--wanjuan-theme-text) !important;
+}
+
+html.theme-graphite,
+html.theme-graphite body {
+  background: var(--wanjuan-theme-bg) !important;
   color: var(--wanjuan-theme-text) !important;
 }
 
@@ -1688,7 +1762,7 @@ html:is(.theme-dark, .theme-graphite) :is(input, textarea, select):focus {
     inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
 }
 
-html:is(.theme-dark, .theme-graphite) :is(button, a, [role="button"]):is(
+html.theme-dark :is(button, a, [role="button"]):is(
   [class*="bg-blue-500"],
   [class*="bg-blue-600"]
 ) {
@@ -1699,7 +1773,7 @@ html:is(.theme-dark, .theme-graphite) :is(button, a, [role="button"]):is(
     0 4px 10px rgba(4, 8, 24, 0.28) !important;
 }
 
-html:is(.theme-dark, .theme-graphite) :is(button, a, [role="button"]):is(
+html.theme-dark :is(button, a, [role="button"]):is(
   [class*="bg-blue-500"],
   [class*="bg-blue-600"],
   [class*="hover:bg-blue-500"],
@@ -1820,15 +1894,15 @@ html:is(.theme-dark, .theme-graphite)
 
 /* Light themes: keep the UI airy but add stronger blue-coral identity so the
    active controls and panels feel more contemporary instead of plain neutral. */
-html:is(.theme-light, .theme-mist-blue, .theme-chrome-blue, .theme-chrome-rose, .theme-chrome-sand, .theme-chrome-teal, .theme-sage-green, .theme-graphite),
-html:is(.theme-light, .theme-mist-blue, .theme-chrome-blue, .theme-chrome-rose, .theme-chrome-sand, .theme-chrome-teal, .theme-sage-green, .theme-graphite) body {
+html:is(.theme-light, .theme-mist-blue, .theme-chrome-blue, .theme-chrome-rose, .theme-chrome-sand, .theme-chrome-teal, .theme-sage-green),
+html:is(.theme-light, .theme-mist-blue, .theme-chrome-blue, .theme-chrome-rose, .theme-chrome-sand, .theme-chrome-teal, .theme-sage-green) body {
   background:
     radial-gradient(circle at 12% 0%, rgba(79, 109, 255, 0.08), transparent 26%),
     radial-gradient(circle at 92% 4%, rgba(255, 138, 91, 0.1), transparent 22%),
     linear-gradient(180deg, #f8fbff 0%, var(--wanjuan-theme-bg) 38%, #f3f7ff 100%) !important;
 }
 
-html:is(.theme-light, .theme-mist-blue, .theme-chrome-blue, .theme-chrome-rose, .theme-chrome-sand, .theme-chrome-teal, .theme-sage-green, .theme-graphite) :is(button, a, [role="button"]):is(
+html:is(.theme-light, .theme-mist-blue, .theme-chrome-blue, .theme-chrome-rose, .theme-chrome-sand, .theme-chrome-teal, .theme-sage-green) :is(button, a, [role="button"]):is(
   [class*="bg-blue-500"],
   [class*="bg-blue-600"]
 ) {
@@ -1839,7 +1913,7 @@ html:is(.theme-light, .theme-mist-blue, .theme-chrome-blue, .theme-chrome-rose, 
     0 4px 12px rgba(255, 138, 91, 0.12) !important;
 }
 
-html:is(.theme-light, .theme-mist-blue, .theme-chrome-blue, .theme-chrome-rose, .theme-chrome-sand, .theme-chrome-teal, .theme-sage-green, .theme-graphite) :is(button, a, [role="button"]):is(
+html:is(.theme-light, .theme-mist-blue, .theme-chrome-blue, .theme-chrome-rose, .theme-chrome-sand, .theme-chrome-teal, .theme-sage-green) :is(button, a, [role="button"]):is(
   [class*="bg-blue-500"],
   [class*="bg-blue-600"],
   [class*="hover:bg-blue-500"],
@@ -1872,6 +1946,22 @@ html:is(.theme-dark, .theme-graphite) {
   --wanjuan-agent-accent-border: rgba(138, 180, 248, 0.24);
   --wanjuan-agent-accent-text: #c9dcff;
   --wanjuan-agent-hover: #202938;
+}
+
+html.theme-graphite {
+  --wanjuan-agent-accent: #0ea5e9;
+  --wanjuan-agent-accent-soft: rgba(14, 165, 233, 0.2);
+  --wanjuan-agent-accent-border: #7dd3fc;
+  --wanjuan-agent-accent-text: #7dd3fc;
+  --wanjuan-agent-hover: #334155;
+  --wanjuan-agent-card-bg: #273244;
+  --wanjuan-agent-card-hover-bg: #334155;
+  --wanjuan-agent-card-selected-bg: #0ea5e9;
+  --wanjuan-agent-card-border: #475569;
+  --wanjuan-agent-card-selected-border: #7dd3fc;
+  --wanjuan-agent-card-selected-shadow:
+    inset 4px 0 0 #cffafe,
+    inset 0 -2px 0 rgba(0, 0, 0, 0.18);
 }
 
 html:is(.theme-dark, .theme-graphite) .wanjuan-agent-page [class*="bg-[#8ab4f8]"] {
@@ -1948,6 +2038,35 @@ html:is(.theme-dark, .theme-graphite) .wanjuan-agent-page [class*="text-green-"]
 html:is(.theme-dark, .theme-graphite) .wanjuan-agent-page [class*="hover:text-emerald-"]:hover,
 html:is(.theme-dark, .theme-graphite) .wanjuan-agent-page [class*="hover:text-green-"]:hover {
   color: var(--wanjuan-agent-accent-text) !important;
+}
+
+html.theme-graphite .wanjuan-agent-page .wanjuan-agent-role-card[class][class] {
+  background: var(--wanjuan-agent-card-bg) !important;
+  background-image: none !important;
+  border-color: var(--wanjuan-agent-card-border) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.055) !important;
+}
+
+html.theme-graphite .wanjuan-agent-page .wanjuan-agent-role-card:not(.wanjuan-agent-role-card-active):hover[class][class] {
+  background: var(--wanjuan-agent-card-hover-bg) !important;
+  border-color: color-mix(in srgb, var(--wanjuan-theme-accent) 34%, var(--wanjuan-theme-border) 66%) !important;
+}
+
+html.theme-graphite .wanjuan-agent-page .wanjuan-agent-role-card-active[class][class],
+html.theme-graphite .wanjuan-agent-page .wanjuan-agent-role-card-active:hover[class][class],
+html.theme-graphite .wanjuan-agent-page .wanjuan-agent-role-card-active:focus-visible[class][class] {
+  background: var(--wanjuan-agent-card-selected-bg) !important;
+  background-image: var(--wanjuan-agent-card-selected-bg) !important;
+  border-color: var(--wanjuan-agent-card-selected-border) !important;
+  box-shadow: var(--wanjuan-agent-card-selected-shadow) !important;
+  color: var(--wanjuan-theme-text) !important;
+  -webkit-text-fill-color: currentColor !important;
+  filter: none !important;
+}
+
+html.theme-graphite .wanjuan-agent-page .wanjuan-agent-role-card-active > div:first-child {
+  background: var(--wanjuan-agent-accent-text) !important;
+  box-shadow: 0 0 10px rgba(185, 217, 245, 0.18) !important;
 }
 
 /* Universal/custom node: bind its previously hard-coded purple, blue, yellow,
@@ -2088,9 +2207,12 @@ html:is(.theme-light, .theme-warm-light, .theme-mist-blue, .theme-chrome-blue, .
 }
 
 .wanjuan-tts-node-mode-button-active {
-  background: var(--wanjuan-tts-node-accent-soft) !important;
-  border-color: color-mix(in srgb, var(--wanjuan-theme-accent) 46%, var(--wanjuan-theme-border) 54%) !important;
-  color: var(--wanjuan-theme-text-strong, var(--wanjuan-theme-text)) !important;
+  background: var(--wj-control-selected-bg) !important;
+  background-image: var(--wj-control-selected-bg) !important;
+  border-color: var(--wj-control-selected-border) !important;
+  color: var(--wj-control-selected-text) !important;
+  -webkit-text-fill-color: var(--wj-control-selected-text) !important;
+  box-shadow: var(--wj-control-selected-shadow) !important;
 }
 
 .wanjuan-tts-node-icon-button {
@@ -2099,8 +2221,11 @@ html:is(.theme-light, .theme-warm-light, .theme-mist-blue, .theme-chrome-blue, .
 }
 
 .wanjuan-tts-node-run-button {
-  background: linear-gradient(135deg, var(--wanjuan-theme-accent), color-mix(in srgb, var(--wanjuan-theme-accent-2, var(--wanjuan-theme-accent)) 64%, var(--wanjuan-theme-accent) 36%)) !important;
-  border: 1px solid color-mix(in srgb, var(--wanjuan-theme-accent) 62%, var(--wanjuan-theme-border) 38%) !important;
+  background: var(--wj-control-primary-bg) !important;
+  background-image: var(--wj-control-primary-bg) !important;
+  border: 1px solid var(--wj-control-primary-border) !important;
+  color: var(--wj-control-primary-text) !important;
+  box-shadow: var(--wj-control-primary-shadow) !important;
   color: #ffffff !important;
   -webkit-text-fill-color: #ffffff !important;
 }
@@ -3411,9 +3536,12 @@ html.wanjuan-canvas-lite .react-flow__edge-textbg {
 }
 
 :where(.wanjuan-theme-option-active, .wanjuan-project-combo-menu [aria-selected="true"]) {
-  background: color-mix(in srgb, var(--wj-accent) 18%, var(--wj-surface-2) 82%) !important;
-  color: var(--wj-text) !important;
-  border-color: color-mix(in srgb, var(--wj-accent) 48%, var(--wj-border) 52%) !important;
+  background: var(--wj-control-selected-bg) !important;
+  background-image: var(--wj-control-selected-bg) !important;
+  color: var(--wj-control-selected-text) !important;
+  -webkit-text-fill-color: var(--wj-control-selected-text) !important;
+  border-color: var(--wj-control-selected-border) !important;
+  box-shadow: var(--wj-control-selected-shadow) !important;
 }
 
 .react-flow__node :is(.wanjuan-node-model-option, .wanjuan-theme-option) {
@@ -3430,11 +3558,13 @@ html.wanjuan-canvas-lite .react-flow__edge-textbg {
 }
 
 .react-flow__node :is(.wanjuan-node-model-option-active, .wanjuan-theme-option-active) {
-  border-color: color-mix(in srgb, var(--wj-accent, #38bdf8) 52%, var(--wj-border, #3f4652) 48%) !important;
-  background: color-mix(in srgb, var(--wj-accent, #38bdf8) 24%, var(--wj-surface-2, #1c1c1c) 76%) !important;
-  color: #ffffff !important;
+  border-color: var(--wj-control-selected-border) !important;
+  background: var(--wj-control-selected-bg) !important;
+  background-image: var(--wj-control-selected-bg) !important;
+  color: var(--wj-control-selected-text) !important;
+  -webkit-text-fill-color: var(--wj-control-selected-text) !important;
   font-weight: 600 !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
+  box-shadow: var(--wj-control-selected-shadow) !important;
 }
 
 #wanjuan-project-asset-relink-banner {
@@ -3501,11 +3631,13 @@ html.wanjuan-canvas-lite .react-flow__edge-textbg {
 }
 
 .react-flow__node .wanjuan-node-popover-option-active {
-  border-color: color-mix(in srgb, var(--wj-accent, #38bdf8) 54%, var(--wj-border, #3f4652) 46%) !important;
-  background: color-mix(in srgb, var(--wj-accent, #38bdf8) 26%, var(--wj-surface-2, #1c1c1c) 74%) !important;
-  color: #ffffff !important;
+  border-color: var(--wj-control-selected-border) !important;
+  background: var(--wj-control-selected-bg) !important;
+  background-image: var(--wj-control-selected-bg) !important;
+  color: var(--wj-control-selected-text) !important;
+  -webkit-text-fill-color: var(--wj-control-selected-text) !important;
   font-weight: 600 !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
+  box-shadow: var(--wj-control-selected-shadow) !important;
 }
 
 /* Final selected-state override: selected parameter/model buttons should only
@@ -3515,11 +3647,13 @@ html.wanjuan-canvas-lite .react-flow__edge-textbg {
   .wanjuan-node-model-option-active,
   .wanjuan-theme-option-active
 ) {
-  background: #2563eb !important;
-  border-color: #60a5fa !important;
-  color: #ffffff !important;
+  background: var(--wj-control-selected-bg) !important;
+  background-image: var(--wj-control-selected-bg) !important;
+  border-color: var(--wj-control-selected-border) !important;
+  color: var(--wj-control-selected-text) !important;
+  -webkit-text-fill-color: var(--wj-control-selected-text) !important;
   font-weight: 600 !important;
-  box-shadow: none !important;
+  box-shadow: var(--wj-control-selected-shadow) !important;
   transform: none !important;
 }
 
@@ -4281,4 +4415,520 @@ html.wj-perf-performance .react-flow__node *:not(.react-flow__node) {
   box-shadow: none !important;
   filter: none !important;
   backdrop-filter: none !important;
+}
+
+/* Shared interaction state bridge. Utility classes and injected desktop panels
+   can keep their old class names while theme changes flow through variables. */
+html :is(
+  .wanjuan-project-group-primary,
+  .wanjuan-settings-save-button,
+  .wanjuan-workspace-button.primary,
+  .wanjuan-tianji-primary,
+  .wanjuan-tianji-points-refresh,
+  button[class*="bg-blue-500"],
+  button[class*="bg-blue-600"],
+  button[class*="bg-emerald-500"],
+  button[class*="bg-emerald-600"],
+  a[class*="bg-blue-500"],
+  a[class*="bg-blue-600"],
+  [role="button"][class*="bg-blue-500"],
+  [role="button"][class*="bg-blue-600"]
+)[class][class] {
+  background: var(--wj-control-primary-bg) !important;
+  background-image: var(--wj-control-primary-bg) !important;
+  border-color: var(--wj-control-primary-border) !important;
+  color: var(--wj-control-primary-text) !important;
+  -webkit-text-fill-color: var(--wj-control-primary-text) !important;
+  box-shadow: var(--wj-control-primary-shadow) !important;
+  filter: none !important;
+}
+
+html :is(
+  .wanjuan-project-group-primary,
+  .wanjuan-settings-save-button,
+  .wanjuan-workspace-button.primary,
+  .wanjuan-tianji-primary,
+  .wanjuan-tianji-points-refresh,
+  button[class*="hover:bg-blue-500"],
+  button[class*="hover:bg-blue-600"],
+  button[class*="hover:bg-emerald-500"],
+  button[class*="hover:bg-emerald-600"],
+  a[class*="hover:bg-blue-500"],
+  a[class*="hover:bg-blue-600"],
+  [role="button"][class*="hover:bg-blue-500"],
+  [role="button"][class*="hover:bg-blue-600"]
+):hover[class][class] {
+  background: var(--wj-control-primary-hover-bg) !important;
+  background-image: var(--wj-control-primary-hover-bg) !important;
+  box-shadow: var(--wj-control-primary-shadow) !important;
+  filter: none !important;
+}
+
+html :is(
+  .wanjuan-settings-nav-item-active,
+  .wanjuan-resource-filter-button-active,
+  .wanjuan-node-model-option-active,
+  .wanjuan-theme-option-active,
+  .wanjuan-node-popover-option-active,
+  .wanjuan-tts-node-mode-button-active,
+  .wj-mode-tab-active,
+  .wanjuan-workspace-tabs button.is-active,
+  .wanjuan-workspace-sections button.is-active,
+  .wanjuan-workspace-segment button.is-active,
+  .wanjuan-workspace-group.is-active,
+  .wanjuan-tianji-mode-switch button.is-active,
+  .wanjuan-tianji-mode-switch button[aria-pressed="true"],
+  .wanjuan-tianji-points-presets button.is-active,
+  .wanjuan-mention-picker .wanjuan-resource-filter-tab-active,
+  .wanjuan-mention-picker .wanjuan-resource-filter-tab[aria-pressed="true"],
+  .wanjuan-mention-picker .wanjuan-resource-filter-tab[data-active="true"],
+  .wanjuan-material-picker .wanjuan-resource-filter-tab-active,
+  .wanjuan-material-picker .wanjuan-resource-filter-tab[aria-pressed="true"],
+  .wanjuan-material-picker .wanjuan-resource-filter-tab[data-active="true"]
+)[class][class] {
+  background: var(--wj-control-selected-bg) !important;
+  background-image: var(--wj-control-selected-bg) !important;
+  border-color: var(--wj-control-selected-border) !important;
+  color: var(--wj-control-selected-text) !important;
+  -webkit-text-fill-color: var(--wj-control-selected-text) !important;
+  box-shadow: var(--wj-control-selected-shadow) !important;
+  filter: none !important;
+}
+
+html :is(
+  .wanjuan-settings-nav-item-active,
+  .wanjuan-resource-filter-button-active,
+  .wanjuan-node-model-option-active,
+  .wanjuan-theme-option-active,
+  .wanjuan-node-popover-option-active,
+  .wanjuan-tts-node-mode-button-active,
+  .wj-mode-tab-active,
+  .wanjuan-workspace-tabs button.is-active,
+  .wanjuan-workspace-sections button.is-active,
+  .wanjuan-workspace-segment button.is-active,
+  .wanjuan-workspace-group.is-active,
+  .wanjuan-tianji-mode-switch button.is-active,
+  .wanjuan-tianji-mode-switch button[aria-pressed="true"],
+  .wanjuan-tianji-points-presets button.is-active
+):hover[class][class],
+html :is(
+  .wanjuan-settings-nav-item-active,
+  .wanjuan-resource-filter-button-active,
+  .wanjuan-node-model-option-active,
+  .wanjuan-theme-option-active,
+  .wanjuan-node-popover-option-active,
+  .wanjuan-tts-node-mode-button-active,
+  .wj-mode-tab-active,
+  .wanjuan-workspace-tabs button.is-active,
+  .wanjuan-workspace-sections button.is-active,
+  .wanjuan-workspace-segment button.is-active,
+  .wanjuan-workspace-group.is-active,
+  .wanjuan-tianji-mode-switch button.is-active,
+  .wanjuan-tianji-mode-switch button[aria-pressed="true"],
+  .wanjuan-tianji-points-presets button.is-active
+):focus-visible[class][class] {
+  background: var(--wj-control-selected-bg) !important;
+  background-image: var(--wj-control-selected-bg) !important;
+  border-color: var(--wj-control-selected-border) !important;
+  color: var(--wj-control-selected-text) !important;
+  -webkit-text-fill-color: var(--wj-control-selected-text) !important;
+  box-shadow: var(--wj-control-selected-shadow) !important;
+  filter: none !important;
+}
+
+html :is(
+  .wanjuan-node-model-option,
+  .wanjuan-theme-option,
+  .wanjuan-node-popover-option,
+  .wanjuan-tts-node-mode-button,
+  .wj-mode-tab,
+  .wanjuan-resource-filter-button,
+  .wanjuan-settings-button,
+  .wanjuan-settings-chip-button,
+  .wanjuan-settings-advanced-toggle,
+  .wanj-seedance-portrait-library-toggle,
+  .wanjuan-workspace-button,
+  .wanjuan-workspace-tabs button,
+  .wanjuan-workspace-sections button,
+  .wanjuan-workspace-segment button,
+  .wanjuan-tianji-mode-switch button,
+  .wanjuan-tianji-points-presets button
+):not(
+  .wanjuan-node-model-option-active,
+  .wanjuan-theme-option-active,
+  .wanjuan-node-popover-option-active,
+  .wanjuan-tts-node-mode-button-active,
+  .wj-mode-tab-active,
+  .wanjuan-resource-filter-button-active,
+  .wanjuan-settings-nav-item-active,
+  .primary,
+  .is-active,
+  [aria-pressed="true"]
+):hover[class][class] {
+  background: var(--wj-control-hover-bg) !important;
+  border-color: var(--wj-control-hover-border) !important;
+  color: var(--wj-control-hover-text) !important;
+  -webkit-text-fill-color: var(--wj-control-hover-text) !important;
+}
+
+/* Graphite theme: provide a palette; shared state bridge renders controls. */
+html.theme-graphite {
+  --wj-control-bg: #334155;
+  --wj-control-border: #64748b;
+  --wj-control-text: #f8fafc;
+  --wj-control-muted-text: #cbd5e1;
+  --wj-panel-border: #64748b;
+  --wj-panel-border-soft: #4b5d73;
+  --wj-panel-divider: #475569;
+  --wj-panel-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    0 8px 18px rgba(0, 0, 0, 0.22);
+  --wj-control-hover-bg: #475569;
+  --wj-control-hover-border: #7dd3fc;
+  --wj-control-hover-text: #ffffff;
+  --wj-control-disabled-bg: #1f2937;
+  --wj-control-disabled-border: #475569;
+  --wj-control-disabled-text: #94a3b8;
+  --wj-danger: #dc2626;
+  --wj-danger-bg: #dc2626;
+  --wj-danger-border: #f87171;
+  --wj-danger-text: #ffffff;
+  --wj-danger-hover-bg: #b91c1c;
+  --wj-danger-hover-border: #fecaca;
+  --wj-control-selected-bg: #0ea5e9;
+  --wj-control-selected-hover-bg: #0ea5e9;
+  --wj-control-selected-border: #7dd3fc;
+  --wj-control-selected-text: #ffffff;
+  --wj-control-primary-bg: var(--wj-control-selected-bg);
+  --wj-control-primary-hover-bg: #0284c7;
+  --wj-control-primary-border: var(--wj-control-selected-border);
+  --wj-control-primary-text: var(--wj-control-selected-text);
+  --wj-control-primary-shadow:
+    inset 0 -2px 0 rgba(0, 0, 0, 0.2);
+  --wj-control-selected-shadow:
+    inset 0 -2px 0 rgba(0, 0, 0, 0.18);
+}
+
+.wanjuan-workspace-header {
+  min-height: 50px !important;
+  padding: 6px 16px !important;
+  align-items: center !important;
+}
+
+.wanjuan-workspace-header .wanjuan-workspace-title {
+  display: none !important;
+}
+
+.wanjuan-workspace-subtitle {
+  margin: 0 !important;
+}
+
+.wanjuan-workspace-network-warning {
+  margin-top: 2px !important;
+  line-height: 1.25 !important;
+}
+
+.wanjuan-workspace-sidebar {
+  padding: 12px !important;
+  gap: 10px !important;
+}
+
+html.theme-graphite :is(
+  .wanjuan-agent-page button,
+  .wanjuan-agent-page [role="button"],
+  .wanjuan-tianji-settings-card button,
+  .wanjuan-tianji-points-dialog button,
+  .wanjuan-workspace-button,
+  .wanjuan-workspace-tabs button,
+  .wanjuan-workspace-sections button,
+  .wanjuan-workspace-segment button
+):not(.wanjuan-agent-role-card):not(.is-active):not(.primary):not(.wanjuan-tianji-primary):not(.wanjuan-tianji-points-refresh):not(.wanjuan-settings-save-button):not(.wanjuan-project-group-primary):not([aria-pressed="true"]):not([disabled]):not([class*="bg-blue-"]):not([class*="bg-emerald-"])[class][class] {
+  background: var(--wj-control-bg) !important;
+  background-image: none !important;
+  border-color: var(--wj-control-border) !important;
+  color: var(--wj-control-text) !important;
+  -webkit-text-fill-color: var(--wj-control-text) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+}
+
+html.theme-graphite :is(
+  .wanjuan-agent-page button,
+  .wanjuan-agent-page [role="button"],
+  .wanjuan-tianji-settings-card button,
+  .wanjuan-tianji-points-dialog button,
+  .wanjuan-workspace-button,
+  .wanjuan-workspace-tabs button,
+  .wanjuan-workspace-sections button,
+  .wanjuan-workspace-segment button
+):not(.wanjuan-agent-role-card):not(.is-active):not(.primary):not(.wanjuan-tianji-primary):not(.wanjuan-tianji-points-refresh):not(.wanjuan-settings-save-button):not(.wanjuan-project-group-primary):not([aria-pressed="true"]):not([disabled]):hover[class][class] {
+  background: var(--wj-control-hover-bg) !important;
+  background-image: none !important;
+  border-color: var(--wj-control-hover-border) !important;
+  color: var(--wj-control-hover-text) !important;
+  -webkit-text-fill-color: var(--wj-control-hover-text) !important;
+}
+
+html.theme-graphite :is(
+  button,
+  [role="button"],
+  .wanjuan-workspace-button,
+  .wanjuan-settings-button,
+  .wanjuan-settings-chip-button,
+  .wanjuan-tianji-settings-card button,
+  .wanjuan-tianji-points-dialog button
+):disabled[class][class],
+html.theme-graphite :is(
+  button,
+  [role="button"],
+  .wanjuan-workspace-button,
+  .wanjuan-settings-button,
+  .wanjuan-settings-chip-button,
+  .wanjuan-tianji-settings-card button,
+  .wanjuan-tianji-points-dialog button
+)[aria-disabled="true"][class][class] {
+  background: color-mix(in srgb, var(--wanjuan-theme-surface-2) 82%, var(--wanjuan-theme-bg) 18%) !important;
+  background-image: none !important;
+  border-color: color-mix(in srgb, var(--wanjuan-theme-border) 72%, transparent) !important;
+  color: color-mix(in srgb, var(--wanjuan-theme-muted) 66%, var(--wanjuan-theme-bg) 34%) !important;
+  -webkit-text-fill-color: color-mix(in srgb, var(--wanjuan-theme-muted) 66%, var(--wanjuan-theme-bg) 34%) !important;
+  box-shadow: none !important;
+  opacity: 0.72 !important;
+  cursor: not-allowed !important;
+}
+
+html.theme-graphite :is(
+  .wanjuan-settings-card,
+  .wanjuan-settings-subcard,
+  .wanjuan-settings-list-card,
+  .wanjuan-storage-optimization-card
+)[class][class] {
+  border-color: var(--wj-panel-border) !important;
+  box-shadow: var(--wj-panel-shadow) !important;
+}
+
+html.theme-graphite .wanjuan-settings-card-header[class][class] {
+  border-color: var(--wj-panel-divider) !important;
+}
+
+html.theme-graphite .wanjuan-settings-card-body > div > div[class*="border"],
+html.theme-graphite .wanjuan-settings-card-body > div > div[class*="rounded"] {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0)),
+    color-mix(in srgb, var(--wanjuan-theme-surface-2) 78%, var(--wanjuan-theme-bg) 22%) !important;
+  border-color: var(--wj-panel-border-soft) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.052),
+    0 8px 18px rgba(0, 0, 0, 0.2) !important;
+}
+
+html.theme-graphite .wanjuan-settings-card-body [class*="border-t"] {
+  border-color: var(--wj-panel-divider) !important;
+}
+
+html.theme-graphite .wanjuan-storage-optimization-card > div:nth-child(2) > div[class][class] {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0)),
+    color-mix(in srgb, var(--wanjuan-theme-surface-2) 84%, var(--wanjuan-theme-bg) 16%) !important;
+  border-color: var(--wj-panel-border-soft) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.055) !important;
+}
+
+html.theme-graphite .wanjuan-storage-optimization-card .text-gray-500 {
+  color: color-mix(in srgb, var(--wanjuan-theme-muted) 84%, var(--wanjuan-theme-text) 16%) !important;
+  -webkit-text-fill-color: color-mix(in srgb, var(--wanjuan-theme-muted) 84%, var(--wanjuan-theme-text) 16%) !important;
+}
+
+html.theme-graphite .wanjuan-storage-optimization-card .text-gray-400 {
+  color: color-mix(in srgb, var(--wanjuan-theme-muted) 62%, var(--wanjuan-theme-text) 38%) !important;
+  -webkit-text-fill-color: color-mix(in srgb, var(--wanjuan-theme-muted) 62%, var(--wanjuan-theme-text) 38%) !important;
+}
+
+html.theme-graphite .wanjuan-storage-optimization-card button[class][class] {
+  background: var(--wj-control-bg) !important;
+  background-image: none !important;
+  border-color: var(--wj-control-border) !important;
+  color: var(--wj-control-text) !important;
+  -webkit-text-fill-color: var(--wj-control-text) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07) !important;
+  opacity: 1 !important;
+}
+
+html.theme-graphite .wanjuan-storage-optimization-card button:not(:disabled):hover[class][class] {
+  background: var(--wj-control-hover-bg) !important;
+  border-color: var(--wj-control-hover-border) !important;
+  color: var(--wj-control-hover-text) !important;
+  -webkit-text-fill-color: var(--wj-control-hover-text) !important;
+}
+
+html.theme-graphite .wanjuan-storage-optimization-card button:first-of-type[class][class] {
+  background: var(--wj-control-primary-bg) !important;
+  background-image: var(--wj-control-primary-bg) !important;
+  border-color: var(--wj-control-primary-border) !important;
+  color: var(--wj-control-primary-text) !important;
+  -webkit-text-fill-color: var(--wj-control-primary-text) !important;
+  box-shadow: var(--wj-control-primary-shadow) !important;
+}
+
+html.theme-graphite .wanjuan-storage-optimization-card button:nth-of-type(6)[class][class] {
+  background: var(--wj-danger-bg) !important;
+  border-color: var(--wj-danger-border) !important;
+  color: var(--wj-danger-text) !important;
+  -webkit-text-fill-color: var(--wj-danger-text) !important;
+}
+
+html.theme-graphite .wanjuan-storage-optimization-card button:nth-of-type(6):hover[class][class] {
+  background: var(--wj-danger-hover-bg) !important;
+  border-color: var(--wj-danger-hover-border) !important;
+  color: #ffe4e1 !important;
+  -webkit-text-fill-color: #ffe4e1 !important;
+}
+
+html.theme-graphite .wanjuan-storage-optimization-card button:disabled[class][class],
+html.theme-graphite .wanjuan-storage-optimization-card button[aria-disabled="true"][class][class] {
+  background: var(--wj-control-disabled-bg) !important;
+  background-image: none !important;
+  border-color: var(--wj-control-disabled-border) !important;
+  color: var(--wj-control-disabled-text) !important;
+  -webkit-text-fill-color: var(--wj-control-disabled-text) !important;
+  box-shadow: none !important;
+  opacity: 1 !important;
+  cursor: not-allowed !important;
+}
+
+html.theme-graphite :is(
+  .wanjuan-settings-chip-button,
+  .wanjuan-settings-advanced-toggle,
+  .wanj-seedance-portrait-library-toggle,
+  .wanjuan-settings-button,
+  .wanjuan-workspace-button,
+  .wanjuan-workspace-tabs button,
+  .wanjuan-workspace-sections button,
+  .wanjuan-workspace-segment button,
+  .wanjuan-tianji-mode-switch button,
+  .wanjuan-tianji-points-presets button,
+  .wanjuan-node-model-option,
+  .wanjuan-theme-option,
+  .wanjuan-node-popover-option,
+  .wanjuan-tts-node-mode-button,
+  .wj-mode-tab
+)[class][class] {
+  border-width: 1px !important;
+  border-style: solid !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
+
+html.theme-graphite :is(
+  .wanjuan-settings-chip-button,
+  .wanjuan-settings-advanced-toggle,
+  .wanj-seedance-portrait-library-toggle,
+  .wanjuan-settings-button,
+  .wanjuan-workspace-button,
+  .wanjuan-workspace-tabs button,
+  .wanjuan-workspace-sections button,
+  .wanjuan-workspace-segment button,
+  .wanjuan-tianji-mode-switch button,
+  .wanjuan-tianji-points-presets button
+):not(.is-active):not(.primary):not([aria-pressed="true"]):not(:disabled)[class][class] {
+  background: var(--wj-control-bg) !important;
+  background-image: none !important;
+  border-color: var(--wj-control-border) !important;
+  color: var(--wj-control-text) !important;
+  -webkit-text-fill-color: var(--wj-control-text) !important;
+}
+
+html .wanjuan-workspace-sidebar .wanjuan-workspace-sections {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  width: 100% !important;
+}
+
+html .wanjuan-workspace-sidebar .wanjuan-workspace-sections button {
+  border: 1px solid transparent !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  justify-content: center !important;
+  text-align: center !important;
+}
+
+html.theme-graphite
+  .react-flow__node
+  :is(.wanjuan-node-model-option, .wanjuan-theme-option, .wanjuan-node-popover-option, .wanjuan-tts-node-mode-button) {
+  background: color-mix(in srgb, var(--wanjuan-theme-surface-2) 88%, var(--wanjuan-theme-bg) 12%) !important;
+  border-color: color-mix(in srgb, var(--wanjuan-theme-border) 68%, transparent) !important;
+  color: color-mix(in srgb, var(--wanjuan-theme-text) 72%, var(--wanjuan-theme-muted) 28%) !important;
+  -webkit-text-fill-color: currentColor !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.055) !important;
+}
+
+html.theme-graphite
+  .react-flow__node
+  :is(.wanjuan-node-model-option, .wanjuan-theme-option, .wanjuan-node-popover-option, .wanjuan-tts-node-mode-button):hover {
+  background: color-mix(in srgb, var(--wanjuan-theme-accent) 10%, var(--wanjuan-theme-surface-3) 90%) !important;
+  border-color: color-mix(in srgb, var(--wanjuan-theme-accent) 34%, var(--wanjuan-theme-border) 66%) !important;
+  color: var(--wanjuan-theme-text) !important;
+}
+
+html.theme-graphite
+  .react-flow__node
+  :is(
+    .wanjuan-node-model-option-active,
+    .wanjuan-theme-option-active,
+    .wanjuan-node-popover-option-active,
+    .wanjuan-tts-node-mode-button-active
+  )[class][class] {
+  background: var(--wj-control-selected-bg) !important;
+  background-image: var(--wj-control-selected-bg) !important;
+  border-color: var(--wj-control-selected-border) !important;
+  color: var(--wj-control-selected-text) !important;
+  -webkit-text-fill-color: var(--wj-control-selected-text) !important;
+  box-shadow: var(--wj-control-selected-shadow) !important;
+  filter: none !important;
+}
+
+html.theme-graphite .wanjuan-project-group-dialog,
+html.theme-graphite .wanjuan-project-group-section {
+  box-shadow: 0 18px 46px rgba(0, 0, 0, 0.42) !important;
+}
+
+html.theme-graphite .wanjuan-project-group-primary[class][class] {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.13),
+    0 6px 14px rgba(0, 0, 0, 0.18) !important;
+}
+
+html.theme-graphite :is(
+  .shadow-blue-400\/20,
+  .shadow-blue-500\/20,
+  .shadow-blue-600\/20,
+  .shadow-blue-900\/20,
+  [class*="shadow-blue-"][class*="/20"]
+)[class][class] {
+  --tw-shadow-color: rgba(0, 0, 0, 0.22) !important;
+  --tw-shadow: var(--tw-shadow-colored) !important;
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000),
+    var(--tw-ring-shadow, 0 0 #0000),
+    0 6px 14px rgba(0, 0, 0, 0.18) !important;
+}
+
+html.theme-graphite .wanjuan-settings-sidebar button.wanjuan-settings-nav-item.wanjuan-settings-nav-item-active[class][class],
+html.theme-graphite .wanjuan-settings-sidebar button.wanjuan-settings-nav-item.wanjuan-settings-nav-item-active:hover[class][class],
+html.theme-graphite .wanjuan-settings-sidebar button.wanjuan-settings-nav-item.wanjuan-settings-nav-item-active:focus-visible[class][class],
+html.theme-graphite .wanjuan-settings-sidebar button.wanjuan-settings-nav-item.wanjuan-settings-nav-item-active:active[class][class] {
+  background: var(--wj-control-selected-bg) !important;
+  background-color: var(--wj-control-selected-bg) !important;
+  background-image: var(--wj-control-selected-bg) !important;
+  border-color: var(--wj-control-selected-border) !important;
+  color: var(--wj-control-selected-text) !important;
+  -webkit-text-fill-color: var(--wj-control-selected-text) !important;
+  box-shadow: var(--wj-control-selected-shadow) !important;
+  filter: none !important;
+}
+
+html.theme-graphite .wanjuan-settings-sidebar button.wanjuan-settings-nav-item.wanjuan-settings-nav-item-active[class][class] :is(span, svg, .wanjuan-skeuo-icon),
+html.theme-graphite .wanjuan-settings-sidebar button.wanjuan-settings-nav-item.wanjuan-settings-nav-item-active:hover[class][class] :is(span, svg, .wanjuan-skeuo-icon),
+html.theme-graphite .wanjuan-settings-sidebar button.wanjuan-settings-nav-item.wanjuan-settings-nav-item-active:focus-visible[class][class] :is(span, svg, .wanjuan-skeuo-icon),
+html.theme-graphite .wanjuan-settings-sidebar button.wanjuan-settings-nav-item.wanjuan-settings-nav-item-active:active[class][class] :is(span, svg, .wanjuan-skeuo-icon) {
+  color: var(--wj-control-selected-text) !important;
+  -webkit-text-fill-color: var(--wj-control-selected-text) !important;
 }

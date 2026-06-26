@@ -2054,9 +2054,7 @@ var TongyiWanxiangLogo = ({
 	                                      wordBreak: `break-word`,
 	                                      overflowWrap: `anywhere`,
 	                                      boxSizing: `border-box`,
-	                                      border: selectedModel === model ? `1px solid rgba(96,165,250,0.95)` : `1px solid transparent`,
-	                                      background: selectedModel === model ? `#2563eb` : void 0,
-	                                      boxShadow: selectedModel === model ? `inset 0 1px 0 rgba(255,255,255,0.12)` : void 0,
+	                                      border: selectedModel === model ? `1px solid currentColor` : `1px solid transparent`,
 	                                    },
                                     onClick: () => {
                                       (te(model),
@@ -2925,9 +2923,7 @@ var TongyiWanxiangLogo = ({
 	                                      wordBreak: `break-word`,
 	                                      overflowWrap: `anywhere`,
 	                                      boxSizing: `border-box`,
-	                                      border: selectedModel === model ? `1px solid rgba(96,165,250,0.95)` : `1px solid transparent`,
-	                                      background: selectedModel === model ? `#2563eb` : void 0,
-	                                      boxShadow: selectedModel === model ? `inset 0 1px 0 rgba(255,255,255,0.12)` : void 0,
+	                                      border: selectedModel === model ? `1px solid currentColor` : `1px solid transparent`,
 	                                    },
                                     onClick: () => {
                                       (setSelectedModel(model),
@@ -7736,9 +7732,7 @@ ${data.audioModel || ``}`)
 	                        wordBreak: `break-word`,
 	                        overflowWrap: `anywhere`,
 	                        boxSizing: `border-box`,
-	                        border: ttsModel === model ? `1px solid rgba(96,165,250,0.95)` : `1px solid transparent`,
-	                        background: ttsModel === model ? `#2563eb` : void 0,
-	                        boxShadow: ttsModel === model ? `inset 0 1px 0 rgba(255,255,255,0.12)` : void 0,
+	                        border: ttsModel === model ? `1px solid currentColor` : `1px solid transparent`,
 	                      },
                       onClick: () => {
                         (setTtsModel(model),
@@ -7886,9 +7880,7 @@ ${data.audioModel || ``}`)
                         wordBreak: `break-word`,
                         overflowWrap: `anywhere`,
                         boxSizing: `border-box`,
-                        border: wanJuanEffectiveSunoModel === model ? `1px solid rgba(96,165,250,0.95)` : `1px solid transparent`,
-                        background: wanJuanEffectiveSunoModel === model ? `#2563eb` : void 0,
-                        boxShadow: wanJuanEffectiveSunoModel === model ? `inset 0 1px 0 rgba(255,255,255,0.12)` : void 0,
+                        border: wanJuanEffectiveSunoModel === model ? `1px solid currentColor` : `1px solid transparent`,
                       },
                       onClick: () => {
                         (_(model),
@@ -16315,7 +16307,7 @@ const WANJUAN_TIANJI_SYNC_SOURCE_MANUAL = `manual`;
 const WANJUAN_JIXIN_DEFAULT_API_CONFIG_ID = `jixin-default`;
 const WANJUAN_JIXIN_DEFAULT_API_URL = `https://newapi.guancn.uk`;
 const WANJUAN_JIXIN_BUILTIN_GLOBAL_CONFIG_ID = `builtin-jixin-base`;
-const WANJUAN_JIXIN_BUILTIN_BASE_CONFIG_VERSION = `2026-06-19-v3`;
+const WANJUAN_JIXIN_BUILTIN_BASE_CONFIG_VERSION = `2026-06-26-v1`;
 const WANJUAN_JIXIN_BUILTIN_TEXT_MODELS = [
   // OpenAI GPT 系列
   `gpt-5.5`,
@@ -16333,6 +16325,7 @@ const WANJUAN_JIXIN_BUILTIN_TEXT_MODELS = [
   `Qwen3-30B-A3B-Instruct-2507`,
   // Gemini 系列
   `gemini-3-pro`,
+  `gemini-3.1-pro-preview`,
   `gemini-2.5-pro`,
   // Kimi 系列
   `Kimi-K2-Instruct`,
@@ -16388,6 +16381,60 @@ const WANJUAN_JIXIN_BUILTIN_VIDEO_MODELS = [
   `grok-video-3-max`,
   `grok-video-4.2`,
 ];
+const WANJUAN_JIXIN_BUILTIN_TONGYI_WANXIANG_TEXT_MODELS = [
+  `wan2.7-t2v-1080P`,
+  `wan2.7-t2v-720P`,
+];
+const WANJUAN_JIXIN_BUILTIN_TONGYI_WANXIANG_IMAGE_MODELS = [
+  `wan2.7-i2v-1080P`,
+  `wan2.7-i2v-720P`,
+];
+const WANJUAN_JIXIN_BUILTIN_TONGYI_WANXIANG_REFERENCE_IMAGE_MODELS = [
+  `wan2.7-r2v-1080P`,
+  `wan2.7-r2v-720P`,
+];
+const WANJUAN_JIXIN_BUILTIN_TONGYI_WANXIANG_EDIT_MODELS = [
+  `wan2.7-videoedit-1080P`,
+  `wan2.7-videoedit-720P`,
+];
+const WANJUAN_JIXIN_BUILTIN_TONGYI_WANXIANG_MODELS = [
+  ...WANJUAN_JIXIN_BUILTIN_TONGYI_WANXIANG_TEXT_MODELS,
+  ...WANJUAN_JIXIN_BUILTIN_TONGYI_WANXIANG_IMAGE_MODELS,
+  ...WANJUAN_JIXIN_BUILTIN_TONGYI_WANXIANG_REFERENCE_IMAGE_MODELS,
+  ...WANJUAN_JIXIN_BUILTIN_TONGYI_WANXIANG_EDIT_MODELS,
+];
+const WANJUAN_JIXIN_BUILTIN_SEEDANCE_MODELS = [
+  `seedance-2.0`,
+  `doubao-seedance-2-0-260128`,
+  `doubao-seedance-2-0-fast-260128`,
+];
+const WANJUAN_JIXIN_BUILTIN_SEEDANCE_DURATIONS = `4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15`;
+const WANJUAN_JIXIN_BUILTIN_SEEDANCE_RESOLUTIONS = `720p
+1080p`;
+const WANJUAN_JIXIN_BUILTIN_SEEDANCE_RATIOS = `16:9
+9:16`;
+const WANJUAN_JIXIN_BUILTIN_TONGYI_WANXIANG_DURATIONS = `2
+5
+10
+15`;
+const WANJUAN_JIXIN_BUILTIN_TONGYI_WANXIANG_RESOLUTIONS = `720P
+1080P`;
+const WANJUAN_JIXIN_BUILTIN_TONGYI_WANXIANG_RATIOS = `16:9
+9:16
+1:1
+4:3
+3:4`;
 const WANJUAN_JIXIN_BUILTIN_MUSIC_MODELS = [
   `suno_music`,
   `suno_music_open`,
@@ -16415,6 +16462,7 @@ const WANJUAN_JIXIN_BUILTIN_AUDIO_MODELS = [
 const WANJUAN_JIXIN_BUILTIN_TEXT_PROTOCOLS = {
   // Gemini 系列必须用 Gemini 原生协议
   [`gemini-3-pro`]: `Gemini 文本原生`,
+  [`gemini-3.1-pro-preview`]: `Gemini 文本原生`,
   [`gemini-2.5-pro`]: `Gemini 文本原生`,
 };
 const WANJUAN_JIXIN_BUILTIN_IMAGE_PROTOCOLS = {
@@ -16568,8 +16616,59 @@ const wanjuanMergeObjectDefaults = (target = {}, defaults = {}) => ({
   ...(defaults || {}),
   ...(target && typeof target == `object` ? target : {}),
 });
+const wanjuanGetJixinDefaultApiConfigId = (settings = {}) => {
+  let apiConfigs = Array.isArray(settings.apiConfigs) ? settings.apiConfigs : [],
+    jixinConfig =
+      apiConfigs.find((config) => config?.id === WANJUAN_JIXIN_DEFAULT_API_CONFIG_ID) ||
+      apiConfigs.find((config) => String(config?.url || ``).replace(/\s+/g, ``).replace(/\/+$/, ``) === WANJUAN_JIXIN_DEFAULT_API_URL) ||
+      apiConfigs[0];
+  return jixinConfig?.id || WANJUAN_JIXIN_DEFAULT_API_CONFIG_ID;
+};
+const wanjuanBuildJixinVideoModelBindings = (apiConfigId = WANJUAN_JIXIN_DEFAULT_API_CONFIG_ID) =>
+  wanjuanBuildJixinModelBindings(
+    [
+      ...WANJUAN_JIXIN_BUILTIN_VIDEO_MODELS,
+      ...WANJUAN_JIXIN_BUILTIN_TONGYI_WANXIANG_MODELS,
+      ...WANJUAN_JIXIN_BUILTIN_SEEDANCE_MODELS,
+    ],
+    apiConfigId,
+  );
+const wanjuanBuildJixinAudioModelBindings = (apiConfigId = WANJUAN_JIXIN_DEFAULT_API_CONFIG_ID) =>
+  wanjuanBuildJixinModelBindings(
+    [
+      ...WANJUAN_JIXIN_BUILTIN_AUDIO_MODELS,
+      ...WANJUAN_JIXIN_BUILTIN_MUSIC_MODELS,
+    ],
+    apiConfigId,
+  );
+const wanjuanBuildJixinVideoProtocolBindings = () =>
+  [
+    ...WANJUAN_JIXIN_BUILTIN_VIDEO_MODELS,
+    ...WANJUAN_JIXIN_BUILTIN_TONGYI_WANXIANG_MODELS,
+    ...WANJUAN_JIXIN_BUILTIN_SEEDANCE_MODELS,
+  ].reduce((bindings, model) => ({
+    ...bindings,
+    [model]: `极鑫视频兼容`,
+  }), {});
 const wanjuanHasUserModelConfiguration = (settings = {}) => {
-  let hasModelText = [`textModel`, `drawingModel`, `videoModel`, `audioModel`, `ttsMusicModel`]
+  let hasModelText = [
+      `textModel`,
+      `drawingModel`,
+      `videoModel`,
+      `audioModel`,
+      `ttsMusicModel`,
+      `seedanceModel`,
+      `seedanceDurations`,
+      `seedanceResolutions`,
+      `seedanceRatios`,
+      `tongyiWanxiangTextModels`,
+      `tongyiWanxiangReferenceImageModels`,
+      `tongyiWanxiangImageModels`,
+      `tongyiWanxiangEditModels`,
+      `tongyiWanxiangDurations`,
+      `tongyiWanxiangResolutions`,
+      `tongyiWanxiangRatios`,
+    ]
       .some((key) => String(settings?.[key] || ``).trim()),
     hasModelBinding = [
       `textModelApiBindings`,
@@ -16612,8 +16711,8 @@ const wanjuanBuildJixinBuiltinBasePatch = (source = {}) => {
     audioModel = wanjuanMergeModelText(source.audioModel, WANJUAN_JIXIN_BUILTIN_AUDIO_MODELS),
     textBindings = wanjuanBuildJixinModelBindings(WANJUAN_JIXIN_BUILTIN_TEXT_MODELS, jixinConfigId),
     imageBindings = wanjuanBuildJixinModelBindings(WANJUAN_JIXIN_BUILTIN_IMAGE_MODELS, jixinConfigId),
-    videoBindings = wanjuanBuildJixinModelBindings(WANJUAN_JIXIN_BUILTIN_VIDEO_MODELS, jixinConfigId),
-    audioBindings = wanjuanBuildJixinModelBindings(WANJUAN_JIXIN_BUILTIN_AUDIO_MODELS, jixinConfigId),
+    videoBindings = wanjuanBuildJixinVideoModelBindings(jixinConfigId),
+    audioBindings = wanjuanBuildJixinAudioModelBindings(jixinConfigId),
     musicBindings = wanjuanBuildJixinModelBindings(WANJUAN_JIXIN_BUILTIN_MUSIC_MODELS, jixinConfigId);
   return {
     ...source,
@@ -16639,20 +16738,17 @@ const wanjuanBuildJixinBuiltinBasePatch = (source = {}) => {
     videoModel,
     audioModel,
     ttsMusicModel,
-    tongyiWanxiangTextModels: source.tongyiWanxiangTextModels || `wan2.7-t2v-1080P
-wan2.7-t2v-720P
-wan2.6-t2v-1080P
-wan2.6-t2v-720P`,
-    tongyiWanxiangImageModels: source.tongyiWanxiangImageModels || `wan2.7-i2v-1080P
-wan2.7-i2v-720P
-wan2.6-i2v-1080P
-wan2.6-i2v-720P`,
-    tongyiWanxiangReferenceImageModels: source.tongyiWanxiangReferenceImageModels || `wan2.7-r2v-1080P
-wan2.7-r2v-720P
-wan2.6-r2v-1080P
-wan2.6-r2v-720P`,
-    tongyiWanxiangEditModels: source.tongyiWanxiangEditModels || `wan2.7-videoedit-1080P
-wan2.7-videoedit-720P`,
+    tongyiWanxiangTextModels: source.tongyiWanxiangTextModels || wanjuanMergeModelText(WANJUAN_JIXIN_BUILTIN_TONGYI_WANXIANG_TEXT_MODELS),
+    tongyiWanxiangImageModels: source.tongyiWanxiangImageModels || wanjuanMergeModelText(WANJUAN_JIXIN_BUILTIN_TONGYI_WANXIANG_IMAGE_MODELS),
+    tongyiWanxiangReferenceImageModels: source.tongyiWanxiangReferenceImageModels || wanjuanMergeModelText(WANJUAN_JIXIN_BUILTIN_TONGYI_WANXIANG_REFERENCE_IMAGE_MODELS),
+    tongyiWanxiangEditModels: source.tongyiWanxiangEditModels || wanjuanMergeModelText(WANJUAN_JIXIN_BUILTIN_TONGYI_WANXIANG_EDIT_MODELS),
+    tongyiWanxiangDurations: source.tongyiWanxiangDurations || WANJUAN_JIXIN_BUILTIN_TONGYI_WANXIANG_DURATIONS,
+    tongyiWanxiangResolutions: source.tongyiWanxiangResolutions || WANJUAN_JIXIN_BUILTIN_TONGYI_WANXIANG_RESOLUTIONS,
+    tongyiWanxiangRatios: source.tongyiWanxiangRatios || WANJUAN_JIXIN_BUILTIN_TONGYI_WANXIANG_RATIOS,
+    seedanceModel: source.seedanceModel || wanjuanMergeModelText(WANJUAN_JIXIN_BUILTIN_SEEDANCE_MODELS),
+    seedanceDurations: source.seedanceDurations || WANJUAN_JIXIN_BUILTIN_SEEDANCE_DURATIONS,
+    seedanceResolutions: source.seedanceResolutions || WANJUAN_JIXIN_BUILTIN_SEEDANCE_RESOLUTIONS,
+    seedanceRatios: source.seedanceRatios || WANJUAN_JIXIN_BUILTIN_SEEDANCE_RATIOS,
     videoResolutions: source.videoResolutions || `1280x720
 720x1280
 1920x1080
@@ -16673,10 +16769,7 @@ wan2.7-videoedit-720P`,
     imageModelProtocolBindings: wanjuanMergeObjectDefaults(source.imageModelProtocolBindings, WANJUAN_JIXIN_BUILTIN_IMAGE_PROTOCOLS),
     videoModelProtocolBindings: wanjuanMergeObjectDefaults(
       source.videoModelProtocolBindings,
-      WANJUAN_JIXIN_BUILTIN_VIDEO_MODELS.reduce((bindings, model) => ({
-        ...bindings,
-        [model]: `极鑫视频兼容`,
-      }), {}),
+      wanjuanBuildJixinVideoProtocolBindings(),
     ),
     audioModelProtocolBindings: wanjuanMergeObjectDefaults(source.audioModelProtocolBindings, {
       suno_music: `极鑫 Suno 音乐生成`,
@@ -16697,34 +16790,91 @@ const wanjuanBuildJixinBuiltinStoredGlobalConfig = (config) => ({
     configButlerTargetApiConfigId: WANJUAN_JIXIN_DEFAULT_API_CONFIG_ID,
   },
 });
+const WANJUAN_BUILTIN_AGENT_ITEMS = [{
+    id: `agent-seedance-prompt-optimizer`,
+    name: `seedance提示词优化师`,
+    description: `优化提示词、补全风格约束、整理输出结构`,
+    icon: `bulb`,
+    model: `gpt-5.5`,
+    apiConfigId: WANJUAN_JIXIN_DEFAULT_API_CONFIG_ID,
+    temperature: `0.7`,
+    outputMode: `prompt`,
+    systemPrompt: `你是一个专为 Seedance 视频生成服务的提示词优化智能体。你的任务是把用户的简短想法、画面描述、产品诉求或分镜草稿整理成更适合 Seedance 执行的视频提示词。输出时优先补全主体、场景、动作、镜头运动、光线、构图、风格、时长节奏和负面约束；保留用户原意，不虚构关键事实；最终给出可直接复制到画布视频节点里的提示词。`,
+    knowledge: `适合处理文生视频、图生视频、分镜拆分、风格统一、镜头语言补全、Seedance 参数约束整理等任务。`,
+    knowledgeFiles: [],
+    memoryEnabled: !1,
+    memoryBaseUrl: ``,
+    memoryApiKey: ``,
+    memoryUserId: `default-user`,
+    memoryTopK: `6`,
+    createdAt: 0,
+    updatedAt: 0,
+  },
+  {
+    id: `agent-video-breakdown`,
+    name: `视频拆解师`,
+    description: `根据我上传的视频来拆解画面内容`,
+    icon: `chat`,
+    model: `gemini-3.1-pro-preview`,
+    apiConfigId: WANJUAN_JIXIN_DEFAULT_API_CONFIG_ID,
+    temperature: `0.7`,
+    outputMode: `chat`,
+    systemPrompt: `你是一个视频画面拆解智能体。用户上传视频后，你需要基于可见内容拆解镜头、主体、动作、场景、光线、构图、色彩、运镜、节奏、字幕/文字、关键变化和可复用的生成提示词。不要臆测看不见的信息；如果视频内容不足以判断，要明确说明不确定点。输出应结构清晰，方便用户继续在画布里做复刻、改编、分镜或提示词生成。`,
+    knowledge: `适合处理视频参考分析、镜头语言拆解、画面内容归纳、分镜复刻、视频转提示词等任务。`,
+    knowledgeFiles: [],
+    memoryEnabled: !1,
+    memoryBaseUrl: ``,
+    memoryApiKey: ``,
+    memoryUserId: `default-user`,
+    memoryTopK: `6`,
+    createdAt: 0,
+    updatedAt: 0,
+  },
+];
+const WANJUAN_BUILTIN_AGENT_CONVERSATIONS = {
+  "agent-seedance-prompt-optimizer": [{
+    id: `agent-seedance-prompt-optimizer-welcome`,
+    role: `assistant`,
+    content: `我是“seedance提示词优化师”。把主题、画面想法、参考风格或限制条件发给我，我会整理成更适合 Seedance 的视频提示词。`,
+    createdAt: 0,
+  }, ],
+  "agent-video-breakdown": [{
+    id: `agent-video-breakdown-welcome`,
+    role: `assistant`,
+    content: `我是“视频拆解师”。上传视频或发来视频参考，我会帮你拆解画面内容、镜头节奏和可复用的提示词结构。`,
+    createdAt: 0,
+  }, ],
+};
+const wanjuanCloneBuiltinAgentItems = () =>
+  WANJUAN_BUILTIN_AGENT_ITEMS.map((agent) => ({
+    ...agent,
+    knowledgeFiles: Array.isArray(agent.knowledgeFiles) ? [...agent.knowledgeFiles] : [],
+  }));
+const wanjuanCloneBuiltinAgentConversations = () =>
+  Object.fromEntries(
+    Object.entries(WANJUAN_BUILTIN_AGENT_CONVERSATIONS).map(([agentId, messages]) => [
+      agentId,
+      (Array.isArray(messages) ? messages : []).map((message) => ({
+        ...message
+      })),
+    ]),
+  );
+const wanjuanHasUserAgentConfiguration = (settings = {}) =>
+  Array.isArray(settings.agents) && settings.agents.length > 0 ||
+  settings.agentConversations &&
+  typeof settings.agentConversations == `object` &&
+  Object.keys(settings.agentConversations).length > 0 ||
+  String(settings.selectedAgentId || ``).trim();
 const wanjuanTianjiSeedanceDefaults = {
   baseUrl: WANJUAN_TIANJI_DEFAULT_BASE_URL,
   token: ``,
   syncSource: WANJUAN_TIANJI_SYNC_SOURCE_JIXIN,
   sassId: `1`,
   platform: `web`,
-  models: `doubao-seedance-2-0-260128
-doubao-seedance-2-0-fast-260128`,
-  durations: `4
-5
-6
-7
-8
-9
-10
-11
-12
-13
-14
-15`,
-  resolutions: `720p
-1080p`,
-  ratios: `16:9
-9:16
-1:1
-4:3
-3:4
-21:9`,
+  models: wanjuanMergeModelText(WANJUAN_JIXIN_BUILTIN_SEEDANCE_MODELS),
+  durations: WANJUAN_JIXIN_BUILTIN_SEEDANCE_DURATIONS,
+  resolutions: WANJUAN_JIXIN_BUILTIN_SEEDANCE_RESOLUTIONS,
+  ratios: WANJUAN_JIXIN_BUILTIN_SEEDANCE_RATIOS,
   generateAudio: !0,
   watermark: !1,
 };
@@ -17976,37 +18126,21 @@ function dt({
 	1:1
 	3:2
 	2:3`,
-  seedanceModel: seedanceModel = ``,
-  seedanceDurations: seedanceDurations = `5
-10
-11`,
-  seedanceResolutions: seedanceResolutions = `720p
-1080p`,
-  seedanceRatios: seedanceRatios = `21:9
-16:9
-4:3
-1:1
-3:4
-9:16`,
+  seedanceModel: seedanceModel = wanjuanMergeModelText(WANJUAN_JIXIN_BUILTIN_SEEDANCE_MODELS),
+  seedanceDurations: seedanceDurations = WANJUAN_JIXIN_BUILTIN_SEEDANCE_DURATIONS,
+  seedanceResolutions: seedanceResolutions = WANJUAN_JIXIN_BUILTIN_SEEDANCE_RESOLUTIONS,
+  seedanceRatios: seedanceRatios = WANJUAN_JIXIN_BUILTIN_SEEDANCE_RATIOS,
   seedanceGenerateAudio: seedanceGenerateAudio = !0,
   seedanceWatermark: seedanceWatermark = !1,
   seedanceEnableWebSearch: seedanceEnableWebSearch = !1,
   seedanceVirtualPortraits: seedanceVirtualPortraits = [],
-  tongyiWanxiangTextModels: tongyiWanxiangTextModels = ``,
-  tongyiWanxiangReferenceImageModels: tongyiWanxiangReferenceImageModels = ``,
-  tongyiWanxiangImageModels: tongyiWanxiangImageModels = ``,
-  tongyiWanxiangEditModels: tongyiWanxiangEditModels = ``,
-  tongyiWanxiangDurations: tongyiWanxiangDurations = `2
-5
-10
-15`,
-  tongyiWanxiangResolutions: tongyiWanxiangResolutions = `720P
-1080P`,
-  tongyiWanxiangRatios: tongyiWanxiangRatios = `16:9
-9:16
-1:1
-4:3
-3:4`,
+  tongyiWanxiangTextModels: tongyiWanxiangTextModels = wanjuanMergeModelText(WANJUAN_JIXIN_BUILTIN_TONGYI_WANXIANG_TEXT_MODELS),
+  tongyiWanxiangReferenceImageModels: tongyiWanxiangReferenceImageModels = wanjuanMergeModelText(WANJUAN_JIXIN_BUILTIN_TONGYI_WANXIANG_REFERENCE_IMAGE_MODELS),
+  tongyiWanxiangImageModels: tongyiWanxiangImageModels = wanjuanMergeModelText(WANJUAN_JIXIN_BUILTIN_TONGYI_WANXIANG_IMAGE_MODELS),
+  tongyiWanxiangEditModels: tongyiWanxiangEditModels = wanjuanMergeModelText(WANJUAN_JIXIN_BUILTIN_TONGYI_WANXIANG_EDIT_MODELS),
+  tongyiWanxiangDurations: tongyiWanxiangDurations = WANJUAN_JIXIN_BUILTIN_TONGYI_WANXIANG_DURATIONS,
+  tongyiWanxiangResolutions: tongyiWanxiangResolutions = WANJUAN_JIXIN_BUILTIN_TONGYI_WANXIANG_RESOLUTIONS,
+  tongyiWanxiangRatios: tongyiWanxiangRatios = WANJUAN_JIXIN_BUILTIN_TONGYI_WANXIANG_RATIOS,
   audioModel: _ = ``,
   ttsMusicModel: ttsMusicModel = ``,
   showToast: showToast,
@@ -21867,7 +22001,7 @@ ${combinedPrompt}`,
             };
           let isSeedanceNode =
             seedanceSourceNode?.type === `seedanceNode` ||
-            /^doubao-seedance-2-0/.test(modelName),
+            /^(?:doubao-)?seedance(?:-2(?:\.|-)?0|-2-0)/i.test(modelName),
             modelProtocolDefinition =
             modelProtocolRegistry?.[
               seedanceSourceNode?.data?.videoModelProtocolBindings?.[modelName] ||
@@ -22329,8 +22463,8 @@ ${combinedPrompt}`,
                   );
                 if (tongyiMode === `reference-image-to-video`) {
                   let referenceEntries = tongyiReferenceEntries.length > 0 ? tongyiReferenceEntries : [{
-                      url: referenceEntries,
-                      kind: videoReferences.includes(referenceEntries) ? `video` : `image`,
+                      url: reference,
+                      kind: videoReferences.includes(reference) ? `video` : `image`,
                     }],
                     referenceUrls = [];
                   for (let entry of referenceEntries) {
@@ -22339,7 +22473,7 @@ ${combinedPrompt}`,
                   }
                   if (referenceUrls.length === 0)
                     throw Error(`当前通义万相模式需要连接至少一张参考图`);
-                  referenceUrls.forEach((referenceUrl) => formData.append(`reference_urls`, referenceUrl));
+                  formData.append(`input_reference`, referenceUrls.join(`,`));
                 } else
                   formData.append(
                     `input_reference`,
@@ -31157,18 +31291,10 @@ Suno 音乐生成`,
 3840x2160
 2160x3840`),
 	  [videoModelRequestProfilesText, setVideoModelRequestProfilesText] = useState(`{}`),
-  [seedanceModel, setSeedanceModel] = useState(``),
-  [seedanceDurations, setSeedanceDurations] = useState(`5
-10
-11`),
-  [seedanceResolutions, setSeedanceResolutions] = useState(`720p
-1080p`),
-  [seedanceRatios, setSeedanceRatios] = useState(`21:9
-16:9
-4:3
-1:1
-3:4
-9:16`),
+  [seedanceModel, setSeedanceModel] = useState(wanjuanTianjiSeedanceDefaults.models),
+  [seedanceDurations, setSeedanceDurations] = useState(wanjuanTianjiSeedanceDefaults.durations),
+  [seedanceResolutions, setSeedanceResolutions] = useState(wanjuanTianjiSeedanceDefaults.resolutions),
+  [seedanceRatios, setSeedanceRatios] = useState(wanjuanTianjiSeedanceDefaults.ratios),
   [seedanceGenerateAudio, setSeedanceGenerateAudio] = useState(!0),
   [seedanceWatermark, setSeedanceWatermark] = useState(!1),
   [seedanceEnableWebSearch, setSeedanceEnableWebSearch] = useState(!1),
@@ -31183,21 +31309,13 @@ Suno 音乐生成`,
     projectName: ``,
     notes: ``,
   }),
-  [tongyiWanxiangTextModels, setTongyiWanxiangTextModels] = useState(``),
-  [tongyiWanxiangReferenceImageModels, setTongyiWanxiangReferenceImageModels] = useState(``),
-  [tongyiWanxiangImageModels, setTongyiWanxiangImageModels] = useState(``),
-  [tongyiWanxiangEditModels, setTongyiWanxiangEditModels] = useState(``),
-  [tongyiWanxiangDurations, setTongyiWanxiangDurations] = useState(`2
-5
-10
-15`),
-  [tongyiWanxiangResolutions, setTongyiWanxiangResolutions] = useState(`720P
-1080P`),
-  [tongyiWanxiangRatios, setTongyiWanxiangRatios] = useState(`16:9
-9:16
-1:1
-4:3
-3:4`),
+  [tongyiWanxiangTextModels, setTongyiWanxiangTextModels] = useState(() => wanjuanMergeModelText(WANJUAN_JIXIN_BUILTIN_TONGYI_WANXIANG_TEXT_MODELS)),
+  [tongyiWanxiangReferenceImageModels, setTongyiWanxiangReferenceImageModels] = useState(() => wanjuanMergeModelText(WANJUAN_JIXIN_BUILTIN_TONGYI_WANXIANG_REFERENCE_IMAGE_MODELS)),
+  [tongyiWanxiangImageModels, setTongyiWanxiangImageModels] = useState(() => wanjuanMergeModelText(WANJUAN_JIXIN_BUILTIN_TONGYI_WANXIANG_IMAGE_MODELS)),
+  [tongyiWanxiangEditModels, setTongyiWanxiangEditModels] = useState(() => wanjuanMergeModelText(WANJUAN_JIXIN_BUILTIN_TONGYI_WANXIANG_EDIT_MODELS)),
+  [tongyiWanxiangDurations, setTongyiWanxiangDurations] = useState(WANJUAN_JIXIN_BUILTIN_TONGYI_WANXIANG_DURATIONS),
+  [tongyiWanxiangResolutions, setTongyiWanxiangResolutions] = useState(WANJUAN_JIXIN_BUILTIN_TONGYI_WANXIANG_RESOLUTIONS),
+  [tongyiWanxiangRatios, setTongyiWanxiangRatios] = useState(WANJUAN_JIXIN_BUILTIN_TONGYI_WANXIANG_RATIOS),
   [seedanceUploadMode, setSeedanceUploadMode] = useState(`public`),
   [tosConfig, setTosConfig] = useState({
     accessKeyId: ``,
@@ -31224,6 +31342,9 @@ time=1h`,
     domain: ``,
     prefix: `wanjuan/seedance`,
   }),
+  [tosUploadConfigExpanded, setTosUploadConfigExpanded] = useState(!1),
+  [qiniuUploadConfigExpanded, setQiniuUploadConfigExpanded] = useState(!1),
+  [customUploadConfigExpanded, setCustomUploadConfigExpanded] = useState(!1),
   [qiniuJsonImportOpen, setQiniuJsonImportOpen] = useState(!1),
   [qiniuJsonImportText, setQiniuJsonImportText] = useState(``),
   [showTosSecretKey, setShowTosSecretKey] = useState(!1),
@@ -31259,15 +31380,12 @@ time=1h`,
     ...WANJUAN_JIXIN_BUILTIN_IMAGE_PROTOCOLS
   })),
 	  [videoModelProtocolBindings, setVideoModelProtocolBindings] = useState(() =>
-	    WANJUAN_JIXIN_BUILTIN_VIDEO_MODELS.reduce((bindings, model) => ({
-	      ...bindings,
-	      [model]: `极鑫视频兼容`,
-	    }), {}), ),
+	    wanjuanBuildJixinVideoProtocolBindings(), ),
 	  [audioModelProtocolBindings, setAudioModelProtocolBindings] = useState(() => ({
 	    suno_music: `极鑫 Suno 音乐生成`,
 	  }), ),
-	  [audioModelApiBindings, setAudioModelApiBindings] = useState(() => wanjuanBuildJixinModelBindings(WANJUAN_JIXIN_BUILTIN_MUSIC_MODELS)),
-	  [videoModelApiBindings, setVideoModelApiBindings] = useState(() => wanjuanBuildJixinModelBindings(WANJUAN_JIXIN_BUILTIN_VIDEO_MODELS)),
+	  [audioModelApiBindings, setAudioModelApiBindings] = useState(() => wanjuanBuildJixinAudioModelBindings()),
+	  [videoModelApiBindings, setVideoModelApiBindings] = useState(() => wanjuanBuildJixinVideoModelBindings()),
   [$, setIsReady] = useState(!1),
   normalizeThemeMode = (themeName) => ({
     "mist-blue": `light`,
@@ -31441,6 +31559,72 @@ time=1h`,
 	      refreshExtensionToolStatus(`real-esrgan`));
 	  }, [activeSettingsTab]);
 	  useEffect(() => {
+	    saveApiModelCloudSettings();
+	  }, [
+	    textApiUrl,
+	    textApiKey,
+	    imageApiUrl,
+	    imageApiKey,
+	    videoApiUrl,
+	    videoApiKey,
+	    audioApiUrl,
+	    audioApiKey,
+	    textModels,
+	    imageModels,
+	    imageCompatResolutions,
+	    videoModels,
+	    je,
+	    videoResolutions,
+	    videoAspectRatios,
+	    videoModelRequestProfilesText,
+	    seedanceModel,
+	    seedanceDurations,
+	    seedanceResolutions,
+	    seedanceRatios,
+	    seedanceGenerateAudio,
+	    seedanceWatermark,
+	    seedanceEnableWebSearch,
+	    seedanceVirtualPortraits,
+	    tianjiSeedanceSettingsMode,
+	    tongyiWanxiangTextModels,
+	    tongyiWanxiangReferenceImageModels,
+	    tongyiWanxiangImageModels,
+	    tongyiWanxiangEditModels,
+	    tongyiWanxiangDurations,
+	    tongyiWanxiangResolutions,
+	    tongyiWanxiangRatios,
+	    seedanceUploadMode,
+	    tosConfig,
+	    customPublicUploadConfig,
+	    qiniuConfig,
+	    audioModels,
+	    ttsMusicModel,
+	    modelProtocolRegistry,
+	    configButlerApiUrl,
+	    configButlerApiKey,
+	    configButlerProtocol,
+	    configButlerModel,
+	    configButlerDocUrl,
+	    configButlerMode,
+	    configButlerTargetCategory,
+	    configButlerTargetApiConfigId,
+	    storedGlobalConfigs,
+	    activeStoredGlobalConfigId,
+	    apiConfigs,
+	    textModelApiBindings,
+	    textModelProtocolBindings,
+	    imageModelApiBindings,
+	    imageModelProtocolBindings,
+	    videoModelProtocolBindings,
+	    textApiConfigId,
+	    imageApiConfigId,
+	    videoApiConfigId,
+	    audioApiConfigId,
+	    videoModelApiBindings,
+	    audioModelProtocolBindings,
+	    audioModelApiBindings,
+	  ]);
+	  useEffect(() => {
 	    if (
 	      !$ ||
       !settingsHydratedRef.current ||
@@ -31581,35 +31765,9 @@ time=1h`,
     ]),
     [backupDialogState, setBackupDialogState] = useState(null),
     [backupDialogTab, setBackupDialogTab] = useState(`projects`),
-    [agentItems, setAgentItems] = useState([{
-      id: `agent-default`,
-      name: `提示词优化师`,
-      description: `优化提示词、补全风格约束、整理输出结构`,
-      icon: `bulb`,
-      model: ``,
-      apiConfigId: ``,
-      temperature: `0.7`,
-      outputMode: `prompt`,
-      systemPrompt: `你是一个提示词优化智能体。你的目标是帮助用户把需求整理成更清晰、更具体、更适合生成模型执行的提示词。`,
-      knowledge: `适合处理文生图、文生视频、角色设定、分镜拆分、风格统一等任务。`,
-      knowledgeFiles: [],
-      memoryEnabled: !1,
-      memoryBaseUrl: ``,
-      memoryApiKey: ``,
-      memoryUserId: `default-user`,
-      memoryTopK: `6`,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    }, ]),
-    [selectedAgentId, setSelectedAgentId] = useState(`agent-default`),
-    [agentConversations, setAgentConversations] = useState({
-      "agent-default": [{
-        id: `agent-default-welcome`,
-        role: `assistant`,
-        content: `我是“提示词优化师”。你可以把主题、项目目标、画面想法或限制条件发给我，我会帮你整理成更可执行的提示词草稿。`,
-        createdAt: Date.now(),
-      }, ],
-    }),
+    [agentItems, setAgentItems] = useState(() => wanjuanCloneBuiltinAgentItems()),
+    [selectedAgentId, setSelectedAgentId] = useState(WANJUAN_BUILTIN_AGENT_ITEMS[0]?.id || ``),
+    [agentConversations, setAgentConversations] = useState(() => wanjuanCloneBuiltinAgentConversations()),
     [agentComposer, setAgentComposer] = useState(``),
     [agentAttachments, setAgentAttachments] = useState([]),
     [agentSearch, setAgentSearch] = useState(``),
@@ -31757,7 +31915,14 @@ time=1h`,
         "设置已保存": "Settings saved"
       }
     },
-    wanjuanT = (text) => (wanjuanI18n[appLanguage] && wanjuanI18n[appLanguage][text]) || text,
+    wanjuanT = (text) => {
+      let runtime = globalThis.wanjuanI18nRuntime;
+      if (runtime?.t) {
+        let runtimeText = runtime.t(text, appLanguage);
+        if (runtimeText !== text) return runtimeText;
+      }
+      return (wanjuanI18n[appLanguage] && wanjuanI18n[appLanguage][text]) || text;
+    },
     showToast2 = (message) => {
       (setToastMessage(message),
         setShowToast(!0),
@@ -31858,6 +32023,7 @@ time=1h`,
     settingsHydratedRef = useRef(!1),
     projectHydratedRef = useRef(!1),
     nonModelSettingsSaveTimerRef = useRef(null),
+    apiModelCloudSettingsSaveTimerRef = useRef(null),
     saveNonModelSettings = () => {
       if (
         !settingsHydratedRef.current ||
@@ -31889,6 +32055,97 @@ time=1h`,
             selectedAgentId: selectedAgentId,
             agentConversations: agentConversations,
           });
+        }, 250));
+    },
+    saveApiModelCloudSettings = () => {
+      if (
+        !settingsHydratedRef.current ||
+        typeof chrome > `u` ||
+        !chrome.storage ||
+        !chrome.storage.local
+      )
+        return;
+      apiModelCloudSettingsSaveTimerRef.current &&
+        clearTimeout(apiModelCloudSettingsSaveTimerRef.current),
+        (apiModelCloudSettingsSaveTimerRef.current = setTimeout(async () => {
+          let settingsPatch = {
+            textApiUrl: textApiUrl,
+            textApiKey: textApiKey,
+            imageApiUrl: imageApiUrl,
+            imageApiKey: imageApiKey,
+            videoApiUrl: videoApiUrl,
+            videoApiKey: videoApiKey,
+            audioApiUrl: audioApiUrl,
+            audioApiKey: audioApiKey,
+            textModel: textModels,
+            drawingModel: imageModels,
+            imageCompatResolutions: imageCompatResolutions,
+            videoModel: videoModels,
+            videoDurations: je,
+            videoResolutions: videoResolutions,
+            videoAspectRatios: videoAspectRatios,
+            seedanceModel: seedanceModel,
+            seedanceDurations: seedanceDurations,
+            seedanceResolutions: seedanceResolutions,
+            seedanceRatios: seedanceRatios,
+            seedanceGenerateAudio: seedanceGenerateAudio,
+            seedanceWatermark: seedanceWatermark,
+            seedanceEnableWebSearch: seedanceEnableWebSearch,
+            seedanceVirtualPortraits: seedanceVirtualPortraits,
+            tianjiSeedanceSettingsMode: advancedSettingsUnlocked ? tianjiSeedanceSettingsMode : `official`,
+            tongyiWanxiangTextModels: tongyiWanxiangTextModels,
+            tongyiWanxiangReferenceImageModels: tongyiWanxiangReferenceImageModels,
+            tongyiWanxiangImageModels: tongyiWanxiangImageModels,
+            tongyiWanxiangEditModels: tongyiWanxiangEditModels,
+            tongyiWanxiangDurations: tongyiWanxiangDurations,
+            tongyiWanxiangResolutions: tongyiWanxiangResolutions,
+            tongyiWanxiangRatios: tongyiWanxiangRatios,
+            seedanceUploadMode: seedanceUploadMode,
+            tosConfig: tosConfig,
+            customPublicUploadConfig: customPublicUploadConfig,
+            qiniuConfig: qiniuConfig,
+            audioModel: audioModels,
+            ttsMusicModel: ttsMusicModel,
+            modelProtocolRegistry: modelProtocolRegistry,
+            configButlerApiUrl: configButlerApiUrl,
+            configButlerApiKey: configButlerApiKey,
+            configButlerProtocol: configButlerProtocol,
+            configButlerModel: configButlerModel,
+            configButlerDocUrl: configButlerDocUrl,
+            configButlerMode: configButlerMode,
+            configButlerTargetCategory: configButlerTargetCategory,
+            configButlerTargetApiConfigId: configButlerTargetApiConfigId,
+            storedGlobalConfigs: storedGlobalConfigs,
+            activeStoredGlobalConfigId: activeStoredGlobalConfigId,
+            apiConfigs: apiConfigs,
+            textModelApiBindings: textModelApiBindings,
+            textModelProtocolBindings: textModelProtocolBindings,
+            imageModelApiBindings: imageModelApiBindings,
+            imageModelProtocolBindings: imageModelProtocolBindings,
+            videoModelProtocolBindings: videoModelProtocolBindings,
+            textApiConfigId: textApiConfigId,
+            imageApiConfigId: imageApiConfigId,
+            videoApiConfigId: videoApiConfigId,
+            audioApiConfigId: audioApiConfigId,
+            videoModelApiBindings: videoModelApiBindings,
+            audioModelProtocolBindings: audioModelProtocolBindings,
+            audioModelApiBindings: audioModelApiBindings,
+          };
+          try {
+            videoModelRequestProfilesText.trim() &&
+              JSON.parse(videoModelRequestProfilesText);
+            settingsPatch.videoModelRequestProfiles = videoModelRequestProfilesText;
+          } catch (error) {
+            console.warn(`Skip autosaving invalid video model request profiles`, error);
+          }
+          try {
+            let syncedTianjiSeedanceConfig = await syncTianjiConfigFromJixinApi(apiConfigs);
+            syncedTianjiSeedanceConfig &&
+              (settingsPatch.tianjiSeedanceConfig = syncedTianjiSeedanceConfig);
+          } catch (error) {
+            console.warn(`Auto sync Tianji config from Jixin API failed`, error);
+          }
+          chrome.storage.local.set(settingsPatch);
         }, 250));
     };
   useEffect(() => {
@@ -34433,7 +34690,7 @@ ${model.apiConfigName || ``}`.toLowerCase();
 	            apiKey = String(apiConfig?.key || ``).trim();
 	          if (!baseUrl || !apiKey) throw Error(`请先选择一个已填写 base URL 和 API Key 的统一 API 配置`);
 	          let rootUrl = baseUrl.replace(/\/v1$/i, ``),
-	            candidateUrls = [...new Set([`${baseUrl}/models`, `${rootUrl}/v1/models`, `${baseUrl}/v1/models`])],
+	            candidateUrls = [...new Set([`${rootUrl}/v1/models`, `${baseUrl}/v1/models`, `${baseUrl}/models`])],
 	            errorMessages = [];
 	          for (let url of candidateUrls)
 	            try {
@@ -34461,7 +34718,7 @@ ${model.apiConfigName || ``}`.toLowerCase();
 	            } catch (error) {
 	              errorMessages.push(`${url}: ${error.message}`);
 	            }
-	          throw Error(`未能从目标统一 API 配置读取模型列表。${errorMessages[0] || ``}`);
+	          throw Error(`未能从目标统一 API 配置读取模型列表。${errorMessages.join(`；`)}`);
 	        },
 	        readChromeStorage = (keys) =>
 	        new Promise((resolve) => {
@@ -35713,7 +35970,10 @@ ${docText}`;
                 ],
                 (settings) => {
                   if (settings.jixinBuiltinBaseConfigVersion !== WANJUAN_JIXIN_BUILTIN_BASE_CONFIG_VERSION) {
-                    let shouldSeedJixinBuiltinConfig = !wanjuanHasUserModelConfiguration(settings);
+                    let hasUserModelConfiguration = wanjuanHasUserModelConfiguration(settings),
+                      hasUserAgentConfiguration = wanjuanHasUserAgentConfiguration(settings),
+                      shouldSeedJixinBuiltinConfig = !hasUserModelConfiguration && !hasUserAgentConfiguration,
+                      shouldSeedBuiltinAgents = shouldSeedJixinBuiltinConfig;
                     if (shouldSeedJixinBuiltinConfig) {
                       let seededSettings = wanjuanBuildJixinBuiltinBasePatch(settings),
                         builtinStoredConfig = wanjuanBuildJixinBuiltinStoredGlobalConfig(seededSettings);
@@ -35723,10 +35983,15 @@ ${docText}`;
                         activeStoredGlobalConfigId: builtinStoredConfig.id,
                         jixinBuiltinBaseConfigVersion: WANJUAN_JIXIN_BUILTIN_BASE_CONFIG_VERSION,
                       };
-                    } else settings = {
-                      ...settings,
-                      jixinBuiltinBaseConfigVersion: WANJUAN_JIXIN_BUILTIN_BASE_CONFIG_VERSION,
-                    };
+                      if (shouldSeedBuiltinAgents) {
+                        settings.agents = wanjuanCloneBuiltinAgentItems();
+                        settings.selectedAgentId = WANJUAN_BUILTIN_AGENT_ITEMS[0]?.id || ``;
+                        settings.agentConversations = wanjuanCloneBuiltinAgentConversations();
+                      }
+	                    } else settings = {
+	                      ...settings,
+	                      jixinBuiltinBaseConfigVersion: WANJUAN_JIXIN_BUILTIN_BASE_CONFIG_VERSION,
+	                    };
                     if (typeof chrome < `u`) {
                       let storagePatch = {
                         jixinBuiltinBaseConfigVersion: WANJUAN_JIXIN_BUILTIN_BASE_CONFIG_VERSION,
@@ -35746,6 +36011,17 @@ ${docText}`;
                           drawingModel: settings.drawingModel,
                           videoModel: settings.videoModel,
                           ttsMusicModel: settings.ttsMusicModel,
+                          seedanceModel: settings.seedanceModel,
+                          seedanceDurations: settings.seedanceDurations,
+                          seedanceResolutions: settings.seedanceResolutions,
+                          seedanceRatios: settings.seedanceRatios,
+                          tongyiWanxiangTextModels: settings.tongyiWanxiangTextModels,
+                          tongyiWanxiangReferenceImageModels: settings.tongyiWanxiangReferenceImageModels,
+                          tongyiWanxiangImageModels: settings.tongyiWanxiangImageModels,
+                          tongyiWanxiangEditModels: settings.tongyiWanxiangEditModels,
+                          tongyiWanxiangDurations: settings.tongyiWanxiangDurations,
+                          tongyiWanxiangResolutions: settings.tongyiWanxiangResolutions,
+                          tongyiWanxiangRatios: settings.tongyiWanxiangRatios,
                           videoResolutions: settings.videoResolutions,
                           videoAspectRatios: settings.videoAspectRatios,
                           modelProtocolRegistry: settings.modelProtocolRegistry,
@@ -35760,7 +36036,13 @@ ${docText}`;
                           storedGlobalConfigs: settings.storedGlobalConfigs,
                           activeStoredGlobalConfigId: settings.activeStoredGlobalConfigId,
                         });
-                      chrome.storage?.local?.set(storagePatch);
+                      shouldSeedBuiltinAgents &&
+                        Object.assign(storagePatch, {
+                          agents: settings.agents,
+                          selectedAgentId: settings.selectedAgentId,
+                          agentConversations: settings.agentConversations,
+                        });
+	                      chrome.storage?.local?.set(storagePatch);
                     }
                   }
                   let storedAdvancedSettingsUnlocked =
@@ -35942,7 +36224,8 @@ ${docText}`;
                     })),
                     settings.themeMode && setThemeMode(normalizeThemeMode(settings.themeMode)),
                     (settings.appLanguage || settings.uiLanguage) &&
-                    setAppLanguage(settings.appLanguage || settings.uiLanguage),
+                    (setAppLanguage(settings.appLanguage || settings.uiLanguage),
+                      globalThis.wanjuanI18nRuntime?.setLanguage?.(settings.appLanguage || settings.uiLanguage)),
                     settings.downloadDirectory &&
                     setDownloadDirectory(settings.downloadDirectory),
                     settings.storageOptimizationEnabled === !0 &&
@@ -36090,10 +36373,12 @@ ${docText}`;
         setStorageOptimizationLastResult(`下载目录已更改。新结果写入新媒体库，旧媒体库保持只读可用；如需集中存放，请手动搬迁。`);
       globalThis.__wanjuanStorageOptimizationDirectory = downloadDirectory;
     }, [storageOptimizationEnabled, downloadDirectory]),
-    useEffect(() => () => {
-      nonModelSettingsSaveTimerRef.current &&
-        clearTimeout(nonModelSettingsSaveTimerRef.current);
-    }, []));
+	    useEffect(() => () => {
+	      nonModelSettingsSaveTimerRef.current &&
+	        clearTimeout(nonModelSettingsSaveTimerRef.current);
+	      apiModelCloudSettingsSaveTimerRef.current &&
+	        clearTimeout(apiModelCloudSettingsSaveTimerRef.current);
+	    }, []));
   let saveUsers = (users2) => {
       if (
         (setUsers(users2), typeof chrome > `u` || !chrome.storage || !chrome.storage.local)
@@ -37864,40 +38149,40 @@ ${docText}`;
           },
           graphite: {
             mode: `dark`,
-            pageBg: `#212326`,
-            pageBgSecondary: `#242629`,
-            panelBg: `#282a2d`,
-            panelBorder: `#404245`,
-            panelMutedBorder: `#37393c`,
-            cardBg: `#2f3134`,
-            cardBgHover: `#36383b`,
-            cardBgActive: `linear-gradient(180deg,rgba(120,124,130,0.20),rgba(54,56,59,0.98))`,
-            cardBorderActive: `rgba(150,154,160,0.46)`,
-            mainBg: `#232528`,
-            headerBg: `linear-gradient(180deg,rgba(49,51,54,0.96),rgba(40,42,45,0.92))`,
-            headerBorder: `#424447`,
-            textPrimary: `#f1f3f4`,
-            textSecondary: `#c0c4c7`,
-            textMuted: `#8f9295`,
-            chipBg: `#36383b`,
-            chipBorder: `#505255`,
-            chipText: `#cccfd2`,
-            accentBg: `rgba(150,154,160,0.14)`,
-            accentBorder: `rgba(150,154,160,0.28)`,
-            accentText: `#d7dadd`,
-            bubbleBg: `linear-gradient(180deg,rgba(54,56,59,0.98),rgba(46,48,51,0.98))`,
-            bubbleBorder: `#4f5154`,
-            composerBg: `linear-gradient(180deg,rgba(62,64,67,0.92),rgba(49,51,54,0.96))`,
-            composerBorder: `rgba(150,152,155,0.32)`,
-            composerToolbarBg: `linear-gradient(180deg,rgba(57,59,62,0.78),rgba(49,51,54,0.92))`,
-            overlayBg: `rgba(23,24,26,0.16)`,
-            modalBg: `linear-gradient(180deg,rgba(64,66,69,0.84),rgba(50,52,55,0.92))`,
-            modalBorder: `rgba(214,216,219,0.20)`,
-            modalHeaderBg: `linear-gradient(180deg,rgba(255,255,255,0.10),rgba(198,200,203,0.06) 24%,rgba(55,57,60,0.58) 100%)`,
-            modalSectionBg: `linear-gradient(180deg,rgba(66,68,71,0.56),rgba(53,55,58,0.72))`,
-            inputBg: `#343639`,
-            inputBorder: `#545659`,
-            inputText: `#f1f3f4`,
+            pageBg: `#111827`,
+            pageBgSecondary: `#162033`,
+            panelBg: `#1f2937`,
+            panelBorder: `#475569`,
+            panelMutedBorder: `#334155`,
+            cardBg: `#273244`,
+            cardBgHover: `#334155`,
+            cardBgActive: `#0ea5e9`,
+            cardBorderActive: `#7dd3fc`,
+            mainBg: `#111827`,
+            headerBg: `#1f2937`,
+            headerBorder: `#475569`,
+            textPrimary: `#f8fafc`,
+            textSecondary: `#cbd5e1`,
+            textMuted: `#94a3b8`,
+            chipBg: `#334155`,
+            chipBorder: `#64748b`,
+            chipText: `#f8fafc`,
+            accentBg: `rgba(14,165,233,0.20)`,
+            accentBorder: `#7dd3fc`,
+            accentText: `#7dd3fc`,
+            bubbleBg: `#1f2937`,
+            bubbleBorder: `#64748b`,
+            composerBg: `#1f2937`,
+            composerBorder: `#7dd3fc`,
+            composerToolbarBg: `#273244`,
+            overlayBg: `rgba(17,24,39,0.18)`,
+            modalBg: `#1f2937`,
+            modalBorder: `#64748b`,
+            modalHeaderBg: `#273244`,
+            modalSectionBg: `#273244`,
+            inputBg: `#111827`,
+            inputBorder: `#64748b`,
+            inputText: `#f8fafc`,
           },
           light: {
             mode: `light`,
@@ -45428,7 +45713,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                           jsxs(
                             `button`, {
                               onClick: () => setSelectedAgentId(agent.id),
-                              className: `group relative w-full text-left rounded-2xl border p-3 transition-colors`,
+                              className: `wanjuan-agent-role-card ${selectedAgentId === agent.id ? `wanjuan-agent-role-card-active` : ``} group relative w-full text-left rounded-2xl border p-3 transition-colors`,
                               style: selectedAgentId === agent.id ?
                                 {
                                   borderColor: agentTheme.cardBorderActive,
@@ -47247,7 +47532,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                     children: [
                       updateInfo?.hasUpdate &&
                       jsxs(`div`, {
-                        className: `bg-gradient-to-r from-blue-900/30 to-indigo-900/30 p-4 rounded-xl border border-blue-500/30 mb-4 animate-fade-in flex justify-between items-center shadow-lg`,
+                        className: `bg-gradient-to-r from-blue-900/30 to-indigo-900/30 p-4 rounded-xl border border-blue-500/30 mb-4 flex justify-between items-center shadow-lg`,
                         children: [
                           jsxs(`div`, {
                             children: [
@@ -47272,7 +47557,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                       }),
                       activeSettingsTab === `basic` &&
                       jsxs(`div`, {
-                        className: `space-y-6 animate-fade-in wanjuan-settings-section`,
+                        className: `space-y-6 wanjuan-settings-section`,
                         children: [
                           jsxs(`div`, {
                             className: `hidden`,
@@ -47513,11 +47798,12 @@ ${String(l || ``).slice(0, 5e4)}`;
 	                                    jsx(`select`, {
 	                                      className: `w-full bg-[#121212] border border-[#333] rounded-lg px-3 py-2.5 text-sm text-gray-200 focus:outline-none focus:border-blue-500 transition-all wanjuan-settings-control`,
 	                                      value: appLanguage,
-	                                      onChange: (event) => {
-	                                        let nextLanguage = event.target.value || `zh-CN`;
-	                                        setAppLanguage(nextLanguage);
-	                                        try {
-	                                          localStorage.setItem(`appLanguage`, nextLanguage),
+		                                      onChange: (event) => {
+		                                        let nextLanguage = event.target.value || `zh-CN`;
+		                                        setAppLanguage(nextLanguage);
+		                                        globalThis.wanjuanI18nRuntime?.setLanguage?.(nextLanguage);
+		                                        try {
+		                                          localStorage.setItem(`appLanguage`, nextLanguage),
 	                                            localStorage.setItem(`uiLanguage`, nextLanguage);
 	                                        } catch {}
 	                                        typeof chrome < `u` &&
@@ -47754,7 +48040,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                       }),
                       activeSettingsTab === `oneStop` &&
                       jsxs(`div`, {
-                        className: `space-y-4 animate-fade-in wanjuan-settings-section`,
+                        className: `space-y-4 wanjuan-settings-section`,
                         children: [
                           jsxs(`div`, {
                             className: `group bg-[#1a1a1a] rounded-xl overflow-hidden transition-all duration-300 shadow-sm border border-[#222] wanjuan-settings-card`,
@@ -47808,7 +48094,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                       }),
                       activeSettingsTab === `cloud` &&
                       jsxs(`div`, {
-                        className: `space-y-6 animate-fade-in wanjuan-settings-section`,
+                        className: `space-y-6 wanjuan-settings-section`,
                         children: [
 	                          jsxs(`div`, {
 	                            className: `group bg-[#1a1a1a] rounded-xl overflow-hidden transition-all duration-300 pb-4 shadow-sm border border-[#222] wanjuan-settings-card`,
@@ -47837,364 +48123,478 @@ ${String(l || ``).slice(0, 5e4)}`;
                               jsx(`div`, {
                                 className: `px-4 pt-4 wanjuan-settings-card-body`,
                                 children: jsxs(`div`, {
-                                  className: `bg-[#121212] border border-[#333] rounded-lg p-3 space-y-3`,
+                                  className: `space-y-3`,
                                   children: [
-                                    jsx(`div`, {
-                                      className: `text-xs font-medium text-gray-400`,
-                                      children: `火山 TOS 上传配置`,
-                                    }),
-                                    jsxs(`label`, {
-                                      className: `flex items-center gap-2 text-xs text-gray-300`,
-                                      children: [
-                                        jsx(`input`, {
-                                          type: `checkbox`,
-                                          checked: seedanceUploadMode ===
-                                            `tos`,
-                                          onChange: (event) =>
-                                            setSeedanceUploadMode(
-                                              event.target.checked ?
-                                              `tos` :
-                                              `public`,
-                                            ),
-                                        }),
-                                        `默认使用火山 TOS 上传参考视频/音频`,
-                                      ],
-                                    }),
                                     jsxs(`div`, {
-                                      className: `grid grid-cols-1 md:grid-cols-2 gap-3`,
+                                      className: `bg-[#121212] border border-[#333] rounded-lg overflow-hidden`,
                                       children: [
-                                        [
-                                          `accessKeyId`,
-                                          `AccessKey`,
-                                        ],
-                                        [
-                                          `secretAccessKey`,
-                                          `SecretKey`,
-                                        ],
-                                        [`bucket`, `Bucket`],
-                                        [`region`, `Region`],
-                                        [`endpoint`, `Endpoint`],
-                                        [`prefix`, `Object Prefix`],
-                                        [
-                                          `publicBaseUrl`,
-                                          `Public URL Base`,
-                                        ],
-                                      ].map(([configKey, configValue]) =>
-                                        jsxs(
-                                          `label`, {
-                                            className: `block`,
-                                            children: [
-                                              jsx(`div`, {
-                                                className: `text-[10px] text-gray-500 mb-1`,
-                                                children: configValue,
-                                              }),
-                                              jsxs(`div`, {
-                                                className: `relative`,
-                                                children: [
-                                                  jsx(`input`, {
-                                                    type: configKey ===
-                                                      `secretAccessKey` &&
-                                                      !showTosSecretKey ?
-                                                      `password` :
-                                                      `text`,
-                                                    value: tosConfig[configKey] ||
-                                                      ``,
-                                                    onChange: (event) =>
-                                                      setTosConfig(
-                                                        (prev) => ({
-                                                          ...prev,
-                                                          [configKey]: event.target
-                                                            .value,
-                                                        }),
-                                                      ),
-                                                    className: `w-full bg-[#1a1a1a] border border-[#333] rounded-lg px-3 py-2 text-xs text-gray-200 focus:outline-none focus:border-blue-500 ${configKey === `secretAccessKey` ? `pr-10` : ``}`,
-                                                  }),
-                                                  configKey === `secretAccessKey` &&
-                                                  jsx(`button`, {
-                                                    type: `button`,
-                                                    onClick: () => setShowTosSecretKey(!showTosSecretKey),
-                                                    className: `absolute right-2 top-1/2 -translate-y-1/2 px-1.5 py-1 text-[11px] text-gray-400 hover:text-cyan-200 rounded`,
-                                                    title: showTosSecretKey ? `隐藏密钥` : `显示密钥`,
-                                                    children: showTosSecretKey ? `隐藏` : `显示`,
-                                                  }),
-                                                ],
-                                              }),
-                                            ],
-                                          },
-                                          configKey,
-                                        ),
-                                      ),
-                                    }),
-                                    jsx(`p`, {
-                                      className: `text-[10px] text-gray-500`,
-                                      children: `Public URL Base 可留空；如填写请填 Bucket/CDN 根地址，不要包含 Object Prefix。Bucket 需要允许方舟服务访问生成的对象 URL。`,
-                                    }),
-                                    jsx(`div`, {
-                                      className: `border-t border-[#2a2a2a] pt-3`,
-                                    }),
-                                    jsxs(`div`, {
-                                      className: `flex items-center justify-between gap-3`,
-                                      children: [
-                                        jsx(`h3`, {
-                                          className: `text-xs font-semibold text-gray-300`,
-                                          children: `七牛云 S3 对象存储配置`,
-                                        }),
-                                        jsx(`button`, {
+                                        jsxs(`button`, {
                                           type: `button`,
-                                          onClick: () => setQiniuJsonImportOpen(!qiniuJsonImportOpen),
-                                          className: `px-2 py-1 text-[10px] bg-[#333] hover:bg-[#444] text-gray-300 rounded transition-colors border border-[#444]`,
-                                          title: `从 JSON 文本一键导入配置`,
-                                          children: `JSON 导入`,
-                                        }),
-                                      ],
-                                    }),
-                                    qiniuJsonImportOpen &&
-                                    jsxs(`div`, {
-                                      className: `bg-[#101010] border border-[#333] rounded-lg p-3 space-y-3`,
-                                      children: [
-                                        jsxs(`div`, {
-                                          className: `flex items-center justify-between gap-3`,
+                                          onClick: () => setTosUploadConfigExpanded(!tosUploadConfigExpanded),
+                                          className: `w-full flex items-center justify-between gap-3 p-3 text-left hover:bg-[#181818] transition-colors`,
+                                          "aria-expanded": tosUploadConfigExpanded,
                                           children: [
-                                            jsx(`div`, {
-                                              className: `text-[10px] text-gray-500`,
-                                              children: `支持 accessKey、secretKey、bucket、endpoint、domain、prefix 字段`,
+                                            jsxs(`div`, {
+                                              children: [
+                                                jsx(`h3`, {
+                                                  className: `text-xs font-semibold text-gray-300`,
+                                                  children: `火山 TOS 上传配置`,
+                                                }),
+                                                jsx(`p`, {
+                                                  className: `text-[10px] text-gray-500 mt-1`,
+                                                  children: `用于把参考视频、音频上传到火山对象存储并返回公网 URL。`,
+                                                }),
+                                              ],
                                             }),
-                                            jsx(`button`, {
-                                              type: `button`,
-                                              onClick: () => setQiniuJsonImportOpen(!1),
-                                              className: `text-[11px] text-gray-500 hover:text-gray-200`,
-                                              children: `关闭`,
+                                            jsxs(`div`, {
+                                              className: `flex items-center gap-2 shrink-0`,
+                                              children: [
+                                                jsx(`span`, {
+                                                  className: `px-2 py-0.5 rounded-full text-[10px] border ${seedanceUploadMode === `tos` ? `border-cyan-500/40 bg-cyan-500/10 text-cyan-300` : `border-[#333] bg-[#1a1a1a] text-gray-500`}`,
+                                                  children: seedanceUploadMode === `tos` ? `当前默认` : `未设默认`,
+                                                }),
+                                                jsx(`span`, {
+                                                  className: `px-2 py-1 text-[10px] rounded-md border border-[#333] bg-[#222] text-gray-300`,
+                                                  children: tosUploadConfigExpanded ? `收起` : `展开`,
+                                                }),
+                                              ],
                                             }),
                                           ],
                                         }),
-                                        jsx(`textarea`, {
-                                          value: qiniuJsonImportText,
-                                          onChange: (event) => setQiniuJsonImportText(event.target.value),
-                                          className: `w-full min-h-[104px] bg-[#1a1a1a] border border-[#333] rounded-lg px-3 py-2 text-xs text-gray-200 focus:outline-none focus:border-cyan-500 font-mono resize-y`,
-                                          placeholder: `{
+                                        tosUploadConfigExpanded &&
+                                        jsxs(`div`, {
+                                          className: `border-t border-[#2a2a2a] p-3 space-y-3`,
+                                          children: [
+                                            jsxs(`label`, {
+                                              className: `flex items-center gap-2 text-xs text-gray-300`,
+                                              children: [
+                                                jsx(`input`, {
+                                                  type: `checkbox`,
+                                                  checked: seedanceUploadMode ===
+                                                    `tos`,
+                                                  onChange: (event) =>
+                                                    setSeedanceUploadMode(
+                                                      event.target.checked ?
+                                                      `tos` :
+                                                      `public`,
+                                                    ),
+                                                }),
+                                                `默认使用火山 TOS 上传参考视频/音频`,
+                                              ],
+                                            }),
+                                            jsxs(`div`, {
+                                              className: `grid grid-cols-1 md:grid-cols-2 gap-3`,
+                                              children: [
+                                                [
+                                                  `accessKeyId`,
+                                                  `AccessKey`,
+                                                ],
+                                                [
+                                                  `secretAccessKey`,
+                                                  `SecretKey`,
+                                                ],
+                                                [`bucket`, `Bucket`],
+                                                [`region`, `Region`],
+                                                [`endpoint`, `Endpoint`],
+                                                [`prefix`, `Object Prefix`],
+                                                [
+                                                  `publicBaseUrl`,
+                                                  `Public URL Base`,
+                                                ],
+                                              ].map(([configKey, configValue]) =>
+                                                jsxs(
+                                                  `label`, {
+                                                    className: `block`,
+                                                    children: [
+                                                      jsx(`div`, {
+                                                        className: `text-[10px] text-gray-500 mb-1`,
+                                                        children: configValue,
+                                                      }),
+                                                      jsxs(`div`, {
+                                                        className: `relative`,
+                                                        children: [
+                                                          jsx(`input`, {
+                                                            type: configKey ===
+                                                              `secretAccessKey` &&
+                                                              !showTosSecretKey ?
+                                                              `password` :
+                                                              `text`,
+                                                            value: tosConfig[configKey] ||
+                                                              ``,
+                                                            onChange: (event) =>
+                                                              setTosConfig(
+                                                                (prev) => ({
+                                                                  ...prev,
+                                                                  [configKey]: event.target
+                                                                    .value,
+                                                                }),
+                                                              ),
+                                                            className: `w-full bg-[#1a1a1a] border border-[#333] rounded-lg px-3 py-2 text-xs text-gray-200 focus:outline-none focus:border-blue-500 ${configKey === `secretAccessKey` ? `pr-10` : ``}`,
+                                                          }),
+                                                          configKey === `secretAccessKey` &&
+                                                          jsx(`button`, {
+                                                            type: `button`,
+                                                            onClick: () => setShowTosSecretKey(!showTosSecretKey),
+                                                            className: `absolute right-2 top-1/2 -translate-y-1/2 px-1.5 py-1 text-[11px] text-gray-400 hover:text-cyan-200 rounded`,
+                                                            title: showTosSecretKey ? `隐藏密钥` : `显示密钥`,
+                                                            children: showTosSecretKey ? `隐藏` : `显示`,
+                                                          }),
+                                                        ],
+                                                      }),
+                                                    ],
+                                                  },
+                                                  configKey,
+                                                ),
+                                              ),
+                                            }),
+                                            jsx(`p`, {
+                                              className: `text-[10px] text-gray-500`,
+                                              children: `Public URL Base 可留空；如填写请填 Bucket/CDN 根地址，不要包含 Object Prefix。Bucket 需要允许方舟服务访问生成的对象 URL。`,
+                                            }),
+                                          ],
+                                        }),
+                                      ],
+                                    }),
+                                    jsxs(`div`, {
+                                      className: `bg-[#121212] border border-[#333] rounded-lg overflow-hidden`,
+                                      children: [
+                                        jsxs(`button`, {
+                                          type: `button`,
+                                          onClick: () => setQiniuUploadConfigExpanded(!qiniuUploadConfigExpanded),
+                                          className: `w-full flex items-center justify-between gap-3 p-3 text-left hover:bg-[#181818] transition-colors`,
+                                          "aria-expanded": qiniuUploadConfigExpanded,
+                                          children: [
+                                            jsxs(`div`, {
+                                              children: [
+                                                jsx(`h3`, {
+                                                  className: `text-xs font-semibold text-gray-300`,
+                                                  children: `七牛云 S3 对象存储配置`,
+                                                }),
+                                                jsx(`p`, {
+                                                  className: `text-[10px] text-gray-500 mt-1`,
+                                                  children: `用于把参考视频、音频、图片上传到七牛云并返回公网 URL。`,
+                                                }),
+                                              ],
+                                            }),
+                                            jsxs(`div`, {
+                                              className: `flex items-center gap-2 shrink-0`,
+                                              children: [
+                                                jsx(`span`, {
+                                                  className: `px-2 py-0.5 rounded-full text-[10px] border ${seedanceUploadMode === `qiniu` ? `border-cyan-500/40 bg-cyan-500/10 text-cyan-300` : `border-[#333] bg-[#1a1a1a] text-gray-500`}`,
+                                                  children: seedanceUploadMode === `qiniu` ? `当前默认` : `未设默认`,
+                                                }),
+                                                jsx(`span`, {
+                                                  className: `px-2 py-1 text-[10px] rounded-md border border-[#333] bg-[#222] text-gray-300`,
+                                                  children: qiniuUploadConfigExpanded ? `收起` : `展开`,
+                                                }),
+                                              ],
+                                            }),
+                                          ],
+                                        }),
+                                        qiniuUploadConfigExpanded &&
+                                        jsxs(`div`, {
+                                          className: `border-t border-[#2a2a2a] p-3 space-y-3`,
+                                          children: [
+                                            jsxs(`div`, {
+                                              className: `flex items-center justify-between gap-3`,
+                                              children: [
+                                                jsxs(`label`, {
+                                                  className: `flex items-center gap-2 text-xs text-gray-300`,
+                                                  children: [
+                                                    jsx(`input`, {
+                                                      type: `checkbox`,
+                                                      checked: seedanceUploadMode ===
+                                                        `qiniu`,
+                                                      onChange: (event) =>
+                                                        setSeedanceUploadMode(
+                                                          event.target.checked ?
+                                                          `qiniu` :
+                                                          `public`,
+                                                        ),
+                                                    }),
+                                                    `默认使用七牛云上传参考视频/音频/图片`,
+                                                  ],
+                                                }),
+                                                jsx(`button`, {
+                                                  type: `button`,
+                                                  onClick: () => setQiniuJsonImportOpen(!qiniuJsonImportOpen),
+                                                  className: `px-2 py-1 text-[10px] bg-[#333] hover:bg-[#444] text-gray-300 rounded transition-colors border border-[#444] shrink-0`,
+                                                  title: `从 JSON 文本一键导入配置`,
+                                                  children: `JSON 导入`,
+                                                }),
+                                              ],
+                                            }),
+                                            qiniuJsonImportOpen &&
+                                            jsxs(`div`, {
+                                              className: `bg-[#101010] border border-[#333] rounded-lg p-3 space-y-3`,
+                                              children: [
+                                                jsxs(`div`, {
+                                                  className: `flex items-center justify-between gap-3`,
+                                                  children: [
+                                                    jsx(`div`, {
+                                                      className: `text-[10px] text-gray-500`,
+                                                      children: `支持 accessKey、secretKey、bucket、endpoint、domain、prefix 字段`,
+                                                    }),
+                                                    jsx(`button`, {
+                                                      type: `button`,
+                                                      onClick: () => setQiniuJsonImportOpen(!1),
+                                                      className: `text-[11px] text-gray-500 hover:text-gray-200`,
+                                                      children: `关闭`,
+                                                    }),
+                                                  ],
+                                                }),
+                                                jsx(`textarea`, {
+                                                  value: qiniuJsonImportText,
+                                                  onChange: (event) => setQiniuJsonImportText(event.target.value),
+                                                  className: `w-full min-h-[104px] bg-[#1a1a1a] border border-[#333] rounded-lg px-3 py-2 text-xs text-gray-200 focus:outline-none focus:border-cyan-500 font-mono resize-y`,
+                                                  placeholder: `{
   "accessKey": "...",
   "secretKey": "...",
   "bucket": "wanjuan-canvas",
   "endpoint": "s3.cn-south-1.qiniucs.com",
   "domain": "https://cdn.example.com"
 }`,
-                                        }),
-                                        jsxs(`div`, {
-                                          className: `flex justify-end gap-2`,
-                                          children: [
-                                            jsx(`button`, {
-                                              type: `button`,
-                                              onClick: () => {
-                                                setQiniuJsonImportOpen(!1);
-                                                setQiniuJsonImportText(``);
-                                              },
-                                              className: `px-3 py-1.5 text-xs bg-[#222] hover:bg-[#333] text-gray-300 rounded transition-colors`,
-                                              children: `取消`,
+                                                }),
+                                                jsxs(`div`, {
+                                                  className: `flex justify-end gap-2`,
+                                                  children: [
+                                                    jsx(`button`, {
+                                                      type: `button`,
+                                                      onClick: () => {
+                                                        setQiniuJsonImportOpen(!1);
+                                                        setQiniuJsonImportText(``);
+                                                      },
+                                                      className: `px-3 py-1.5 text-xs bg-[#222] hover:bg-[#333] text-gray-300 rounded transition-colors`,
+                                                      children: `取消`,
+                                                    }),
+                                                    jsx(`button`, {
+                                                      type: `button`,
+                                                      onClick: () => {
+                                                        try {
+                                                          let parsedConfig = JSON.parse(qiniuJsonImportText);
+                                                          if (!parsedConfig || typeof parsedConfig != `object` || Array.isArray(parsedConfig)) throw Error(`请粘贴对象格式 JSON`);
+                                                          setQiniuConfig((prevConfig) => ({
+                                                            ...prevConfig,
+                                                            accessKey: parsedConfig.accessKey || parsedConfig.accessKeyId || prevConfig.accessKey || ``,
+                                                            secretKey: parsedConfig.secretKey || parsedConfig.secretAccessKey || prevConfig.secretKey || ``,
+                                                            bucket: parsedConfig.bucket || prevConfig.bucket || ``,
+                                                            endpoint: parsedConfig.endpoint || parsedConfig.s3Endpoint || prevConfig.endpoint || `s3.cn-south-1.qiniucs.com`,
+                                                            domain: parsedConfig.domain || parsedConfig.publicBaseUrl || parsedConfig.publicUrlBase || prevConfig.domain || ``,
+                                                            prefix: parsedConfig.prefix || parsedConfig.objectPrefix || prevConfig.prefix || `wanjuan/seedance`,
+                                                          }));
+                                                          setQiniuJsonImportOpen(!1);
+                                                          setQiniuJsonImportText(``);
+                                                          showToast2(`七牛云配置已导入并自动保存`);
+                                                        } catch (error) {
+                                                          showToast2(`JSON 导入失败：${error.message || error}`);
+                                                        }
+                                                      },
+                                                      className: `px-3 py-1.5 text-xs bg-cyan-600 hover:bg-cyan-500 text-white rounded transition-colors`,
+                                                      children: `确认导入`,
+                                                    }),
+                                                  ],
+                                                }),
+                                              ],
                                             }),
-                                            jsx(`button`, {
-                                              type: `button`,
-                                              onClick: () => {
-                                                try {
-                                                  let parsedConfig = JSON.parse(qiniuJsonImportText);
-                                                  if (!parsedConfig || typeof parsedConfig != `object` || Array.isArray(parsedConfig)) throw Error(`请粘贴对象格式 JSON`);
-                                                  setQiniuConfig((prevConfig) => ({
-                                                    ...prevConfig,
-                                                    accessKey: parsedConfig.accessKey || parsedConfig.accessKeyId || prevConfig.accessKey || ``,
-                                                    secretKey: parsedConfig.secretKey || parsedConfig.secretAccessKey || prevConfig.secretKey || ``,
-                                                    bucket: parsedConfig.bucket || prevConfig.bucket || ``,
-                                                    endpoint: parsedConfig.endpoint || parsedConfig.s3Endpoint || prevConfig.endpoint || `s3.cn-south-1.qiniucs.com`,
-                                                    domain: parsedConfig.domain || parsedConfig.publicBaseUrl || parsedConfig.publicUrlBase || prevConfig.domain || ``,
-                                                    prefix: parsedConfig.prefix || parsedConfig.objectPrefix || prevConfig.prefix || `wanjuan/seedance`,
-                                                  }));
-                                                  setQiniuJsonImportOpen(!1);
-                                                  setQiniuJsonImportText(``);
-                                                  showToast2(`七牛云配置已导入，请保存设置`);
-                                                } catch (error) {
-                                                  showToast2(`JSON 导入失败：${error.message || error}`);
-                                                }
-                                              },
-                                              className: `px-3 py-1.5 text-xs bg-cyan-600 hover:bg-cyan-500 text-white rounded transition-colors`,
-                                              children: `确认导入`,
+                                            jsxs(`div`, {
+                                              className: `grid grid-cols-1 md:grid-cols-2 gap-3`,
+                                              children: [
+                                                [`accessKey`, `Access Key (AK)`, `例如：6LOdM9TU2SLPgR0DB...`],
+                                                [`secretKey`, `Secret Key (SK)`, `例如：i8dfozxy0q5IPuuIOAM...`],
+                                                [`bucket`, `Bucket 名称`, `例如：wanjuan-canvas`],
+                                                [`endpoint`, `S3 Endpoint`, `例如：s3.cn-south-1.qiniucs.com`],
+                                                [`domain`, `外网访问域名`, `例如：https://tdfc98zdu.hn-bkt.clouddn.com`],
+                                                [`prefix`, `Object Prefix`, `wanjuan/seedance`],
+                                              ].map(([fieldKey, label, placeholder]) =>
+                                                jsxs(
+                                                  `label`, {
+                                                    className: `block`,
+                                                    children: [
+                                                      jsx(`div`, {
+                                                        className: `text-[10px] text-gray-500 mb-1`,
+                                                        children: label,
+                                                      }),
+                                                      jsxs(`div`, {
+                                                        className: `relative`,
+                                                        children: [
+                                                          jsx(`input`, {
+                                                            type: fieldKey === `secretKey` && !showQiniuSecretKey ? `password` : `text`,
+                                                            value: qiniuConfig[fieldKey] || ``,
+                                                            placeholder: placeholder,
+                                                            onChange: (event) =>
+                                                              setQiniuConfig(
+                                                                (prev) => ({
+                                                                  ...prev,
+                                                                  [fieldKey]: event.target.value,
+                                                                }),
+                                                              ),
+                                                            className: `w-full bg-[#1a1a1a] border border-[#333] rounded-lg px-3 py-2 text-xs text-gray-200 focus:outline-none focus:border-blue-500 ${fieldKey === `secretKey` ? `pr-10` : ``}`,
+                                                          }),
+                                                          fieldKey === `secretKey` &&
+                                                          jsx(`button`, {
+                                                            type: `button`,
+                                                            onClick: () => setShowQiniuSecretKey(!showQiniuSecretKey),
+                                                            className: `absolute right-2 top-1/2 -translate-y-1/2 px-1.5 py-1 text-[11px] text-gray-400 hover:text-cyan-200 rounded`,
+                                                            title: showQiniuSecretKey ? `隐藏密钥` : `显示密钥`,
+                                                            children: showQiniuSecretKey ? `隐藏` : `显示`,
+                                                          }),
+                                                        ],
+                                                      }),
+                                                    ],
+                                                  },
+                                                  fieldKey,
+                                                ),
+                                              ),
+                                            }),
+                                            jsx(`p`, {
+                                              className: `text-[10px] text-gray-500`,
+                                              children: `外网访问域名可留空；填写七牛绑定域名/CDN 域名时会返回该域名下的公网链接。Bucket 需要允许模型服务访问生成的对象 URL。`,
                                             }),
                                           ],
                                         }),
                                       ],
                                     }),
-                                    jsxs(`label`, {
-                                      className: `flex items-center gap-2 text-xs text-gray-300`,
-                                      children: [
-                                        jsx(`input`, {
-                                          type: `checkbox`,
-                                          checked: seedanceUploadMode ===
-                                            `qiniu`,
-                                          onChange: (event) =>
-                                            setSeedanceUploadMode(
-                                              event.target.checked ?
-                                              `qiniu` :
-                                              `public`,
-                                            ),
-                                        }),
-                                        `默认使用七牛云上传参考视频/音频/图片`,
-                                      ],
-                                    }),
                                     jsxs(`div`, {
-                                      className: `grid grid-cols-1 md:grid-cols-2 gap-3`,
+                                      className: `bg-[#121212] border border-[#333] rounded-lg overflow-hidden`,
                                       children: [
-                                        [`accessKey`, `Access Key (AK)`, `例如：6LOdM9TU2SLPgR0DB...`],
-                                        [`secretKey`, `Secret Key (SK)`, `例如：i8dfozxy0q5IPuuIOAM...`],
-                                        [`bucket`, `Bucket 名称`, `例如：wanjuan-canvas`],
-                                        [`endpoint`, `S3 Endpoint`, `例如：s3.cn-south-1.qiniucs.com`],
-                                        [`domain`, `外网访问域名`, `例如：https://tdfc98zdu.hn-bkt.clouddn.com`],
-                                        [`prefix`, `Object Prefix`, `wanjuan/seedance`],
-                                      ].map(([fieldKey, label, placeholder]) =>
-                                        jsxs(
-                                          `label`, {
-                                            className: `block`,
-                                            children: [
-                                              jsx(`div`, {
-                                                className: `text-[10px] text-gray-500 mb-1`,
-                                                children: label,
-                                              }),
-                                              jsxs(`div`, {
-                                                className: `relative`,
-                                                children: [
-                                                  jsx(`input`, {
-                                                    type: fieldKey === `secretKey` && !showQiniuSecretKey ? `password` : `text`,
-                                                    value: qiniuConfig[fieldKey] || ``,
-                                                    placeholder: placeholder,
-                                                    onChange: (event) =>
-                                                      setQiniuConfig(
-                                                        (prev) => ({
-                                                          ...prev,
-                                                          [fieldKey]: event.target.value,
-                                                        }),
-                                                      ),
-                                                    className: `w-full bg-[#1a1a1a] border border-[#333] rounded-lg px-3 py-2 text-xs text-gray-200 focus:outline-none focus:border-blue-500 ${fieldKey === `secretKey` ? `pr-10` : ``}`,
-                                                  }),
-                                                  fieldKey === `secretKey` &&
-                                                  jsx(`button`, {
-                                                    type: `button`,
-                                                    onClick: () => setShowQiniuSecretKey(!showQiniuSecretKey),
-                                                    className: `absolute right-2 top-1/2 -translate-y-1/2 px-1.5 py-1 text-[11px] text-gray-400 hover:text-cyan-200 rounded`,
-                                                    title: showQiniuSecretKey ? `隐藏密钥` : `显示密钥`,
-                                                    children: showQiniuSecretKey ? `隐藏` : `显示`,
-                                                  }),
+                                        jsxs(`button`, {
+                                          type: `button`,
+                                          onClick: () => setCustomUploadConfigExpanded(!customUploadConfigExpanded),
+                                          className: `w-full flex items-center justify-between gap-3 p-3 text-left hover:bg-[#181818] transition-colors`,
+                                          "aria-expanded": customUploadConfigExpanded,
+                                          children: [
+                                            jsxs(`div`, {
+                                              children: [
+                                                jsx(`h3`, {
+                                                  className: `text-xs font-semibold text-gray-300`,
+                                                  children: `自定义公网直链上传配置`,
+                                                }),
+                                                jsx(`p`, {
+                                                  className: `text-[10px] text-gray-500 mt-1`,
+                                                  children: `用于接入 Litterbox 或其他能直接返回公网链接的上传服务。`,
+                                                }),
+                                              ],
+                                            }),
+                                            jsxs(`div`, {
+                                              className: `flex items-center gap-2 shrink-0`,
+                                              children: [
+                                                jsx(`span`, {
+                                                  className: `px-2 py-0.5 rounded-full text-[10px] border ${seedanceUploadMode === `custom` ? `border-cyan-500/40 bg-cyan-500/10 text-cyan-300` : `border-[#333] bg-[#1a1a1a] text-gray-500`}`,
+                                                  children: seedanceUploadMode === `custom` ? `当前默认` : `未设默认`,
+                                                }),
+                                                jsx(`span`, {
+                                                  className: `px-2 py-1 text-[10px] rounded-md border border-[#333] bg-[#222] text-gray-300`,
+                                                  children: customUploadConfigExpanded ? `收起` : `展开`,
+                                                }),
+                                              ],
+                                            }),
+                                          ],
+                                        }),
+                                        customUploadConfigExpanded &&
+                                        jsxs(`div`, {
+                                          className: `border-t border-[#2a2a2a] p-3 space-y-3`,
+                                          children: [
+                                            jsxs(`label`, {
+                                              className: `flex items-center gap-2 text-xs text-gray-300`,
+                                              children: [
+                                                jsx(`input`, {
+                                                  type: `checkbox`,
+                                                  checked: seedanceUploadMode ===
+                                                    `custom`,
+                                                  onChange: (event) =>
+                                                    setSeedanceUploadMode(
+                                                      event.target.checked ?
+                                                      `custom` :
+                                                      `public`,
+                                                    ),
+                                                }),
+                                                `默认使用自定义公网直链上传参考视频/音频`,
+                                              ],
+                                            }),
+                                            jsxs(`div`, {
+                                              className: `grid grid-cols-1 md:grid-cols-2 gap-3`,
+                                              children: [
+                                                [
+                                                  `endpoint`,
+                                                  `Upload URL`,
+                                                  `https://litterbox.catbox.moe/resources/internals/api.php`,
                                                 ],
-                                              }),
-                                            ],
-                                          },
-                                          fieldKey,
-                                        ),
-                                      ),
-                                    }),
-                                    jsx(`p`, {
-                                      className: `text-[10px] text-gray-500`,
-                                      children: `外网访问域名可留空；填写七牛绑定域名/CDN 域名时会返回该域名下的公网链接。Bucket 需要允许模型服务访问生成的对象 URL。`,
-                                    }),
-                                    jsx(`div`, {
-                                      className: `border-t border-[#2a2a2a] pt-3`,
-                                    }),
-                                    jsx(`h3`, {
-                                      className: `text-xs font-semibold text-gray-300`,
-                                      children: `自定义公网直链上传配置`,
-                                    }),
-                                    jsxs(`label`, {
-                                      className: `flex items-center gap-2 text-xs text-gray-300`,
-                                      children: [
-                                        jsx(`input`, {
-                                          type: `checkbox`,
-                                          checked: seedanceUploadMode ===
-                                            `custom`,
-                                          onChange: (event) =>
-                                            setSeedanceUploadMode(
-                                              event.target.checked ?
-                                              `custom` :
-                                              `public`,
-                                            ),
+                                                [`fileField`, `File Field`, `fileToUpload`],
+                                                [`resultPath`, `Result Path`, `data.url 或留空`],
+                                              ].map(([fieldKey, label, placeholder]) =>
+                                                jsxs(
+                                                  `label`, {
+                                                    className: `block`,
+                                                    children: [
+                                                      jsx(`div`, {
+                                                        className: `text-[10px] text-gray-500 mb-1`,
+                                                        children: label,
+                                                      }),
+                                                      jsx(`input`, {
+                                                        type: `text`,
+                                                        value: customPublicUploadConfig[
+                                                          fieldKey
+                                                        ] || ``,
+                                                        placeholder: placeholder,
+                                                        onChange: (event) =>
+                                                          setCustomPublicUploadConfig(
+                                                            (prev) => ({
+                                                              ...prev,
+                                                              [fieldKey]: event.target
+                                                                .value,
+                                                            }),
+                                                          ),
+                                                        className: `w-full bg-[#1a1a1a] border border-[#333] rounded-lg px-3 py-2 text-xs text-gray-200 focus:outline-none focus:border-blue-500`,
+                                                      }),
+                                                    ],
+                                                  },
+                                                  fieldKey,
+                                                ),
+                                              ),
+                                            }),
+                                            jsxs(`div`, {
+                                              className: `grid grid-cols-1 md:grid-cols-2 gap-3`,
+                                              children: [
+                                                [`fields`, `Form Fields`, `reqtype=fileupload`],
+                                                [`headers`, `Headers`, ``],
+                                              ].map(([fieldKey, label, placeholder]) =>
+                                                jsxs(
+                                                  `label`, {
+                                                    className: `block`,
+                                                    children: [
+                                                      jsx(`div`, {
+                                                        className: `text-[10px] text-gray-500 mb-1`,
+                                                        children: label,
+                                                      }),
+                                                      jsx(`textarea`, {
+                                                        rows: 3,
+                                                        value: customPublicUploadConfig[
+                                                          fieldKey
+                                                        ] || ``,
+                                                        placeholder: placeholder,
+                                                        onChange: (event) =>
+                                                          setCustomPublicUploadConfig(
+                                                            (prev) => ({
+                                                              ...prev,
+                                                              [fieldKey]: event.target
+                                                                .value,
+                                                            }),
+                                                          ),
+                                                        className: `w-full bg-[#1a1a1a] border border-[#333] rounded-lg px-3 py-2 text-xs text-gray-200 focus:outline-none focus:border-blue-500 resize-y`,
+                                                      }),
+                                                    ],
+                                                  },
+                                                  fieldKey,
+                                                ),
+                                              ),
+                                            }),
+                                            jsx(`p`, {
+                                              className: `text-[10px] text-gray-500`,
+                                              children: `Litterbox 可填 Upload URL=https://litterbox.catbox.moe/resources/internals/api.php、File Field=fileToUpload、Form Fields=reqtype=fileupload 和 time=1h、Result Path 留空。其他服务可用每行 key=value 配置表单字段和请求头。`,
+                                            }),
+                                          ],
                                         }),
-                                        `默认使用自定义公网直链上传参考视频/音频`,
                                       ],
-                                    }),
-                                    jsxs(`div`, {
-                                      className: `grid grid-cols-1 md:grid-cols-2 gap-3`,
-                                      children: [
-                                        [
-                                          `endpoint`,
-                                          `Upload URL`,
-                                          `https://litterbox.catbox.moe/resources/internals/api.php`,
-                                        ],
-                                        [`fileField`, `File Field`, `fileToUpload`],
-                                        [`resultPath`, `Result Path`, `data.url 或留空`],
-                                      ].map(([fieldKey, label, placeholder]) =>
-                                        jsxs(
-                                          `label`, {
-                                            className: `block`,
-                                            children: [
-                                              jsx(`div`, {
-                                                className: `text-[10px] text-gray-500 mb-1`,
-                                                children: label,
-                                              }),
-                                              jsx(`input`, {
-                                                type: `text`,
-                                                value: customPublicUploadConfig[
-                                                  fieldKey
-                                                ] || ``,
-                                                placeholder: placeholder,
-                                                onChange: (event) =>
-                                                  setCustomPublicUploadConfig(
-                                                    (prev) => ({
-                                                      ...prev,
-                                                      [fieldKey]: event.target
-                                                        .value,
-                                                    }),
-                                                  ),
-                                                className: `w-full bg-[#1a1a1a] border border-[#333] rounded-lg px-3 py-2 text-xs text-gray-200 focus:outline-none focus:border-blue-500`,
-                                              }),
-                                            ],
-                                          },
-                                          fieldKey,
-                                        ),
-                                      ),
-                                    }),
-                                    jsxs(`div`, {
-                                      className: `grid grid-cols-1 md:grid-cols-2 gap-3`,
-                                      children: [
-                                        [`fields`, `Form Fields`, `reqtype=fileupload`],
-                                        [`headers`, `Headers`, ``],
-                                      ].map(([fieldKey, label, placeholder]) =>
-                                        jsxs(
-                                          `label`, {
-                                            className: `block`,
-                                            children: [
-                                              jsx(`div`, {
-                                                className: `text-[10px] text-gray-500 mb-1`,
-                                                children: label,
-                                              }),
-                                              jsx(`textarea`, {
-                                                rows: 3,
-                                                value: customPublicUploadConfig[
-                                                  fieldKey
-                                                ] || ``,
-                                                placeholder: placeholder,
-                                                onChange: (event) =>
-                                                  setCustomPublicUploadConfig(
-                                                    (prev) => ({
-                                                      ...prev,
-                                                      [fieldKey]: event.target
-                                                        .value,
-                                                    }),
-                                                  ),
-                                                className: `w-full bg-[#1a1a1a] border border-[#333] rounded-lg px-3 py-2 text-xs text-gray-200 focus:outline-none focus:border-blue-500 resize-y`,
-                                              }),
-                                            ],
-                                          },
-                                          fieldKey,
-                                        ),
-                                      ),
-                                    }),
-                                    jsx(`p`, {
-                                      className: `text-[10px] text-gray-500`,
-                                      children: `Litterbox 可填 Upload URL=https://litterbox.catbox.moe/resources/internals/api.php、File Field=fileToUpload、Form Fields=reqtype=fileupload 和 time=1h、Result Path 留空。其他服务可用每行 key=value 配置表单字段和请求头。`,
                                     }),
                                   ],
                                 }),
@@ -48205,7 +48605,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                       }),
                       activeSettingsTab === `generation` &&
                       jsxs(`div`, {
-                        className: `space-y-6 animate-fade-in wanjuan-settings-section`,
+                        className: `space-y-6 wanjuan-settings-section`,
                         children: [
                           jsxs(`div`, {
                             className: `group bg-[#1a1a1a] rounded-xl overflow-hidden transition-all duration-300 pb-4 shadow-sm border border-[#222] wanjuan-settings-card`,
@@ -48578,7 +48978,7 @@ ${String(l || ``).slice(0, 5e4)}`;
 	                      }),
 	                      activeSettingsTab === `extensions` &&
 	                      jsxs(`div`, {
-	                        className: `space-y-6 animate-fade-in wanjuan-settings-section`,
+		                        className: `space-y-6 wanjuan-settings-section`,
 	                        children: [
 	                          jsxs(`div`, {
 	                            className: `group bg-[#1a1a1a] rounded-xl overflow-hidden transition-all duration-300 pb-4 shadow-sm border border-[#222] wanjuan-settings-card`,
@@ -48619,7 +49019,7 @@ ${String(l || ``).slice(0, 5e4)}`;
 	                                children: [
 	                                  jsx(`p`, {
 	                                    className: `text-xs text-gray-500 leading-6 wanjuan-settings-help`,
-		                                    children: `推荐导入对应系统的离线工具包，软件会复制到应用数据目录并自动注册；在线安装保留为备用方式，适合网络和系统环境稳定时使用。`,
+		                                    children: `Deface 会随正式版安装包提供；Qwen-TTS 语音生成作为官方可选离线包导入，在线安装保留为备用方式。`,
 	                                  }),
 		                                  jsxs(`div`, {
 		                                    className: `rounded-lg border border-[#333] bg-[#121212] p-4`,
@@ -48657,7 +49057,7 @@ ${String(l || ``).slice(0, 5e4)}`;
 	                                              }),
 	                                              jsx(`p`, {
 	                                                className: `mt-2 text-xs text-gray-500 leading-6`,
-	                                                children: `用于“视频人脸打码”节点的本地视频匿名化处理。安装后节点会调用本机 deface 命令，不会改变现有模型生成逻辑。`,
+	                                                children: `用于“视频人脸打码”节点的本地视频匿名化处理。正式版会优先调用随包内置 Deface；缺失时仍可导入工具包或在线安装修复。`,
 	                                              }),
 		                                              jsxs(`div`, {
 		                                                className: `mt-3 max-h-24 overflow-y-auto rounded-lg border border-[#2a2f38] bg-[#0d1015] px-3 py-2 text-[11px] text-gray-400 leading-5 font-mono whitespace-pre-wrap break-all custom-scrollbar`,
@@ -48749,7 +49149,7 @@ ${String(l || ``).slice(0, 5e4)}`;
 	                                              }),
 	                                              jsx(`p`, {
 	                                                className: `mt-2 text-xs text-gray-500 leading-6`,
-	                                                children: `用于“Qwen-TTS 语音生成”节点的本地语音生成，支持参考音色克隆和预设自定义语音两种模式。`,
+	                                                children: `用于“Qwen-TTS 语音生成”节点的本地语音生成，支持参考音色克隆和预设自定义语音两种模式。该能力通过官方可选离线包启用，不放进常规安装包。`,
 	                                              }),
 		                                              jsxs(`div`, {
 		                                                className: `mt-3 max-h-24 overflow-y-auto rounded-lg border border-[#2a2f38] bg-[#0d1015] px-3 py-2 text-[11px] text-gray-400 leading-5 font-mono whitespace-pre-wrap break-all custom-scrollbar`,
@@ -48905,7 +49305,7 @@ ${String(l || ``).slice(0, 5e4)}`;
 	                      }),
 	                      (activeSettingsTab === `api` || activeSettingsTab === `models`) &&
                       jsxs(`div`, {
-                        className: `space-y-6 animate-fade-in wanjuan-settings-section`,
+                        className: `space-y-6 wanjuan-settings-section`,
                         children: [
                           activeSettingsTab === `models` &&
                           jsx(`div`, {
@@ -51243,7 +51643,7 @@ ${String(l || ``).slice(0, 5e4)}`;
 	                      }),
                       activeSettingsTab === `data` &&
                       jsx(`div`, {
-                        className: `space-y-6 animate-fade-in wanjuan-settings-section`,
+                        className: `space-y-6 wanjuan-settings-section`,
                         children: jsxs(`div`, {
                           className: `group bg-[#1a1a1a] rounded-xl overflow-hidden transition-all duration-300 pb-4 shadow-sm border border-[#222] wanjuan-settings-card`,
                           children: [
@@ -51539,114 +51939,6 @@ ${String(l || ``).slice(0, 5e4)}`;
                         }),
                       }),
                     ],
-                  }),
-                }),
-                (activeSettingsTab === `api` || activeSettingsTab === `models` || activeSettingsTab === `cloud`) &&
-                jsx(`div`, {
-                  className: `wanjuan-settings-save-bar absolute bottom-0 left-48 right-0 p-4 bg-gradient-to-t from-[#121212] via-[#121212] to-transparent z-20 flex justify-center pointer-events-none`,
-                  children: jsx(`button`, {
-                    onClick: async (saveButtonClickEvent) => {
-                      // 点击后立即移除焦点：避免保存触发重渲染后 Chromium 把鼠标点击误判为
-                      // :focus-visible，从而在按钮上残留 2px 强调色描边环（“选择状态异常”）。
-                      // 键盘 Tab 导航的焦点环不受影响（那种场景不会走到这里的鼠标点击路径）。
-                      try { saveButtonClickEvent?.currentTarget?.blur?.(); } catch {}
-                      try {
-                        videoModelRequestProfilesText.trim() &&
-                          JSON.parse(videoModelRequestProfilesText);
-                      } catch (error) {
-                        (showToast2(
-                            `视频模型请求协议配置 JSON 格式不正确：${error.message}`,
-                          ),
-                          console.error(`Invalid video model request profiles`, error));
-                        return;
-                      }
-                      let syncedTianjiSeedanceConfig = await syncTianjiConfigFromJixinApi(apiConfigs);
-                      _
-                        ?
-                        chrome.storage.local.set({
-                            textApiUrl: textApiUrl,
-                            textApiKey: textApiKey,
-                            imageApiUrl: imageApiUrl,
-                            imageApiKey: imageApiKey,
-                            videoApiUrl: videoApiUrl,
-                            videoApiKey: videoApiKey,
-                            audioApiUrl: audioApiUrl,
-                            audioApiKey: audioApiKey,
-	                            presetPrompts: presetPrompts,
-	                            textModel: textModels,
-	                            drawingModel: imageModels,
-	                            imageCompatResolutions: imageCompatResolutions,
-	                            videoModel: videoModels,
-                            videoDurations: je,
-                            videoResolutions: videoResolutions,
-                            videoAspectRatios: videoAspectRatios,
-                            videoModelRequestProfiles: videoModelRequestProfilesText,
-                            seedanceModel: seedanceModel,
-                            seedanceDurations: seedanceDurations,
-                            seedanceResolutions: seedanceResolutions,
-                            seedanceRatios: seedanceRatios,
-                            seedanceGenerateAudio: seedanceGenerateAudio,
-                            seedanceWatermark: seedanceWatermark,
-                            seedanceEnableWebSearch: seedanceEnableWebSearch,
-                            seedanceVirtualPortraits: seedanceVirtualPortraits,
-                            tianjiSeedanceSettingsMode: advancedSettingsUnlocked ? tianjiSeedanceSettingsMode : `official`,
-                            ...(syncedTianjiSeedanceConfig ? {
-                              tianjiSeedanceConfig: syncedTianjiSeedanceConfig,
-                            } : {}),
-                            tongyiWanxiangTextModels: tongyiWanxiangTextModels,
-                            tongyiWanxiangReferenceImageModels: tongyiWanxiangReferenceImageModels,
-                            tongyiWanxiangImageModels: tongyiWanxiangImageModels,
-                            tongyiWanxiangEditModels: tongyiWanxiangEditModels,
-                            tongyiWanxiangDurations: tongyiWanxiangDurations,
-                            tongyiWanxiangResolutions: tongyiWanxiangResolutions,
-                            tongyiWanxiangRatios: tongyiWanxiangRatios,
-                            seedanceUploadMode: seedanceUploadMode,
-                            tosConfig: tosConfig,
-                            customPublicUploadConfig: customPublicUploadConfig,
-                            qiniuConfig: qiniuConfig,
-                            themeMode: themeMode,
-                            appLanguage: appLanguage,
-                            uiLanguage: appLanguage,
-                            downloadDirectory: downloadDirectory,
-                            audioModel: audioModels,
-                            ttsMusicModel: ttsMusicModel,
-                            modelProtocolRegistry: modelProtocolRegistry,
-                            configButlerApiUrl: configButlerApiUrl,
-	                            configButlerApiKey: configButlerApiKey,
-	                            configButlerProtocol: configButlerProtocol,
-	                            configButlerModel: configButlerModel,
-	                            configButlerDocUrl: configButlerDocUrl,
-	                            configButlerMode: configButlerMode,
-                            configButlerTargetCategory: configButlerTargetCategory,
-                            configButlerTargetApiConfigId: configButlerTargetApiConfigId,
-                            storedGlobalConfigs: storedGlobalConfigs,
-                            activeStoredGlobalConfigId: activeStoredGlobalConfigId,
-                            apiConfigs: apiConfigs,
-                            textModelApiBindings: textModelApiBindings,
-                            textModelProtocolBindings: textModelProtocolBindings,
-                            imageModelApiBindings: imageModelApiBindings,
-                            imageModelProtocolBindings: imageModelProtocolBindings,
-                            videoModelProtocolBindings: videoModelProtocolBindings,
-                            textApiConfigId: textApiConfigId,
-                            imageApiConfigId: imageApiConfigId,
-	                            videoApiConfigId: videoApiConfigId,
-	                            audioApiConfigId: audioApiConfigId,
-	                            videoModelApiBindings: videoModelApiBindings,
-	                            audioModelProtocolBindings: audioModelProtocolBindings,
-	                            audioModelApiBindings: audioModelApiBindings,
-	                            globalPollingInterval: pollingInterval,
-                            globalMaxPollingDuration: maxPollingDuration,
-                            layeredRunConcurrencyOptions: layeredRunConcurrencyOptions,
-                            layeredRunMaxConcurrency: layeredRunMaxConcurrency,
-                          },
-                          () => {
-                            showToast2(wanjuanT(`设置已保存`));
-                          },
-                        ) :
-                        showToast2(`开发模式：设置已保存（仅内存）`);
-                    },
-                    className: `w-full max-w-md bg-blue-600 text-white py-3 rounded-xl hover:bg-blue-500 transition-colors text-sm font-bold shadow-lg shadow-blue-900/50 pointer-events-auto wanjuan-settings-save-button`,
-                    children: wanjuanT(`保存设置`),
                   }),
                 }),
               ],

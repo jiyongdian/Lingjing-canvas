@@ -943,6 +943,7 @@ async function ensureFfmpegCommand() {
 }
 
 function resolveDefaceCommand() {
+  const bundledDeface = bundledToolCommand("deface");
   const managedDeface = defaceVenvCommand();
   const userDefaceBins = [];
   try {
@@ -960,7 +961,9 @@ function resolveDefaceCommand() {
   } catch {}
   const candidates = [
     process.env.WANJUAN_DEFACE_BIN,
+    bundledDeface,
     managedDeface,
+    managedToolCommand("deface"),
     "/opt/homebrew/bin/deface",
     "/usr/local/bin/deface",
     ...userDefaceBins,
@@ -1917,6 +1920,8 @@ module.exports = {
   ensureFfmpegCommand,
   ensureUvCommand,
   ensureUvPythonCommand,
+  bundledToolCommand,
+  managedToolCommand,
   resolveDefaceCommand,
   defaceToolRoot,
   defaceVenvPython,

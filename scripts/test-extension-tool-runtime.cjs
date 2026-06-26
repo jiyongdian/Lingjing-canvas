@@ -4,6 +4,8 @@ const tools = require("../electron/main/tools/external-tools.cjs");
 
 assert.equal(typeof tools.ensureUvCommand, "function");
 assert.equal(typeof tools.ensureFfmpegCommand, "function");
+assert.equal(typeof tools.bundledToolCommand, "function");
+assert.equal(typeof tools.managedToolCommand, "function");
 assert.equal(typeof tools.extensionInstallLogPath, "function");
 assert.equal(typeof tools.windowsExpandArchiveArgs, "function");
 
@@ -23,6 +25,8 @@ if (process.platform === "win32") {
 }
 
 assert.equal(path.basename(tools.defaceVenvCommand()).startsWith("deface"), true);
+assert.equal(typeof tools.bundledToolCommand("deface"), "string");
+assert.equal(typeof tools.managedToolCommand("deface"), "string");
 
 const expandArchiveArgs = tools.windowsExpandArchiveArgs("C:\\Users\\Test User\\uv.zip", "C:\\Users\\Test User\\tools");
 assert.equal(expandArchiveArgs[0], "-NoProfile");
