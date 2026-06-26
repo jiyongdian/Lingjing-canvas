@@ -16761,6 +16761,10 @@ const wanjuanNormalizeTianjiSeedanceConfig = (config = {}) => ({
   syncSource: config?.syncSource === WANJUAN_TIANJI_SYNC_SOURCE_MANUAL ? WANJUAN_TIANJI_SYNC_SOURCE_MANUAL : WANJUAN_TIANJI_SYNC_SOURCE_JIXIN,
   sassId: String(config?.sassId || `1`).trim() || `1`,
   platform: String(config?.platform || `web`).trim() || `web`,
+  models: String(config?.models || ``).trim() || wanjuanTianjiSeedanceDefaults.models,
+  durations: String(config?.durations || ``).trim() || wanjuanTianjiSeedanceDefaults.durations,
+  resolutions: String(config?.resolutions || ``).trim() || wanjuanTianjiSeedanceDefaults.resolutions,
+  ratios: String(config?.ratios || ``).trim() || wanjuanTianjiSeedanceDefaults.ratios,
   generateAudio: config?.generateAudio !== !1,
   watermark: config?.watermark === !0,
 });
