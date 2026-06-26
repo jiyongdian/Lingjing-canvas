@@ -1,6 +1,6 @@
 {
   "name": "wanjuan-lingjing",
-  "version": "1.3.2",
+  "version": "1.3.3",
   "private": true,
   "description": "万卷灵境 - macOS AI 创作画布桌面应用",
   "author": "",
@@ -14,7 +14,7 @@
     "prepare:bundled-deface": "node scripts/prepare-bundled-deface.cjs",
     "verify:bundled-deface": "node scripts/verify-bundled-deface.cjs",
     "build": "vite build --config vite.config.mjs && electron-builder",
-    "build:win": "vite build --config vite.config.mjs && electron-builder --win --x64 --ia32",
+    "build:win": "vite build --config vite.config.mjs && electron-builder --win --x64",
     "build:win:x64": "vite build --config vite.config.mjs && electron-builder --win --x64",
     "build:win:x86": "vite build --config vite.config.mjs && electron-builder --win --ia32",
     "build:win:ia32": "vite build --config vite.config.mjs && electron-builder --win --ia32",
@@ -55,7 +55,7 @@
   "build": {
     "appId": "com.wanjuan.lingjing",
     "productName": "万卷灵境",
-    "artifactName": "万卷灵境-1.3.2-${arch}.${ext}",
+    "artifactName": "万卷灵境-1.3.3-${arch}.${ext}",
     "directories": {
       "output": "release"
     },
@@ -63,21 +63,13 @@
       "dist/**/*",
       "electron/**/*"
     ],
-    "extraResources": [
-      {
-        "from": "tool-runtime",
-        "to": "tool-runtime",
-        "filter": [
-          "**/*"
-        ]
-      }
-    ],
+    "afterPack": "scripts/copy-platform-tool-runtime.cjs",
     "mac": {
       "category": "public.app-category.productivity",
       "icon": "build/icon.icns",
       "extendInfo": {
-        "CFBundleShortVersionString": "1.3.2",
-        "CFBundleVersion": "1.3.2"
+        "CFBundleShortVersionString": "1.3.3",
+        "CFBundleVersion": "1.3.3"
       }
     },
     "win": {

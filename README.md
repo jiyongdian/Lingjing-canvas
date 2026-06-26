@@ -6,7 +6,7 @@
 
 **面向 AI 创作流程的桌面画布应用**
 
-[![版本](https://img.shields.io/badge/版本-1.3.2-blue.svg)](https://github.com/Guan-XX003/Lingjing-canvas/releases)
+[![版本](https://img.shields.io/badge/版本-1.3.3-blue.svg)](https://github.com/Guan-XX003/Lingjing-canvas/releases)
 [![平台](https://img.shields.io/badge/平台-macOS%20|%20Windows-lightgrey.svg)](#安装)
 [![许可](https://img.shields.io/badge/许可-Private-red.svg)](LICENSE)
 
@@ -103,9 +103,8 @@
 
 | 平台 | 架构 | 下载 |
 |------|------|------|
-| macOS | Apple Silicon (arm64) | [万卷灵境-1.3.2-arm64.dmg](../../releases/latest) |
-| Windows | x64 | [万卷灵境-1.3.2-x64.exe](../../releases/latest) |
-| Windows | x86 / ia32 | [万卷灵境-1.3.2-ia32.exe](../../releases/latest) |
+| macOS | Apple Silicon (arm64) | [万卷灵境-1.3.3-arm64.dmg](../../releases/latest) |
+| Windows | x64 | [万卷灵境-1.3.3-x64.exe](../../releases/latest) |
 
 ### 安装说明
 
@@ -184,8 +183,14 @@ npm run build:win:x86
 
 ## 📋 更新记录
 
-### 最新版本：v1.3.2（2026-06-24）
+### 最新版本：v1.3.3（2026-06-26）
 
+- 🎨 优化石墨灰主题控件配色、边界和选中态
+- 🌐 新增内置语言包运行时，覆盖更多后渲染界面
+- 🛠️ 完善 Deface 官方离线运行时打包与校验流程
+- 💡 优化工作空间和功能提示词卡片布局
+
+### v1.3.2（2026-06-24）
 - 🎨 增强画布渲染性能和交互体验
 - 🔧 改进天玑配置同步机制
 - 🐛 修复多个稳定性问题

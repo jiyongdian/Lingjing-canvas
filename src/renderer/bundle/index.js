@@ -31812,6 +31812,7 @@ time=1h`,
         "当前已启用全局统一API配置": "目前已啟用全域統一 API 配置",
         "切换石墨灰、曜石黑、晴空蓝、暖砂白、樱雾粉、薄荷绿或跟随系统外观，不改变现有布局结构": "切換石墨灰、曜石黑、晴空藍、暖砂白、櫻霧粉、薄荷綠或跟隨系統外觀，不改變現有布局結構",
         "选择界面语言偏好，后续多语言文案将按此设置展示": "選擇介面語言偏好，介面文案會依此設定顯示",
+        "1.3.3：优化石墨灰主题控件选中态、内置语言包和离线工具包打包流程。": "1.3.3：優化石墨灰主題控制項選中態、內建語言包和離線工具包打包流程。",
         "1.3.2：优化即梦天玑人像审核后的自动刷新绑定，提高素材库最终 ID 回填成功率。": "1.3.2：優化即夢天璣人像審核後的自動刷新綁定，提高素材庫最終 ID 回填成功率。",
         "1.3.1：优化工作空间团队连接诊断、分组管理、网络环境提示与即梦天玑任务失败识别；支持天玑人像审核后直接绑定图片节点。": "1.3.1：優化工作空間團隊連線診斷、分組管理、網路環境提示與即夢天璣任務失敗識別；支援天璣人像審核後直接綁定圖片節點。",
         "1.3.0：新增工作空间、团队空间与离线工具包导入；优化本地工具、提示词模板、团队模板视频播放和跨平台协同。": "1.3.0：新增工作空間、團隊空間與離線工具包匯入；優化本機工具、提示詞模板、團隊模板影片播放和跨平台協同。",
@@ -31873,6 +31874,7 @@ time=1h`,
         "当前已启用全局统一API配置": "Global unified API config is enabled",
         "切换石墨灰、曜石黑、晴空蓝、暖砂白、樱雾粉、薄荷绿或跟随系统外观，不改变现有布局结构": "Switch the visual theme without changing the current layout.",
         "选择界面语言偏好，后续多语言文案将按此设置展示": "Choose the interface language. Supported interface text follows this setting.",
+        "1.3.3：优化石墨灰主题控件选中态、内置语言包和离线工具包打包流程。": "1.3.3: Improved Graphite theme selected states, the built-in language pack, and offline tool packaging workflow.",
         "1.3.2：优化即梦天玑人像审核后的自动刷新绑定，提高素材库最终 ID 回填成功率。": "1.3.2: Improved automatic refresh binding after Jimeng Tianji portrait review, increasing the success rate of final asset ID backfill.",
         "1.3.1：优化工作空间团队连接诊断、分组管理、网络环境提示与即梦天玑任务失败识别；支持天玑人像审核后直接绑定图片节点。": "1.3.1: Improved Workspace team connection diagnostics, group management, network-change guidance, and Tianji task failure detection; Tianji portrait review can now bind directly to the image node.",
         "1.3.0：新增工作空间、团队空间与离线工具包导入；优化本地工具、提示词模板、团队模板视频播放和跨平台协同。": "1.3.0: Added Workspace, Team Space, and offline tool pack import; improved local tools, prompt templates, team template video playback, and cross-platform collaboration.",
@@ -43309,7 +43311,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                           [],
                         ),
                         buildBackupPayload = async (e, t, n, r = {}) => ({
-				                            version: `1.3.2`,
+				                            version: `1.3.3`,
                             backupFormat: `4`,
                             exportedAt: new Date().toISOString(),
                             modules: await buildBackupModules(e, t, n, r),
@@ -43909,7 +43911,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                 }),
                 jsx(`span`, {
                   className: `absolute bottom-1 right-2 text-[8px] text-gray-600 font-normal`,
-					                  children: `v1.3.2`,
+					                  children: `v1.3.3`,
                 }),
                 updateInfo?.hasUpdate &&
                 jsx(`span`, {
@@ -47850,7 +47852,7 @@ ${String(l || ``).slice(0, 5e4)}`;
 	                                        }),
 	                                        jsx(`div`, {
 	                                          className: `pt-2 border-t border-[#262626] text-[11px] text-gray-500`,
-				                                          children: wanjuanT(`1.3.2：优化即梦天玑人像审核后的自动刷新绑定，提高素材库最终 ID 回填成功率。`),
+				                                          children: wanjuanT(`1.3.3：优化石墨灰主题控件选中态、内置语言包和离线工具包打包流程。`),
 	                                        }),
 	                                      ],
 	                                    }),
@@ -47867,7 +47869,7 @@ ${String(l || ``).slice(0, 5e4)}`;
                                       children: [
                                         jsx(`span`, {
                                           className: `text-sm font-semibold text-gray-100`,
-					                                          children: `1.3.2`,
+					                                          children: `1.3.3`,
 	                                        }),
 	                                        jsx(`span`, {
 	                                          className: `text-[10px] text-gray-500`,
