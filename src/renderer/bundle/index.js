@@ -16317,41 +16317,116 @@ const WANJUAN_JIXIN_DEFAULT_API_URL = `https://newapi.guancn.uk`;
 const WANJUAN_JIXIN_BUILTIN_GLOBAL_CONFIG_ID = `builtin-jixin-base`;
 const WANJUAN_JIXIN_BUILTIN_BASE_CONFIG_VERSION = `2026-06-19-v3`;
 const WANJUAN_JIXIN_BUILTIN_TEXT_MODELS = [
+  // OpenAI GPT 系列
   `gpt-5.5`,
+  `gpt-5.4`,
+  // DeepSeek 系列
   `deepseek-v4-pro`,
   `deepseek-v4-flash`,
-  `deepseek-v3-1-250821`,
+  // Claude 系列
+  `claude-opus-4-8`,
+  `claude-opus-4-7`,
+  `claude-sonnet-4-6`,
+  `claude-sonnet-4-5`,
+  // Qwen 系列
   `Qwen3-235B-A22B-Instruct-2507`,
   `Qwen3-30B-A3B-Instruct-2507`,
-  `gemini-3.1-pro`,
-  `gemini-3.5-flash`,
+  // Gemini 系列
+  `gemini-3-pro`,
+  `gemini-2.5-pro`,
+  // Kimi 系列
+  `Kimi-K2-Instruct`,
+  `kimi-k2.6`,
+  // Grok 系列
+  `grok-4.2`,
+  `grok-4.1`,
+  // MiniMax 系列
+  `MiniMax-M3`,
 ];
 const WANJUAN_JIXIN_BUILTIN_IMAGE_MODELS = [
-  `gpt-image-2`,
+  // GPT Image 系列
   `gpt-image-2-pro`,
-  `Z-Image-Turbo`,
-  `gemini-3.1-flash-image-preview`,
+  `gpt-image-2`,
+  `gpt-image-1.5`,
+  `gpt-image-1`,
+  // Gemini Image 系列
   `gemini-3-pro-image-preview`,
+  `gemini-3.1-flash-image-preview`,
+  `gemini-2.5-flash-image-preview`,
+  // Grok Image 系列
+  `grok-4.2-image`,
+  `grok-4.1-image`,
+  `grok-imagine-image-pro`,
+  `grok-imagine-image`,
+  // Qwen Image 系列
+  `qwen-image-2.0-pro`,
+  `qwen-image-2.0`,
+  `qwen-image-max`,
+  `qwen-image-plus-2026-01-09`,
+  // 通义万象 Image
+  `wan2.7-image-pro`,
+  `wan2.7-image`,
+  `wan2.6-image`,
+  // 其他
+  `Z-Image-Turbo`,
+  `kling-image`,
 ];
 const WANJUAN_JIXIN_BUILTIN_VIDEO_MODELS = [
+  // Google Veo3.1 系列
   `veo3.1`,
+  `veo3.1-pro`,
+  `veo3.1-fast`,
+  `veo3.1-landscape`,
+  `veo3.1-landscape-4k`,
+  `veo3.1-landscape-hd`,
+  `veo3.1-portrait`,
+  `veo3.1-portrait-4k`,
+  `veo3.1-portrait-hd`,
+  // Grok Video 系列
   `grok-video-3`,
   `grok-video-3-pro`,
-  `doubao-seedance-2-0-fast-260128`,
+  `grok-video-3-max`,
+  `grok-video-4.2`,
 ];
 const WANJUAN_JIXIN_BUILTIN_MUSIC_MODELS = [
   `suno_music`,
+  `suno_music_open`,
+  `suno_lyrics`,
+  `suno_concat`,
 ];
 const WANJUAN_JIXIN_BUILTIN_TEXT_PROTOCOLS = {
-  [`gemini-3.1-pro`]: `Gemini 文本原生`,
-  [`gemini-3.5-flash`]: `Gemini 文本原生`,
+  // Gemini 系列必须用 Gemini 原生协议
+  [`gemini-3-pro`]: `Gemini 文本原生`,
+  [`gemini-2.5-pro`]: `Gemini 文本原生`,
 };
 const WANJUAN_JIXIN_BUILTIN_IMAGE_PROTOCOLS = {
-  [`gpt-image-2`]: `极鑫图片兼容`,
+  // GPT Image 系列
   [`gpt-image-2-pro`]: `极鑫图片兼容`,
+  [`gpt-image-2`]: `极鑫图片兼容`,
+  [`gpt-image-1.5`]: `极鑫图片兼容`,
+  [`gpt-image-1`]: `极鑫图片兼容`,
+  // Z-Image
   [`Z-Image-Turbo`]: `极鑫图片兼容`,
-  [`gemini-3.1-flash-image-preview`]: `极鑫 Gemini 图片兼容`,
+  // Gemini Image 系列
   [`gemini-3-pro-image-preview`]: `极鑫 Gemini 图片兼容`,
+  [`gemini-3.1-flash-image-preview`]: `极鑫 Gemini 图片兼容`,
+  [`gemini-2.5-flash-image-preview`]: `极鑫 Gemini 图片兼容`,
+  // Grok Image 系列
+  [`grok-4.2-image`]: `极鑫图片兼容`,
+  [`grok-4.1-image`]: `极鑫图片兼容`,
+  [`grok-imagine-image-pro`]: `极鑫图片兼容`,
+  [`grok-imagine-image`]: `极鑫图片兼容`,
+  // Qwen Image 系列
+  [`qwen-image-2.0-pro`]: `极鑫图片兼容`,
+  [`qwen-image-2.0`]: `极鑫图片兼容`,
+  [`qwen-image-max`]: `极鑫图片兼容`,
+  [`qwen-image-plus-2026-01-09`]: `极鑫图片兼容`,
+  // 通义万象 Image
+  [`wan2.7-image-pro`]: `极鑫图片兼容`,
+  [`wan2.7-image`]: `极鑫图片兼容`,
+  [`wan2.6-image`]: `极鑫图片兼容`,
+  // Kling Image
+  [`kling-image`]: `极鑫图片兼容`,
 };
 const WANJUAN_JIXIN_BUILTIN_PROTOCOLS = {
   [`极鑫图片兼容`]: {
