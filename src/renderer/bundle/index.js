@@ -16394,6 +16394,24 @@ const WANJUAN_JIXIN_BUILTIN_MUSIC_MODELS = [
   `suno_lyrics`,
   `suno_concat`,
 ];
+const WANJUAN_JIXIN_BUILTIN_AUDIO_MODELS = [
+  // Qwen TTS 系列
+  `qwen3-tts-flash`,
+  `qwen3-tts-instruct-flash`,
+  `qwen-tts-flash`,
+  // GPT Audio/TTS 系列
+  `gpt-4o-audio-preview`,
+  `gpt-4o-mini-audio-preview`,
+  `tts-1-hd`,
+  `tts-1`,
+  // 其他 TTS
+  `kling-audio`,
+  `vidu-tts`,
+  // Whisper ASR 系列
+  `whisper`,
+  `whisper-1`,
+  `qwen3-asr-flash-realtime`,
+];
 const WANJUAN_JIXIN_BUILTIN_TEXT_PROTOCOLS = {
   // Gemini 系列必须用 Gemini 原生协议
   [`gemini-3-pro`]: `Gemini 文本原生`,
@@ -16591,9 +16609,11 @@ const wanjuanBuildJixinBuiltinBasePatch = (source = {}) => {
     drawingModel = wanjuanMergeModelText(source.drawingModel, WANJUAN_JIXIN_BUILTIN_IMAGE_MODELS),
     videoModel = wanjuanMergeModelText(source.videoModel, WANJUAN_JIXIN_BUILTIN_VIDEO_MODELS),
     ttsMusicModel = wanjuanMergeModelText(source.ttsMusicModel, WANJUAN_JIXIN_BUILTIN_MUSIC_MODELS),
+    audioModel = wanjuanMergeModelText(source.audioModel, WANJUAN_JIXIN_BUILTIN_AUDIO_MODELS),
     textBindings = wanjuanBuildJixinModelBindings(WANJUAN_JIXIN_BUILTIN_TEXT_MODELS, jixinConfigId),
     imageBindings = wanjuanBuildJixinModelBindings(WANJUAN_JIXIN_BUILTIN_IMAGE_MODELS, jixinConfigId),
     videoBindings = wanjuanBuildJixinModelBindings(WANJUAN_JIXIN_BUILTIN_VIDEO_MODELS, jixinConfigId),
+    audioBindings = wanjuanBuildJixinModelBindings(WANJUAN_JIXIN_BUILTIN_AUDIO_MODELS, jixinConfigId),
     musicBindings = wanjuanBuildJixinModelBindings(WANJUAN_JIXIN_BUILTIN_MUSIC_MODELS, jixinConfigId);
   return {
     ...source,
@@ -16617,7 +16637,22 @@ const wanjuanBuildJixinBuiltinBasePatch = (source = {}) => {
     textModel,
     drawingModel,
     videoModel,
+    audioModel,
     ttsMusicModel,
+    tongyiWanxiangTextModels: source.tongyiWanxiangTextModels || `wan2.7-t2v-1080P
+wan2.7-t2v-720P
+wan2.6-t2v-1080P
+wan2.6-t2v-720P`,
+    tongyiWanxiangImageModels: source.tongyiWanxiangImageModels || `wan2.7-i2v-1080P
+wan2.7-i2v-720P
+wan2.6-i2v-1080P
+wan2.6-i2v-720P`,
+    tongyiWanxiangReferenceImageModels: source.tongyiWanxiangReferenceImageModels || `wan2.7-r2v-1080P
+wan2.7-r2v-720P
+wan2.6-r2v-1080P
+wan2.6-r2v-720P`,
+    tongyiWanxiangEditModels: source.tongyiWanxiangEditModels || `wan2.7-videoedit-1080P
+wan2.7-videoedit-720P`,
     videoResolutions: source.videoResolutions || `1280x720
 720x1280
 1920x1080
@@ -16633,7 +16668,7 @@ const wanjuanBuildJixinBuiltinBasePatch = (source = {}) => {
     textModelApiBindings: wanjuanMergeObjectDefaults(source.textModelApiBindings, textBindings),
     imageModelApiBindings: wanjuanMergeObjectDefaults(source.imageModelApiBindings, imageBindings),
     videoModelApiBindings: wanjuanMergeObjectDefaults(source.videoModelApiBindings, videoBindings),
-    audioModelApiBindings: wanjuanMergeObjectDefaults(source.audioModelApiBindings, musicBindings),
+    audioModelApiBindings: wanjuanMergeObjectDefaults(source.audioModelApiBindings, audioBindings),
     textModelProtocolBindings: wanjuanMergeObjectDefaults(source.textModelProtocolBindings, WANJUAN_JIXIN_BUILTIN_TEXT_PROTOCOLS),
     imageModelProtocolBindings: wanjuanMergeObjectDefaults(source.imageModelProtocolBindings, WANJUAN_JIXIN_BUILTIN_IMAGE_PROTOCOLS),
     videoModelProtocolBindings: wanjuanMergeObjectDefaults(
@@ -16668,7 +16703,8 @@ const wanjuanTianjiSeedanceDefaults = {
   syncSource: WANJUAN_TIANJI_SYNC_SOURCE_JIXIN,
   sassId: `1`,
   platform: `web`,
-  models: ``,
+  models: `doubao-seedance-2-0-260128
+doubao-seedance-2-0-fast-260128`,
   durations: `5
 10`,
   resolutions: `720p
