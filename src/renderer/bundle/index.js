@@ -16705,8 +16705,18 @@ const wanjuanTianjiSeedanceDefaults = {
   platform: `web`,
   models: `doubao-seedance-2-0-260128
 doubao-seedance-2-0-fast-260128`,
-  durations: `5
-10`,
+  durations: `4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15`,
   resolutions: `720p
 1080p`,
   ratios: `16:9
